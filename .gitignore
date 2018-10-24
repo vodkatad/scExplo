@@ -1,0 +1,4 @@
+dataset/*
+local/share/data/*
+.snakemake
+local/src/cellranger-2.2.0/*
