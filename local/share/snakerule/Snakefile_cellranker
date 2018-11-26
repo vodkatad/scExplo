@@ -3,6 +3,7 @@ include: "conf.sk"
 rule all_counts:
 	input: expand("{sample}.done", sample=SAMPLES)
 
+
 rule cellrangercounts:
 	params: transcriptome=TRANSCRIPTOME, fastq_dir=FASTQ_DIR+"{sample}", tool=CELLRANGER, mem=MEM, cores=CORES
 	output: "{sample}.done"
@@ -51,6 +52,7 @@ rule cellrangeraggr:
 	shell: 
 		"""
 		{params.tool} aggr --id=aggr --csv={input} --normalize=mapped
+        touch {output}
 		"""
 
 ### for line we look for expression of line-1 # how is it possible to have calls for single lines1?
