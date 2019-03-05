@@ -11,10 +11,12 @@ CELLRANGER=PRJ_ROOT+"local/src/cellranger-2.2.0/cellranger"
 FASTQ_DIR=PRJ_ROOT+"local/share/data/hpcnfs/techunits/genomics/PublicData/Pasini/dmangana/FASTQ/180717_A00302_0025_AHFKJTDMXX/"
 #SAMPLES="Sample_S20125_169","Sample_S20126_170","Sample_S20127_171","Sample_S20128_172","Sample_S20129_173","Sample_S20130_174"
 SAMPLES="Sample_S20125_169","Sample_S20126_170","Sample_S20128_172","Sample_S20129_173","Sample_S20130_174"
-
+OSAMPLES="CRC0022","CRC0066","CRC0515","CRC0177","CRC0076"
+NSAMPLES=len(SAMPLES)
 #GSEA_PATHWAYS=PRJ_ROOT+"local/share/data/Hallmark_curated_hs_entred.RData"
 GSEA_PATHWAYS=PRJ_ROOT+"local/share/data/Hallmark_curated_hs_symbol.RData"
 GSEA=PRJ_ROOT+"/local/src/gsea.R"
 GSEA_INPUT=PRJ_ROOT+"/local/src/gsea_input_from_cr.R"
 GSEA_XLS=PRJ_ROOT+"/local/src/gsea_genes_signature.R"
 
+SEURAT_PARAMS=PRJ_ROOT+"local/share/data/seurat_params.txt"

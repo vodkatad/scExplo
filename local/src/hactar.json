@@ -12,5 +12,11 @@
     "cellrangercounts":
     {
         "time": "24:00:00"
+    },
+    "seurat":
+    {
+        "time": "02:00:00",
+        "mem": "16000",
+        "ntasks": "1"
     }
 }

@@ -22,6 +22,22 @@ rule aggrcvs:
 		ls Sample_*/outs/molecule_info.h5 | perl -ane '@a=split("/",$_); print $a[0].",".$_' >> {output}
 		"""
 
+# TODO if specific file exists in local get it otherwise link the generic one
+rule seuratparams:
+    output: "{sample}.params"
+    input: SEURAT_PARAMS
+    shell: 
+        """
+        ln -s {input} {output}
+        """
+
+rule seurat:
+    input: placeh="{sample}.done", pars="{sample}.params", clfile="{sample}/outs/analysis/clustering/kmeans_"+str(NSAMPLES)+"_clusters/clusters.csv"
+    params: dir="{sample}/outs/filtered_gene_bc_matrices_mex/GRCh38/", name="{sample}", osamples=OSAMPLES, outdir="{sample}_seurat"
+    output: outdata="{sample}_seurat/prelim.Rdata"
+    script: SRC_DIR+"seurat.R"
+
+####
 rule all_cris:
 	input: expand("{sample}_prediction_result.xls", sample=SAMPLES)
 
@@ -88,5 +104,26 @@ rule gsea:
 rule gsea_rnked_in_pathway:
 	input: rdata="gsea_{sample}/gsea.Rdata"
 	output: outdir="gsea_{sample}_xls_top20"
+	script: GSEA_XLS
+
+ruleorder: gsea_input_k > gsea_input
+ruleorder: gsea_k > gsea
+ruleorder: gsea_rnked_in_pathway_k > gsea_rnked_in_pathway
+# gsea on kmeans clusters
+rule gsea_input_k:
+	input:  clusters="{sample}/outs/analysis/diffexp/kmeans_{k}_clusters/differential_expression.csv"
+	params: debug=DEBUG
+	output: "{sample}_{k,\d+}.gsea_in"
+	script: GSEA_INPUT
+
+rule gsea_k:
+	input: tsv="{sample}_{k}.gsea_in", pathways=GSEA_PATHWAYS
+	output: outdir=directory("gsea_{sample}_{k}"), outtable="{sample}_{k}.significant_NES_gsea"
+	params: save="gsea_{sample}_{k}.Rdata", debug=DEBUG, cores=12
+	script: GSEA
+
+rule gsea_rnked_in_pathway_k:
+	input: rdata="gsea_{sample}_{k}/gsea.Rdata"
+	output: outdir="gsea_{sample}_{k}_xls_top20"
 	script: GSEA_XLS
 
