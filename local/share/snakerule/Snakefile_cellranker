@@ -127,3 +127,41 @@ rule gsea_rnked_in_pathway_k:
 	output: outdir="gsea_{sample}_{k}_xls_top20"
 	script: GSEA_XLS
 
+
+### go
+# all differential_expression have the same length, in theory the universe could have a threshold on mean UMI...
+rule go_input:
+    input: clusters="{sample}/outs/analysis/diffexp/kmeans_{k}_clusters/differential_expression.csv"
+    output: classes="go_{sample}_{k,\d+}_input.tsv", universe="go_{sample}_{k,\d+}_universe.tsv"
+    params: pthr=0.005, lfcup=2, lfcdown=-2
+    run:
+        import pandas as pd
+        ref = pd.read_csv(input.clusters, sep=",")
+        cols = ref.columns.values 
+        #filter(lambda x: re.search(r'ID|UMI', x), cols) 
+        #ref.drop(columns=cols)
+        clusters = ["Cluster " + str(x) for x in range(1, (int(wildcards.k)+1))]
+        classes = pd.DataFrame()
+        names = ref['Gene Name'].unique()
+        pd.DataFrame(names).to_csv(output.universe, sep='\t', header=False, index=False)
+        for i, cl in enumerate(clusters):
+            d = ref.filter(regex=cl+"|Gene", axis=1)
+            cols = d.columns.values
+            pval = [item for item in cols if re.search('Adjusted', item)]
+            fc = [item for item in cols if re.search('fold', item)]
+            gene = [item for item in cols if re.search('Gene Name', item)]
+            assert len(pval) == 1 and len(fc) == 1 and len(gene) == 1, "meh about column filtering"
+            up = d.loc[(d[pval[0]] < params.pthr) & (d[fc[0]] > params.lfcup)]
+            down = d.loc[(d[pval[0]] < params.pthr) & (d[fc[0]] < params.lfcdown)]
+            for u in up[gene[0]].unique():
+                classes = classes.append({'gene': u, 'class': 'cl'+str(i)+'_up' }, ignore_index=True)
+            for d in down[gene[0]].unique():
+                classes = classes.append({'gene': d, 'class': 'cl'+str(i)+'_down' }, ignore_index=True)
+        classes.to_csv(output.classes, sep='\t', header=False, index=False)
+
+
+rule go:
+    input: classes="go_{sample}_{k}_input.tsv", universe="go_{sample}_{k}_universe.tsv"
+    output: "go_{sample}_{k}.gz"
+    params: ids="symbol", onto=['BP','MF','CC'], debug=DEBUG
+    script: SRC_DIR+"go.R"

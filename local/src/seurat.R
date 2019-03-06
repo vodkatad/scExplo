@@ -23,8 +23,7 @@ clfile <- snakemake@input[["clfile"]]
 clusters <- read.csv(clfile) # "/home/egrassi/ba/dataset/cellranger/aggr/outs/analysis/clustering/kmeans_5_clusters/clusters.csv")
 barcodefile <- snakemake@input[["barcodes"]]
 #barcodes - samples
-samples <- snakemake@params[["osamples"]]
-save.image("ele.Rdata")
+osamples <- snakemake@params[["osamples"]]
 
 dir.create(outdir)
 library("Seurat")
@@ -77,7 +76,7 @@ graphics.off()
 samples <- strsplit(colnames(srdata@data), '-', fixed=T)
 s <- sapply(samples, function(x) {x[2]})
 samples_id <- data.frame(id=s)
-translate <- data.frame(id=seq(1,5), sample=samples)
+translate <- data.frame(id=seq(1,5), sample=osamples)
 merged <- merge(samples_id, translate, by="id")
 rownames(merged) <- srdata@cell.names
 all(colnames(srdata@data)==srdata@cell.names)
@@ -120,4 +119,5 @@ pdf("tsne_10x.pdf");
 p1 <- TSNEPlot(srdata, do.return = T, pt.size = 0.5, group.by = "Cluster"); 
 plot(p1); 
 graphics.off()
+setwd("..")
 save.image(outdata)
