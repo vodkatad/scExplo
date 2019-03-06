@@ -32,10 +32,17 @@ rule seuratparams:
         """
 
 rule seurat:
-    input: placeh="{sample}.done", pars="{sample}.params", clfile="{sample}/outs/analysis/clustering/kmeans_"+str(NSAMPLES)+"_clusters/clusters.csv"
-    params: dir="{sample}/outs/filtered_gene_bc_matrices_mex/GRCh38/", name="{sample}", osamples=OSAMPLES, outdir="{sample}_seurat"
+    input: placeh="{sample}.done", pars="{sample}.params"
+    params: dir="{sample}/outs/filtered_gene_bc_matrices_mex/GRCh38/", name="{sample}", outdir="{sample}_seurat"
     output: outdata="{sample}_seurat/prelim.Rdata"
     script: SRC_DIR+"seurat.R"
+
+
+rule seurat_checkcluster:
+    input: data="{sample}_seurat/prelim.Rdata", clfile="{sample}/outs/analysis/clustering/kmeans_"+str(NSAMPLES)+"_clusters/clusters.csv"
+    output: "{sample}_seurat/samples_plot.pdf"
+    params: osamples=OSAMPLES, outdir="{sample}_seurat"
+    script: SRC_DIR+"seurat_check.R"
 
 ####
 rule all_cris:
