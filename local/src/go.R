@@ -7,6 +7,7 @@ universef <- snakemake@input[["universe"]]
 outfile <- snakemake@output[[1]]
 id <- snakemake@params[["ids"]]
 ontologies <- snakemake@params[["onto"]]
+debug <- snakemake@params[["debug"]]
 
 classes <- read.table(classesf, header=FALSE, sep="\t")
 universe <- read.table(universef, header=FALSE, sep="\t")
@@ -31,16 +32,16 @@ goenrichall <- function(genes, universe, ontologies, id) {
     names(namedgenes) <- universe[,1]
     namedgenes[names(namedgenes) %in% genes] <- 1
     allont <- lapply(ontologies, goenrich, namedgenes, id)
-    garbage <- lapply(seq(1,length(ontologies)), function(i) {allont[[i]]$ont <- ontologies[[i]]})
+    garbage <- lapply(seq(1,length(ontologies)), function(i) {allont[[i]]$ont <<- ontologies[[i]]})
     allontdf <- do.call(rbind, allont)
     allontdf
 }
 
-all_classes <- classes[,1]
+all_classes <- unique(classes[,1])
 all <- lapply(all_classes, function(x) { goenrichall(classes[classes[,1]==x,2], universe, ontologies, id)  })
-garbage <- lapply(seq(1,length(all_classes)), function(i) {allont[[i]]$class <- all_classes[[i]]})
+garbage <- lapply(seq(1,length(all_classes)), function(i) {all[[i]]$class <<- all_classes[[i]]})
 resdf <- do.call(rbind, all)
-resdf$padj <- p.adjust(allres$pnom, method="BH")
+resdf$padj <- p.adjust(resdf$pnom, method="BH")
 write.table(resdf, gzfile(outfile), quote=FALSE, row.names =  FALSE, col.names = TRUE, sep="\t")
 
 

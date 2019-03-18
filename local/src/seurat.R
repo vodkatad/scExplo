@@ -13,6 +13,7 @@
 #Memory Efficiency: 72.96% of 15.62 GB
 
 dir_10x <- snakemake@params[["dir"]]
+#todo
 outdir <- snakemake@params[["outdir"]]
 outdata <- snakemake@output[["outdata"]]
 name <- snakemake@params[["name"]]
@@ -30,7 +31,7 @@ mito.genes <- grep(pattern = "^MT-", x = rownames(x = srdata@data), value = TRUE
 percent.mito <- Matrix::colSums(srdata@raw.data[mito.genes, ])/Matrix::colSums(srdata@raw.data)
 srdata <- AddMetaData(object = srdata, metadata = percent.mito, col.name = "percent.mito")
 
-pdf("violin.png")
+pdf("violin.pdf")
 VlnPlot(object = srdata, features.plot = c("nGene", "nUMI", "percent.mito"), nCol = 3)
 graphics.off()
 pdf("mito_numi.pdf")

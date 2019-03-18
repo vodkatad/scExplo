@@ -36,6 +36,7 @@ graphics.off()
 
 # by hand I tried another resolution
 #srdata <- FindClusters(object = srdata, reduction.type = "pca", dims.use = 1:npc,  resolution = 0.6, print.output = 0, save.SNN = TRUE)
+#nrclusters
 #p1 <- TSNEPlot(srdata, do.return = T, pt.size = 0.5)
 #pdf("tsne_clusters.pdf"); plot(p1); dev.off()
 
