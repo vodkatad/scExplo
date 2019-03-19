@@ -30,6 +30,7 @@ rule seuratparams:
         """
         ln -s {input} {output}
         """
+ruleorder: seurat_cycle > seurat
 
 rule seurat:
     input: placeh="{sample}.done", pars="{sample}.params"
@@ -45,6 +46,12 @@ rule seurat_checkcluster:
     script: SRC_DIR+"seurat_check.R"
 
 
+rule seurat_cycle:
+    input: data="{sample}_seurat/prelim.Rdata", cc=PRJ_ROOT+"local/share/data/regev_lab_cell_cycle_genes.txt"
+    output: outdata="{sample}-cc_seurat/prelim.Rdata"
+    params: outdir="{sample}-cc_seurat"
+    script: SRC_DIR+"seurat_cycle.R"
+
 # res has to be manually determined to match a sensible n. of clusters ~ to the number of cases for the aggr
 rule seurat_de:
     input: data="{sample}_seurat/prelim.Rdata"
@@ -59,7 +66,7 @@ rule gsea_input_seurat:
     shell:
         """
             echo -e "geneid\\tname\\tsort" > {output}
-            sed 1d {input} | bawk '{{print $7,$6,$2}}' >> {output}
+            sed 1d {input} | bawk '{{print $7,"cl"$6,$2}}' >> {output}
         """
 
 rule gsea_seurat:

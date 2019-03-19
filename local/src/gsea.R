@@ -8,6 +8,7 @@ outdir <- snakemake@output[["outdir"]]
 outtable <- snakemake@output[["outtable"]]
 cores <- snakemake@params[["cores"]]
 load(pathways_data)
+save.image("pippo.RData")
 run_all_gsea <- function(de_data, pathways) {
   rnked_de <- de_data[order(de_data$sort),]
   rnk <- rnked_de$sort
@@ -30,7 +31,7 @@ run_gsea <- function(pathway_i, rnk, name) {
 # already in the loaded rdata:
 #pathways <- list(Mm.H, Mm.c2, Mm.c3, Mm.c4, Mm.c6, Mm.c7)
 #names(pathways) <- c("hallmark", "curated", "motif", "computational", "oncogenic", "immunologic")
-pathways <- pathways[c(1)] # we keep only hallmark
+pathways <- pathways[c(1,2)] # we keep only hallmark + curated
 all <- read.table(input, header=TRUE, sep="\t")
 
 dir.create(outdir)
@@ -40,8 +41,8 @@ setwd(outdir)
 allres <- lapply(levels(all$name), function(x) {vs <-all[all$name==x,]; run_all_gsea(vs, pathways) })
 res <- do.call("rbind", allres)
 res$padj_multi <- p.adjust(res$pval, method="BH")
-sign <- res[res$padj_multi < 0.01,]
 save.image(snakemake@params[["save"]])
+sign <- res[res$padj_multi < 0.01,]
 write_xls <- function(data) {
   name <- unique(data$name)
   data$padj <- NULL
