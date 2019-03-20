@@ -52,6 +52,17 @@ rule seurat_cycle:
     params: outdir="{sample}-cc_seurat"
     script: SRC_DIR+"seurat_cycle.R"
 
+#Job ID: 52249
+#Cluster: hactar
+#User/Group: egrassi/egrassi
+#State: COMPLETED (exit code 0)
+#Cores: 1
+#CPU Utilized: 00:30:14
+#CPU Efficiency: 85.85% of 00:35:13 core-walltime
+#Job Wall-clock time: 00:35:13
+#Memory Utilized: 16.02 GB
+#Memory Efficiency: 32.82% of 48.83 GB
+
 # res has to be manually determined to match a sensible n. of clusters ~ to the number of cases for the aggr
 rule seurat_de:
     input: data="{sample}_seurat/prelim.Rdata"
