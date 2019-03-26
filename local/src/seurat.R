@@ -21,6 +21,7 @@ name <- snakemake@params[["name"]]
 params <- snakemake@input[["pars"]]
 pars <- read.table(params, header=TRUE, sep="\t")
 
+print(dir_10x)
 dir.create(outdir)
 library("Seurat")
 library("dplyr")

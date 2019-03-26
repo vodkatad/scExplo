@@ -6,6 +6,7 @@ input <- snakemake@input[["tsv"]]
 pathways_data <- snakemake@input[["pathways"]]
 outdir <- snakemake@output[["outdir"]]
 outtable <- snakemake@output[["outtable"]]
+outtableall <- snakemake@output[["outtableall"]]
 cores <- snakemake@params[["cores"]]
 load(pathways_data)
 save.image("pippo.RData")
@@ -31,7 +32,7 @@ run_gsea <- function(pathway_i, rnk, name) {
 # already in the loaded rdata:
 #pathways <- list(Mm.H, Mm.c2, Mm.c3, Mm.c4, Mm.c6, Mm.c7)
 #names(pathways) <- c("hallmark", "curated", "motif", "computational", "oncogenic", "immunologic")
-pathways <- pathways[c(1,2)] # we keep only hallmark + curated
+pathways <- pathways[c(1)] # we keep only hallmark
 all <- read.table(input, header=TRUE, sep="\t")
 
 dir.create(outdir)
@@ -77,3 +78,4 @@ sign <- sign[order(sign$name, -abs(sign$NES)),]
 setwd("../")
 table <- data.frame(path=sign$pathway, sign=sign$NES, vs=sign$name)
 write.table(table, outtable, sep="\t", quote=FALSE, col.names=FALSE, row.names=FALSE)
+write.table(res, outtableall, sep="\t", quote=FALSE, col.names=FALSE, row.names=FALSE)

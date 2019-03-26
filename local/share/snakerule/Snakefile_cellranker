@@ -32,12 +32,15 @@ rule seuratparams:
         """
 ruleorder: seurat_cycle > seurat
 
+# non mex per non aggr? per ora lo cambio a mano XXX TOD
+# per aggr ha girato con dir="{sample}/outs/filtered_gene_bc_matrices_mex/GRCh38/ 
 rule seurat:
     input: placeh="{sample}.done", pars="{sample}.params"
-    params: dir="{sample}/outs/filtered_gene_bc_matrices_mex/GRCh38/", name="{sample}", outdir="{sample}_seurat"
+    params: dir="{sample}/outs/filtered_gene_bc_matrices/GRCh38/", name="{sample}", outdir="{sample}_seurat"
     output: outdata="{sample}_seurat/prelim.Rdata"
     script: SRC_DIR+"seurat.R"
 
+# NOTE the elbowplot in aggr_seurat is from aggr-cc due to a misshap, FIXME (right plots are on femto)
 
 rule seurat_checkcluster:
     input: data="{sample}_seurat/prelim.Rdata", clfile="{sample}/outs/analysis/clustering/kmeans_"+str(NSAMPLES)+"_clusters/clusters.csv"
@@ -82,7 +85,7 @@ rule gsea_input_seurat:
 
 rule gsea_seurat:
     input: tsv="{sample}_{res}.gsea_seu_in", pathways=GSEA_PATHWAYS
-    output: outdir=directory("gsea_{sample}_{res}"), outtable="{sample}_{res}.significant_NES_gsea"
+    output: outdir=directory("gsea_{sample}_{res}"), outtable="{sample}_{res}.significant_NES_gsea", outtableall="{sample}_{res}.all_NES_gsea"
     params: save="gsea_{sample}_{res}.Rdata", debug=DEBUG, cores=12
     script: GSEA
 
@@ -162,7 +165,7 @@ rule gsea_input:
 
 rule gsea:
     input: tsv="{sample}.gsea_in", pathways=GSEA_PATHWAYS
-    output: outdir=directory("gsea_{sample}"), outtable="{sample}.significant_NES_gsea"
+    output: outdir=directory("gsea_{sample}"), outtable="{sample}.significant_NES_gsea", outtableall="{sample}.all_NES_gsea"
     params: save="gsea_{sample}.Rdata", debug=DEBUG, cores=12
     script: GSEA
 
