@@ -83,6 +83,9 @@ rule gsea_input_seurat:
             sed 1d {input} | bawk '{{print $7,"cl"$6,$2}}' >> {output}
         """
 
+rule all_gsea:
+    input: expand("{sample}-cc_0.5.significant_NES_gsea", sample=SAMPLES)
+
 rule gsea_seurat:
     input: tsv="{sample}_{res}.gsea_seu_in", pathways=GSEA_PATHWAYS
     output: outdir=directory("gsea_{sample}_{res}"), outtable="{sample}_{res}.significant_NES_gsea", outtableall="{sample}_{res}.all_NES_gsea"
@@ -135,7 +138,7 @@ rule cellrangeraggr:
     output: "aggr.done"
     shell: 
         """
-        params.tool} aggr --id=aggr --csv={input} --normalize=mapped
+        {params.tool} aggr --id=aggr --csv={input} --normalize=mapped
         touch {output}
         """
 
