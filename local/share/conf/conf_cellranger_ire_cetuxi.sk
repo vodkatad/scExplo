@@ -5,8 +5,9 @@ SRC_DIR=PRJ_ROOT+"local/src/"
 CRIS=PRJ_ROOT+"local/share/data/cris_wanted_gs.tsv"
 
 TRANSCRIPTOME=PRJ_ROOT+"local/share/data/refdata-cellranger-GRCh38-1.2.0"
-MEM=120
-CORES=24
+# TODO redo with wget http://cf.10xgenomics.com/supp/cell-exp/refdata-cellranger-GRCh38-3.0.0.tar.gz
+MEM=40
+CORES=6
 CELLRANGER=PRJ_ROOT+"local/src/cellranger-3.1.0/cellranger"
 FASTQ_DIR=PRJ_ROOT+"local/share/data/ire_cetuxi/ln_fq/"
 SAMPLES="Sample_S26093_499","Sample_S26094_500","Sample_S26095_501","Sample_S26096_502","Sample_S26369_503","Sample_S26370_504","Sample_S26371_505","Sample_S26371_506"

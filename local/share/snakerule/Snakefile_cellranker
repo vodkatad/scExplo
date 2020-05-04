@@ -22,6 +22,29 @@ rule aggrcvs:
         ls Sample_*/outs/molecule_info.h5 | perl -ane '@a=split("/",$_); print $a[0].",".$_' >> {output}
         """
 
+rule basic_numbers:
+    input: expand("{sample}/outs/metrics_summary.csv", sample=SAMPLES)
+    output: csv="numbers.csv", plot="numbers.png"
+    params: samplesnames=OSAMPLES
+    run:
+        import pandas as pd
+        res = pd.DataFrame()
+        j = 0
+        for i in input:
+            csv = pd.read_csv(i)
+            csv['sample'] = params.samplesnames[j]
+            res = pd.concat([res, csv[['Estimated Number of Cells','Mean Reads per Cell','Median Genes per Cell','sample']] ])
+            j += 1
+        res.to_csv(output.csv, sep="\t", index=False)
+        import seaborn as sns
+        sns.set(style="white")
+        res['treat'] = pd.Series(res['sample'].str.split("_", expand=True)[1])
+        res['case'] = pd.Series(res['sample'].str.split("_", expand=True)[0])
+        res['cells'] = pd.Series(res['Estimated Number of Cells'].str.replace(',','')).astype(int)
+        res['genes'] = pd.Series(res['Median Genes per Cell'].str.replace(',', '')).astype(int)
+        sns_plot = sns.relplot(x="cells", y="genes", hue="treat", style="case", data=res)
+        sns_plot.savefig(output.plot)
+
 # TODO if specific file exists in local get it otherwise link the generic one
 rule seuratparams:
     output: "{sample}.params"
@@ -30,6 +53,7 @@ rule seuratparams:
         """
         ln -s {input} {output}
         """
+
 ruleorder: seurat_cycle > seurat
 
 # non mex per non aggr? per ora lo cambio a mano XXX TOD
@@ -133,12 +157,12 @@ rule cris_understand:
 #    raw: Subsample reads from higher-depth libraries until they all have an equal number of total (i.e. raw, mapping-independent) reads per cell.
 #    none: Do not normalize at all.
 rule cellrangeraggr:
-    params: tool=CELLRANGER
+    params: tool=CELLRANGER, mem=MEM, cores=CORES
     input: "aggr.csv"
     output: "aggr.done"
     shell: 
         """
-        {params.tool} aggr --id=aggr --csv={input} --normalize=mapped
+        {params.tool} aggr --localmem={params.mem} --localcores={params.cores} --id=aggr --csv={input} --normalize=mapped
         touch {output}
         """
 
