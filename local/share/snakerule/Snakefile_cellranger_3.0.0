@@ -62,7 +62,7 @@ rule seurat:
     input: placeh="{sample}.done", pars="{sample}.params"
     params: dir="{sample}/outs/filtered_feature_bc_matrix/", name="{sample}", outdir="{sample}_seurat"
     output: outdata="{sample}_seurat/prelim.Rdata"
-    script: SRC_DIR+"seurat.R"
+    script: SRC_DIR+"seurat_v3.R"
 
 # NOTE the elbowplot in aggr_seurat is from aggr-cc due to a misshap, FIXME (right plots are on femto)
 
@@ -70,14 +70,14 @@ rule seurat_checkcluster:
     input: data="{sample}_seurat/prelim.Rdata", clfile="{sample}/outs/analysis/clustering/kmeans_"+str(NSAMPLES)+"_clusters/clusters.csv"
     output: "{sample}_seurat/samples_plot.pdf"
     params: osamples=OSAMPLES, outdir="{sample}_seurat"
-    script: SRC_DIR+"seurat_check.R"
+    script: SRC_DIR+"seurat_check_v3.R"
 
 
 rule seurat_cycle:
     input: data="{sample}_seurat/prelim.Rdata", cc=PRJ_ROOT+"local/share/data/regev_lab_cell_cycle_genes.txt"
     output: outdata="{sample}-cc_seurat/prelim.Rdata"
     params: outdir="{sample}-cc_seurat"
-    script: SRC_DIR+"seurat_cycle.R"
+    script: SRC_DIR+"seurat_cycle_v3.R"
 
 #Job ID: 52249
 #Cluster: hactar
@@ -94,7 +94,7 @@ rule seurat_cycle:
 rule seurat_de:
     input: data="{sample}_seurat/prelim.Rdata"
     output: out="{sample}_de_{res}.tsv", outimg="{sample}_de_{res}.pdf"
-    script: SRC_DIR+"seurat_DE.R"
+    script: SRC_DIR+"seurat_DE_v3.R"
  
 # gsea on seurat_de   
 rule gsea_input_seurat:
