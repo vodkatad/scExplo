@@ -1,0 +1,262 @@
+include: "conf.sk"
+
+rule all_counts:
+    input: expand("{sample}.done", sample=SAMPLES)
+
+
+rule cellrangercounts:
+    params: transcriptome=TRANSCRIPTOME, fastq_dir=FASTQ_DIR+"{sample}", tool=CELLRANGER, mem=MEM, cores=CORES
+    output: "{sample}.done"
+    shell: 
+        """
+        {params.tool} count --localmem={params.mem} --localcores={params.cores} --transcriptome={params.transcriptome} --fastqs={params.fastq_dir} --id={wildcards.sample}
+        touch {output}
+        """
+
+rule aggrcvs:
+    input: expand("{sample}.done", sample=SAMPLES)
+    output: "aggr.csv"
+    shell:
+        """
+        echo 'library_id,molecule_h5' > {output}
+        ls Sample_*/outs/molecule_info.h5 | perl -ane '@a=split("/",$_); print $a[0].",".$_' >> {output}
+        """
+
+rule basic_numbers:
+    input: expand("{sample}/outs/metrics_summary.csv", sample=SAMPLES)
+    output: csv="numbers.csv", plot="numbers.png"
+    params: samplesnames=OSAMPLES
+    run:
+        import pandas as pd
+        res = pd.DataFrame()
+        j = 0
+        for i in input:
+            csv = pd.read_csv(i)
+            csv['sample'] = params.samplesnames[j]
+            res = pd.concat([res, csv[['Estimated Number of Cells','Mean Reads per Cell','Median Genes per Cell','sample']] ])
+            j += 1
+        res.to_csv(output.csv, sep="\t", index=False)
+        import seaborn as sns
+        sns.set(style="white")
+        res['treat'] = pd.Series(res['sample'].str.split("_", expand=True)[1])
+        res['case'] = pd.Series(res['sample'].str.split("_", expand=True)[0])
+        res['cells'] = pd.Series(res['Estimated Number of Cells'].str.replace(',','')).astype(int)
+        res['genes'] = pd.Series(res['Median Genes per Cell'].str.replace(',', '')).astype(int)
+        sns_plot = sns.relplot(x="cells", y="genes", hue="treat", style="case", data=res)
+        sns_plot.savefig(output.plot)
+
+# TODO if specific file exists in local get it otherwise link the generic one
+rule seuratparams:
+    output: "{sample}.params"
+    input: SEURAT_PARAMS
+    shell: 
+        """
+        ln -s {input} {output}
+        """
+
+ruleorder: seurat_cycle > seurat
+
+# non mex per non aggr? per ora lo cambio a mano XXX TOD
+# per aggr ha girato con dir="{sample}/outs/filtered_gene_bc_matrices_mex/GRCh38/ 
+rule seurat:
+    input: placeh="{sample}.done", pars="{sample}.params"
+    params: dir="{sample}/outs/filtered_feature_bc_matrix/", name="{sample}", outdir="{sample}_seurat"
+    output: outdata="{sample}_seurat/prelim.Rdata"
+    script: SRC_DIR+"seurat.R"
+
+# NOTE the elbowplot in aggr_seurat is from aggr-cc due to a misshap, FIXME (right plots are on femto)
+
+rule seurat_checkcluster:
+    input: data="{sample}_seurat/prelim.Rdata", clfile="{sample}/outs/analysis/clustering/kmeans_"+str(NSAMPLES)+"_clusters/clusters.csv"
+    output: "{sample}_seurat/samples_plot.pdf"
+    params: osamples=OSAMPLES, outdir="{sample}_seurat"
+    script: SRC_DIR+"seurat_check.R"
+
+
+rule seurat_cycle:
+    input: data="{sample}_seurat/prelim.Rdata", cc=PRJ_ROOT+"local/share/data/regev_lab_cell_cycle_genes.txt"
+    output: outdata="{sample}-cc_seurat/prelim.Rdata"
+    params: outdir="{sample}-cc_seurat"
+    script: SRC_DIR+"seurat_cycle.R"
+
+#Job ID: 52249
+#Cluster: hactar
+#User/Group: egrassi/egrassi
+#State: COMPLETED (exit code 0)
+#Cores: 1
+#CPU Utilized: 00:30:14
+#CPU Efficiency: 85.85% of 00:35:13 core-walltime
+#Job Wall-clock time: 00:35:13
+#Memory Utilized: 16.02 GB
+#Memory Efficiency: 32.82% of 48.83 GB
+
+# res has to be manually determined to match a sensible n. of clusters ~ to the number of cases for the aggr
+rule seurat_de:
+    input: data="{sample}_seurat/prelim.Rdata"
+    output: out="{sample}_de_{res}.tsv", outimg="{sample}_de_{res}.pdf"
+    script: SRC_DIR+"seurat_DE.R"
+ 
+# gsea on seurat_de   
+rule gsea_input_seurat:
+    input:  "{sample}_de_{res}.tsv"
+    params: debug=DEBUG
+    output: "{sample}_{res,0.\d+}.gsea_seu_in"
+    shell:
+        """
+            echo -e "geneid\\tname\\tsort" > {output}
+            sed 1d {input} | bawk '{{print $7,"cl"$6,$2}}' >> {output}
+        """
+
+rule all_gsea:
+    input: expand("{sample}-cc_0.5.significant_NES_gsea", sample=SAMPLES)
+
+rule gsea_seurat:
+    input: tsv="{sample}_{res}.gsea_seu_in", pathways=GSEA_PATHWAYS
+    output: outdir=directory("gsea_{sample}_{res}"), outtable="{sample}_{res}.significant_NES_gsea", outtableall="{sample}_{res}.all_NES_gsea"
+    params: save="gsea_{sample}_{res}.Rdata", debug=DEBUG, cores=12
+    script: GSEA
+
+rule go_input_seurat:
+    input:  "{sample}_de_{res}.tsv"
+    params: debug=DEBUG
+    output: classes="go_{sample}_{res,0\.\d+}_seurat_input.tsv", universe="go_{sample}_{res,0\.\d+}_seurat_universe.tsv"
+    shell:
+        """
+               sed 1d {input} | cut -f 7 | sort | uniq > {output.universe}
+               sed 1d {input} | bawk '$5 < 0.005 && ($2 < -2 || $2 > 2) {{print $6,$7}}' > {output.classes}
+        """
+
+rule go_seurat:
+    input: classes="go_{sample}_{res}_seurat_input.tsv", universe="go_{sample}_{res}_seurat_universe.tsv"
+    output: "go_{sample}_{res}.gz"
+    params: ids="symbol", onto=['BP','MF','CC'], debug=DEBUG
+    script: SRC_DIR+"go.R"
+
+####
+rule all_cris:
+    input: expand("{sample}_prediction_result.xls", sample=SAMPLES)
+
+rule cris:
+    input: cris=CRIS, cellranger="{sample}"
+    params: prefix="{sample}",debug=DEBUG
+    output: "{sample}_prediction_result.xls"
+    script: SRC_DIR+"cris_classify.R"
+
+rule all_cris_understand:
+    input: expand("{sample}_classes_heatmap.png", sample=SAMPLES)
+
+#output: heatmap="{sample}_classes_heatmap.png", tsv="{sample}_classes_table", simple="{sample}_simple"
+rule cris_understand:
+    input: data="{sample}.debug.RData"
+    output: heatmap="{sample}_classes_heatmap.png", tsv="{sample}_classes_table"
+    script: SRC_DIR+"cris_understand.R"
+
+# snakemake -j -p aggr.done --cluster-config ../../local/src/hactar.json --cluster "sbatch --mail-user={cluster.mail-user} --mail-type={cluster.mail-type} --partition={cluster.partition} --nodes={cluster.nodes} --job-name={cluster.job-name} --output={cluster.output} --error={cluster.error} --time=24:00:00 --mem=100 --ntasks=24"
+# snakemake -j -p aggr.done --cluster-config ../../local/src/hactar.json --cluster "sbatch --mail-user={cluster.mail-user} --mail-type={cluster.mail-type} --partition={cluster.partition} --nodes={cluster.nodes} --job-name={cluster.job-name} --output={cluster.output} --error={cluster.error} --time=24:00:00 --mem=100 --ntasks=24"
+#    mapped: (default) Subsample reads from higher-depth libraries until they all have an equal number of confidently mapped reads per cell.
+#    raw: Subsample reads from higher-depth libraries until they all have an equal number of total (i.e. raw, mapping-independent) reads per cell.
+#    none: Do not normalize at all.
+rule cellrangeraggr:
+    params: tool=CELLRANGER, mem=MEM, cores=CORES
+    input: "aggr.csv"
+    output: "aggr.done"
+    shell: 
+        """
+        {params.tool} aggr --localmem={params.mem} --localcores={params.cores} --id=aggr --csv={input} --normalize=mapped
+        touch {output}
+        """
+
+### for line we look for expression of line-1 # how is it possible to have calls for single lines1?
+# first full length (For real expr we would need to have all counts for correction...)
+rule countline:
+    input: expand("{sample}/outs/possorted_genome_bam.bam", sample=SAMPLES)
+    output: "line.counts"
+    params: cores=12, saf="/home/egrassi/line/local/share/data/line.saf"
+    shell: 
+        """
+        featureCounts -a {params.saf} -F SAF -T {params.cores} -o {output} {input}
+        """
+
+
+#### gsea ####
+rule all_something:
+    input: expand("{sample}.{{something}}", sample=SAMPLES)
+    output: "all_samples_{something}"
+    shell: "touch {output}"
+
+rule gsea_input:
+    input:  clusters="{sample}/outs/analysis/diffexp/graphclust/differential_expression.csv"
+    params: debug=DEBUG
+    output: "{sample}.gsea_in"
+    script: GSEA_INPUT
+
+rule gsea:
+    input: tsv="{sample}.gsea_in", pathways=GSEA_PATHWAYS
+    output: outdir=directory("gsea_{sample}"), outtable="{sample}.significant_NES_gsea", outtableall="{sample}.all_NES_gsea"
+    params: save="gsea_{sample}.Rdata", debug=DEBUG, cores=12
+    script: GSEA
+
+rule gsea_rnked_in_pathway:
+    input: rdata="gsea_{sample}/gsea.Rdata"
+    output: outdir="gsea_{sample}_xls_top20"
+    script: GSEA_XLS
+
+ruleorder: gsea_input_k > gsea_input
+ruleorder: gsea_k > gsea
+ruleorder: gsea_rnked_in_pathway_k > gsea_rnked_in_pathway
+# gsea on kmeans clusters
+rule gsea_input_k:
+    input:  clusters="{sample}/outs/analysis/diffexp/kmeans_{k}_clusters/differential_expression.csv"
+    params: debug=DEBUG
+    output: "{sample}_{k,\d+}.gsea_in"
+    script: GSEA_INPUT
+
+rule gsea_k:
+    input: tsv="{sample}_{k}.gsea_in", pathways=GSEA_PATHWAYS
+    output: outdir=directory("gsea_{sample}_{k}"), outtable="{sample}_{k}.significant_NES_gsea"
+    params: save="gsea_{sample}_{k}.Rdata", debug=DEBUG, cores=12
+    script: GSEA
+
+rule gsea_rnked_in_pathway_k:
+    input: rdata="gsea_{sample}_{k}/gsea.Rdata"
+    output: outdir="gsea_{sample}_{k}_xls_top20"
+    script: GSEA_XLS
+
+
+### go
+# all differential_expression have the same length, in theory the universe could have a threshold on mean UMI...
+rule go_input:
+    input: clusters="{sample}/outs/analysis/diffexp/kmeans_{k}_clusters/differential_expression.csv"
+    output: classes="go_{sample}_{k,\d+}_input.tsv", universe="go_{sample}_{k,\d+}_universe.tsv"
+    params: pthr=0.005, lfcup=2, lfcdown=-2, debug=DEBUG
+    run:
+        import pandas as pd
+        ref = pd.read_csv(input.clusters, sep=",")
+        cols = ref.columns.values 
+        #filter(lambda x: re.search(r'ID|UMI', x), cols) 
+        #ref.drop(columns=cols)
+        clusters = ["Cluster " + str(x) for x in range(1, (int(wildcards.k)+1))]
+        classes = pd.DataFrame()
+        names = ref['Gene Name'].unique()
+        pd.DataFrame(names).to_csv(output.universe, sep='\t', header=False, index=False)
+        for i, cl in enumerate(clusters):
+            d = ref.filter(regex=cl+"|Gene", axis=1)
+            cols = d.columns.values
+            pval = [item for item in cols if re.search('Adjusted', item)]
+            fc = [item for item in cols if re.search('fold', item)]
+            gene = [item for item in cols if re.search('Gene Name', item)]
+            assert len(pval) == 1 and len(fc) == 1 and len(gene) == 1, "meh about column filtering"
+            up = d.loc[(d[pval[0]] < params.pthr) & (d[fc[0]] > params.lfcup)]
+            down = d.loc[(d[pval[0]] < params.pthr) & (d[fc[0]] < params.lfcdown)]
+            for u in up[gene[0]].unique():
+                classes = classes.append({'gene': u, 'class': 'cl'+str(i)+'_up' }, ignore_index=True)
+            for d in down[gene[0]].unique():
+                classes = classes.append({'gene': d, 'class': 'cl'+str(i)+'_down' }, ignore_index=True)
+        classes.to_csv(output.classes, sep='\t', header=False, index=False)
+
+
+rule go:
+    input: classes="go_{sample}_{k}_input.tsv", universe="go_{sample}_{k}_universe.tsv"
+    output: "go_{sample}_{k}.gz"
+    params: ids="symbol", onto=['BP','MF','CC'], debug=DEBUG
+    script: SRC_DIR+"go.R"
