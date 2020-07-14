@@ -93,7 +93,7 @@ rule seurat_cycle:
 # res has to be manually determined to match a sensible n. of clusters ~ to the number of cases for the aggr
 rule seurat_de:
     input: data="{sample}_seurat/prelim.Rdata"
-    output: out="{sample}_de_{res}.tsv", outimg="{sample}_de_{res}.pdf"
+    output: out="{sample}_de_{res,0\.\d+}.tsv", outimg="{sample}_de_{res}.pdf"
     script: SRC_DIR+"seurat_DE_v3.R"
  
 # gsea on seurat_de   
@@ -260,3 +260,36 @@ rule go:
     output: "go_{sample}_{k}.gz"
     params: ids="symbol", onto=['BP','MF','CC'], debug=DEBUG
     script: SRC_DIR+"go.R"
+
+
+### single sample markers
+
+# FQ removed is needed to avoid failures when the original fq have been moved to make space
+def find_ln(wildcards):
+    import os
+    print(wildcards.sample)
+    i = OSAMPLES.index(wildcards.sample)
+    w = SAMPLES[i] + "_seurat/prelim.Rdata"
+    print(w)
+    if os.path.isfile(w):
+        return w
+    else:
+        raise ValueError("Check you SAMPLES_ORIG and SAMPLES in conf.sk!")
+            
+rule ln:
+    input: find_ln
+    output: "{sample}_Seurat_prelim.Rdata"
+    shell:
+        """
+            ln -s {input} {output}
+        """
+
+rule all_markers:
+    input: expand("{sample}_0.2.clusters_markers.tsv", sample=OSAMPLES)
+
+
+rule seurat_markers:
+    input: data="{sample}_Seurat_prelim.Rdata", cc=PRJ_ROOT+"local/share/data/regev_lab_cell_cycle_genes.txt"
+    output: markers="{sample}_{res}.clusters_markers.tsv", cyclecl="{sample}_{res}.cycle_cluster.tsv", heatmap="{sample}_{res}.heat.pdf", umapcl="{sample}_{res}.umap_cl.pdf",
+            umapcy="{sample}_{res}.umap_cy.pdf"
+    script: SRC_DIR+"seurat_markers.R"
