@@ -28,7 +28,7 @@ pdf(umapcy)
 DimPlot(srdata, reduction="umap", group.by = "Phase")
 graphics.off()
 
-markers <- FindAllMarkers(srdata, only.pos = FALSE, min.pct = 0.1, logfc.threshold = 0.25, test.use="negbinom")
+markers <- FindAllMarkers(srdata, only.pos = FALSE, min.pct = 0.1, logfc.threshold = 0, test.use="negbinom")
 write.table(markers, markersf, sep="\t", quote=FALSE)
 top10 <- markers %>% group_by(cluster) %>% top_n(n = 10, wt = avg_logFC)
 pdf(heatmap)
