@@ -40,13 +40,13 @@ pdf("mito_numi.pdf")
 par(mfrow = c(1, 2))
 #GenePlot(object = srdata, gene1 = "nUMI", gene2 = "percent.mito")
 #GenePlot(object = srdata, gene1 = "nUMI", gene2 = "nGene")
-FeatureScatter(srdata, feature1 = "nCount_RNA", feature2 = "percent.mito")
 FeatureScatter(srdata, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
 
 graphics.off()
 
 #srdata <- FilterCells(object = srdata, subset.names = c("nGene", "percent.mito"), low.thresholds = c(pars$low_g, pars$low_mito), high.thresholds = c(pars$high_g, pars$high_mito))
-#srdata <- subset(srdata, subset = nFeature_RNA > pars$low_g & nFeature_RNA < pars$high_g & percent.mito < pars$high_mito)
+srdata <- subset(srdata, subset = nFeature_RNA > pars$low_g & nFeature_RNA < pars$high_g & percent.mito < 25) # fuck fuck fuck!
+# fuuuUCK TODO RERUN WITH THIS PARAMETER?s
 #srdata <- subset(srdata, subset = percent.mito < pars$high_mito)
 
 # pdf("hist_before_norm.pdf")

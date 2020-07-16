@@ -20,6 +20,8 @@ merged <- merge(samples_id, translate, by="id")
 rownames(merged) <- colnames(srdata)
 #all(colnames(srdata)==srdata@cell.names)
 save.image('pippo.Rdata')
+ggplot(cy, aes(srdata.seurat_clusters, srdata.percent.mito, fill=srdata.seurat_clusters)) +
+geom_boxplot() +theme_bw()+ggtitle("Mitochondrial read % in clusters")
 srdata[['sample']] <- merged[,"sample"]
 pdf("samples_plot.pdf")
 #p1 <- TSNEPlot(srdata, do.return = T, pt.size = 0.5, group.by = "sample")
