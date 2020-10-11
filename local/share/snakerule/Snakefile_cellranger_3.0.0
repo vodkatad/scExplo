@@ -264,6 +264,26 @@ rule go:
 
 ### single sample markers
 
+### cellranger 2csv
+#(base) [outs]egrassi@hactarlogin$ ../../../../local/src/cellranger-3.1.0/cellranger mat2csv filtered_feature_bc_matrix.h5 test.csv
+rule all_tsv:
+    input: expand("{sample}.tsv", sample=SAMPLES[0:])
+
+
+samples_map = {}
+for i in range(0,len(SAMPLES)):
+    samples_map[SAMPLES[i]] = OSAMPLES[i]
+
+rule tocsv:
+    params: tool=CELLRANGER, out=lambda wildcards: samples_map[wildcards.sample]+".tsv"
+    input: "{sample}/outs/filtered_feature_bc_matrix.h5"
+    output: "{sample}.tsv"
+    shell: 
+        """
+        {params.tool} mat2csv {input} {output}
+        cp {output} {params.out}
+        """
+
 # FQ removed is needed to avoid failures when the original fq have been moved to make space
 def find_ln(wildcards):
     import os

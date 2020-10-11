@@ -11,12 +11,18 @@
     },
     "cellrangercounts":
     {
-        "time": "24:00:00"
+        "time": "48:00:00"
     },
     "seurat":
     {
         "time": "02:00:00",
         "mem": "16000",
+        "ntasks": "1"
+    },
+    "tocsv":
+    {
+        "time": "01:00:00",
+        "mem": "10000",
         "ntasks": "1"
     }
 }
