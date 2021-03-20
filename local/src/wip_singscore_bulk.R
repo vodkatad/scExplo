@@ -1,0 +1,17 @@
+library(pheatmap)
+
+h1 <- read.table('CRC0327_NT_1_h.scores.tsv', sep="\t")
+h2 <- read.table('CRC0327_NT_2_h.scores.tsv', sep="\t")
+colnames(h1) <- paste0('NT1_', colnames(h1))
+colnames(h2) <- paste0('NT2_', colnames(h2))
+hallm <- cbind(h1, h2)
+pheatmap(hallm)
+pheatmap(hallm[complete.cases(hallm),], clustering_distance_rows='correlation', clustering_distance_cols='correlation')
+
+h1 <- read.table('CRC0327_NT_1_c2.scores.tsv', sep="\t")
+h2 <- read.table('CRC0327_NT_2_c2.scores.tsv', sep="\t")
+colnames(h1) <- paste0('NT1_', colnames(h1))
+colnames(h2) <- paste0('NT2_', colnames(h2))
+hallm <- cbind(h1, h2)
+pheatmap(hallm[complete.cases(hallm),], show_rownames = FALSE)
+pheatmap(cor(hallm[complete.cases(hallm),]))

@@ -1,0 +1,68 @@
+include: "conf.sk"
+
+# csv to tsv
+rule to_tsv:
+    input: DATA+'/{sample}'+SUFFIX
+    output: '{sample}_pb.tsv.gz'
+    shell:
+        """
+            tr -d '"' < {input} | tr "," "\\t" | gzip > {output}
+        """
+
+# map ensembl to entrez
+rule to_entrez:
+    input: '{sample}_pb.tsv.gz'
+    output: '{sample}_entrez.tsv.gz'
+    params: tool=BIN_DIR+'/annotationdbi'
+    shell:
+        """
+            {params.tool} -i {input} -o {output} -t ENTREZID -f ENSEMBL -n 1 -d
+        """
+        
+rule check_univocity:
+    input: eg='{sample}_pb.tsv.gz', et='{sample}_entrez.tsv.gz'
+    output: '{sample}_isok.txt'
+    shell:
+        """
+            zcat {input.eg} | wc -l > {output}
+            zcat {input.et} | wc -l >> {output}
+        """
+
+# FIXME can we do something better?
+# we lose a lot!
+rule remove_na_doubles:
+    input: '{sample}_entrez.tsv.gz'
+    output: '{sample}_entrez_shaved.tsv.gz'
+    shell:
+        """
+            zcat {input} | bawk '$1!=""NA' > {output}.tmp2
+            zcat {input} | cut -f 1 | sort | uniq -d > {output}.tmp
+            cat {output}.tmp2 | filter_1col 1 -v {output}.tmp >> {output}.tmp3
+            gzip -c {output}.tmp3 > {output}
+            rm {output}.tmp*
+        """
+
+# load msigdb signatures
+# this should be put in task, generalized to entrez/symbol
+rule load_signatures:
+    input: PRJ_ROOT+'/local/share/data/msigdb/{sign}.all.v7.2.entrez.gmt'
+    output: '{sign}.rds'
+    params: tool=BIN_DIR+'/getGseaSignatures'
+    shell:
+        """
+            {params.tool} -g {input} -o {output} -c {wildcards.sign}
+        """
+
+
+# singscore
+# TODO understand if we are missing too many genes from the signatures for this approach to work
+rule singscore:
+    input: expr='{sample}_entrez_shaved.tsv.gz', sign='{sign}.rds'
+    output: '{sample}_{sign}.scores.tsv'
+    params: tool=BIN_DIR+'/singscore'
+    shell:
+        """
+            {params.tool} -s {input.sign} -o {output} -e {input.expr}
+        """
+
+

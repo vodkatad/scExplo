@@ -1,0 +1,18 @@
+import os
+def find_prj_root(path=os.getcwd()):
+	if os.path.isfile(os.path.join(path,".PRJ_ROOT")):
+		return path
+	else:
+		if path:
+			return find_prj_root(os.path.dirname(path))
+		else:
+			raise Exception("Can not find the PRJ_ROOT directory")
+
+
+PRJ_ROOT=find_prj_root()
+                                                    
+DATA=PRJ_ROOT+"/local/share/data/CRC0327_pseudobulks"
+BIN_DIR=PRJ_ROOT+"/local/bin"
+SRC_DIR=PRJ_ROOT+"/local/src"
+
+SUFFIX='_clx_VandE_bulklog2.csv'
