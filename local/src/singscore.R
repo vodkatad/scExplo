@@ -21,7 +21,7 @@ geneset <- readRDS(rds_sign)
 expr_data <- read.table(gzfile(expr_file), sep="\t", header=TRUE, row.names=1)
 rankData <- rankGenes(expr_data)
 # TODO warning about missing genes?
-scorelist <- lapply(geneset, function(x) { simpleScore(rankData, upSet = x) } )
+scorelist <- lapply(geneset, function(x) { simpleScore(rankData, upSet = x, knownDirection=FALSE, centerScore=FALSE) } )
 n <- ncol(expr_data)
 scoredf <- as.data.frame(sapply(scorelist, function(x) { if (length(x$TotalScore)!=0) {x$TotalScore} else {rep(NA, n)} }))
 rownames(scoredf) <- colnames(expr_data)
@@ -30,3 +30,5 @@ colnames(scoredf) <- names(geneset)
 res <- t(scoredf)
 write.table(res, file=opt$outfile, quote=FALSE, sep="\t")
 # do we want also pvalues?
+save.image('pippo.Rdata')
+
