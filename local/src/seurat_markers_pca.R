@@ -16,7 +16,7 @@ s.genes <- cycle[seq(1,43),]
 g2.genes <- cycle[seq(44,97),]
 srdata <- CellCycleScoring(object = srdata, s.features = s.genes, g2m.features = g2.genes, set.ident=TRUE)
 srdata <- ScaleData(object = srdata, vars.to.regress = c("nFeature_RNA", "percent.mito","S.Score", "G2M.Score"))
-#srdata <- RunPCA(object = srdata, features=VariableFeatures(srdata))
+srdata <- RunPCA(object = srdata, features=VariableFeatures(srdata))
 
 srdata <- RunUMAP(srdata, dims=1:npc)
 srdata <- FindNeighbors(srdata, dims = 1:npc)
@@ -36,6 +36,6 @@ pdf(heatmap)
 DoHeatmap(srdata, features = top10$gene) + NoLegend()
 graphics.off()
 
-cy <- data.frame(cycle=srdata$Phase, srdata$seurat_clusters)
+cy <- data.frame(cycle=srdata$Phase, srdata$seurat_clusters, mito=srdata$percent.mito)
 
 write.table(cy, cyclecl, quote=FALSE, sep="\t")

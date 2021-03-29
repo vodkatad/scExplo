@@ -57,13 +57,15 @@ rule seuratparams:
 
 ruleorder: seurat_cycle > seurat
 
+rule all_seurat_prelim: 
+    input: expand("{sample}_seurat/prelim.Rdata", sample=SAMPLES)
 # non mex per non aggr? per ora lo cambio a mano XXX TOD
 # per aggr ha girato con dir="{sample}/outs/filtered_gene_bc_matrices_mex/GRCh38/ 
 rule seurat:
     input: placeh="{sample}.done", pars="{sample}.params"
     params: dir="{sample}/outs/filtered_feature_bc_matrix/", name="{sample}", outdir="{sample}_seurat"
     output: outdata="{sample}_seurat/prelim.Rdata"
-    script: SRC_DIR+"seurat_v3.R"
+    script: SRC_DIR+"seurat_nofilt_v3.R"
 
 # NOTE the elbowplot in aggr_seurat is from aggr-cc due to a misshap, FIXME (right plots are on femto)
 

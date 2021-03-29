@@ -21,3 +21,5 @@ GSEA_INPUT=PRJ_ROOT+"/local/src/gsea_input_from_cr.R"
 GSEA_XLS=PRJ_ROOT+"/local/src/gsea_genes_signature.R"
 
 SEURAT_PARAMS=PRJ_ROOT+"local/share/data/seurat_params.txt"
+
+SEURAT_MARKERS=SRC_DIR+"seurat_markers_pca.R"
