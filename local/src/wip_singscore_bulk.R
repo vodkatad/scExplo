@@ -38,6 +38,7 @@ geneLengths <- function(egs)
 
 d <- read.table(gzfile('CRC0327_NT_1_entrez_shaved.tsv.gz'), sep="\t", header=T, row.names=1)
 
+# completely wrong since we have UMI?
 l <- geneLengths(as.character(rownames(d)))
 l <- l[l!=0]
 d <- d[rownames(d) %in% names(l),]
@@ -80,3 +81,29 @@ permuteResult <-
   )
 
 pvals <- getPvals(permuteResult, scoredf, subSamples = 1:5)
+
+####
+
+setwd('/mnt/trcanmed/snaketree/prj/scRNA/dataset/CRC0327_pseudobulks')
+h1 <- read.table('CRC0327_NT_1_h.gsva-scores.tsv', sep="\t")
+h2 <- read.table('CRC0327_NT_2_h.gsva-scores.tsv', sep="\t")
+colnames(h1) <- paste0('NT1_', colnames(h1))
+colnames(h2) <- paste0('NT2_', colnames(h2))
+hallm <- merge(h1, h2, by="row.names")
+rownames(hallm) <- hallm$Row.names
+hallm$Row.names <- NULL
+pheatmap(hallm, clustering_distance_rows='correlation', clustering_distance_cols='correlation')
+
+corrplot.mixed(cor(hallm))
+
+h1 <- read.table('CRC0327_NT_1_c2.gsva-scores.tsv', sep="\t")
+h2 <- read.table('CRC0327_NT_2_c2.gsva-scores.tsv', sep="\t")
+colnames(h1) <- paste0('NT1_', colnames(h1))
+colnames(h2) <- paste0('NT2_', colnames(h2))
+hallm <- merge(h1, h2, by="row.names")
+rownames(hallm) <- hallm$Row.names
+hallm$Row.names <- NULL
+
+pheatmap(hallm, clustering_distance_rows='correlation', clustering_distance_cols='correlation', labels_row=F)
+
+corrplot.mixed(cor(hallm))

@@ -65,4 +65,12 @@ rule singscore:
             {params.tool} -s {input.sign} -o {output} -e {input.expr}
         """
 
+rule gsva:
+    input: expr='{sample}_entrez_shaved.tsv.gz', sign='{sign}.rds'
+    output: '{sample}_{sign}.{method}-scores.tsv'
+    params: tool=BIN_DIR+'/gsva'
+    shell:
+        """
+            {params.tool} -s {input.sign} -o {output} -e {input.expr} -m {wildcards.method}
+        """
 
