@@ -39,3 +39,4 @@ graphics.off()
 cy <- data.frame(cycle=srdata$Phase, srdata$seurat_clusters, mito=srdata$percent.mito)
 
 write.table(cy, cyclecl, quote=FALSE, sep="\t")
+save.image(paste0(umapcl, '.Rdata'))
