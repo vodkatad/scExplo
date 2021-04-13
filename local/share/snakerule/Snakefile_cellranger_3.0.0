@@ -382,16 +382,17 @@ rule gsea_input_markers:
     shell: # todo fixme get FC!
         """
             echo -e "geneid\\tname\\tsort" > {output}
-            sed 1d {input} | bawk '{{print $8,"cl"$7,$2}}' >> {output}
+            sed 1d {input} | bawk '{{print $8,"cl"$7,$3}}' >> {output}
         """
 
 rule gsea_markers:
     input: tsv="{sample}.markers.gsea_in", pathways=GSEA_PATHWAYS
-    output: outdir=directory("gsea_markers-{sample}"), outtable="{sample}.markers.significant_NES_gsea"
+    output: outdir=directory("gsea_markers-{sample}"), outtable="{sample}.markers.significant_NES_gsea", outtableall="{sample}.markers.NES_GSEA.tsv"
     params: save="gsea_markers_{sample}.Rdata", debug=DEBUG, cores=12
     script: GSEA
 
 
+# y 0.02?
 rule go_input_markers:
     input: "{sample}_0.2.clusters_markers.tsv"
     output: i="markersgo_{sample}.input.tsv", u="markersgo_{sample}.universe.tsv"
