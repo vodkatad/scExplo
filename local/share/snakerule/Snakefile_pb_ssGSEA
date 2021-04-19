@@ -42,8 +42,8 @@ rule remove_na_doubles:
             rm {output}.tmp*
         """
 
-# load msigdb signatures
-# this should be put in task, generalized to entrez/symbol
+# load msigdb signatures ###############################
+## this should be put in task, generalized to entrez/symbol
 rule load_signatures:
     input: PRJ_ROOT+'/local/share/data/msigdb/{sign}.all.v7.2.entrez.gmt'
     output: '{sign}.rds'
@@ -53,6 +53,43 @@ rule load_signatures:
             {params.tool} -g {input} -o {output} -c {wildcards.sign}
         """
 
+
+#SC signatures from Nth' Simon
+rule fromTsvToCsv_quoted:
+    input: PRJ_ROOT+'/local/share/data/msigdb/Lgr5_genelist_sane.csv'
+    output: "Lgr5_hs_symbol.tsv"
+    shell:
+        """
+            tr -d '"' < {input} | sed 1d | tr "," "\\t" | bawk '$4 != "" {{print $4}}' | sort | uniq > {output}
+        """
+
+rule fromTsvToCsv_unquoted:
+    input: PRJ_ROOT+'/local/share/data/msigdb/RSC_gene_signature_sane.csv'
+    output: "RSC_hs_symbol.tsv"
+    shell:
+        """
+            cat {input} | sed 1d | tr "," "\\t" | bawk '$5 != "" {{print $5}}' | sort | uniq > {output}
+        """
+
+rule makeSignRds:
+    input: "{sign}_hs_symbol.tsv"
+    output: "{sign}_hs_symbol.rds"
+    params: tool=BIN_DIR+'/getGseaSignatureFromList'
+    shell:
+        """
+            {params.tool} -g {input} -o {output} -n {wildcards.sign}
+        """
+
+rule makeSignCollectioRDS:
+    input: "RSC_hs_symbol.rds", "Lgr5_hs_symbol.rds"
+    output: "CSC_hs_symbol.rds"
+    params: tool=BIN_DIR+'/getGseaCollection', allin=lambda wildcards, input: ','.join(input)
+    shell:
+        """
+            {params.tool} -i {params.allin} -o {output}
+        """
+
+############################################
 
 # singscore
 # TODO understand if we are missing too many genes from the signatures for this approach to work
