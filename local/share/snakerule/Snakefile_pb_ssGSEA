@@ -89,6 +89,16 @@ rule makeSignCollectioRDS:
             {params.tool} -i {params.allin} -o {output}
         """
 
+rule load_signatures_symbol:
+    input: PRJ_ROOT+'/local/share/data/msigdb/{sign}.all.v7.4.symbols.gmt'
+    output: '{sign}.symbol.rds'
+    params: tool=BIN_DIR+'/getGseaSignatures'
+    shell:
+        """
+            {params.tool} -g {input} -o {output} -c {wildcards.sign}
+        """
+
+
 ############################################
 
 # singscore
