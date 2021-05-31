@@ -1,0 +1,24 @@
+import os
+def find_prj_root(path=os.getcwd()):
+    if os.path.isfile(os.path.join(path,'.PRJ_ROOT')):
+        return path
+    else:
+        if path:
+            return find_prj_root(os.path.dirname(path))
+        else:
+            raise Exception('Can not find the PRJ_ROOT directory')
+
+PRJ_ROOT=find_prj_root()
+BIOINFO_ROOT = os.getenv('BIOINFO_ROOT')
+SNAKE_ROOT=os.getenv('SNAKE_ROOT')
+
+BIN_DIR=PRJ_ROOT+'/local/bin'
+SRC_DIR=PRJ_ROOT+'/local/src'
+
+SAMPLES=["CRC0069_NT72h_1","CRC0542_NT72h_1","CRC0069_CTX72h_1","CRC0542_CTX72h_1"]#,"CRC1307_NT72h_1","CRC0542_NT1WK_1","CRC1307_CXT72h_1","CRC0542_CTX1WK_1"]
+NSAMPLES=len(SAMPLES)
+
+CSV_DIR='../cetuxi_longer'
+
+ALL_CSV=expand(CSV_DIR+'/{sample}.tsv', sample=SAMPLES)
+CORES=12

@@ -3,3 +3,4 @@ local/share/data/*
 .snakemake
 local/src/cellranger-*/*
 local/src/*tar.gz
+local/src/crcorganoids
