@@ -6,8 +6,22 @@ rule all_rcasc_steps:
 rule step_01_saver:
     input: CSV_DIR+'/{sample}.tsv'
     output: "{sample}_saver.tsv.gz"
-    params: tool=SRC_DIR+'/rCasc_step01.R', cores=CORES
+    params: tool=SRC_DIR+'/rCASC_step01.R', cores=CORES
     shell:  
         """
             {params.tool} -c {input} -s {output} -p {params.cores}
         """
+
+rule step_02_cc_ribomito:
+    input: counts=CSV_DIR+'/{sample}.tsv', gtf=RCASC_GTF
+    output: "{sample}_ribo_mito_raw.pdf"
+    params: tool=SRC_DIR+'/rCASC_step02.R', scratch=SCRATCH
+    shell:  
+        """
+            {params.tool} -c {input.counts} -g {input.gtf} -o {output} -s {params.scratch}
+        """
+
+# rule step_03
+# rule step_04
+# rule step_05
+# rule step_06
