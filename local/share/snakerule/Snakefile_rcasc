@@ -1,7 +1,7 @@
 include: "conf.sk"
 
 rule all_rcasc_steps:
-    input: expand("{sample}_saver.tsv.gz", sample=SAMPLES)
+    input: expand("{sample}_dir/{sample}_ribo_mito_raw.pdf", sample=SAMPLES)
 
 rule step_01_saver:
     input: CSV_DIR+'/{sample}.tsv'
@@ -24,7 +24,7 @@ rule step_02_cc_ribomito:
     params: tool=SRC_DIR+'/rCASC_step02.R', scratch=SCRATCH, rcounts=get_absolute, rgtf="gtf.gtf"
     shell:  
         """
-            {params.tool} -c {params.rcounts} -g {params.rgtf} -o {output} -s {params.scratch}
+            echo 'y' | {params.tool} -c {params.rcounts} -g {params.rgtf} -o {output} -s {params.scratch}
         """
 
 # rule step_03
