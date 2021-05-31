@@ -12,16 +12,38 @@ rule step_01_saver:
             {params.tool} -c {input} -s {output} -p {params.cores}
         """
 
+def get_absolute(wildcards, input):
+    return os.path.join(os.getcwd(), input.counts)
+
+# rCASC needs absolute paths as input, but not for the gtf, it should be in the directory of -c 
+# that will be copied to scratch before setting scratch as a volume for the docker.
+# TODO add yes somehow to answer the rm question
 rule step_02_cc_ribomito:
-    input: counts=CSV_DIR+'/{sample}.tsv', gtf=RCASC_GTF
-    output: "{sample}_ribo_mito_raw.pdf"
-    params: tool=SRC_DIR+'/rCASC_step02.R', scratch=SCRATCH
+    input: counts='{sample}_dir/{sample}.tsv', gtf='{sample}_dir/gtf.gtf'
+    output: "{sample}_dir/{sample}_ribo_mito_raw.pdf"
+    params: tool=SRC_DIR+'/rCASC_step02.R', scratch=SCRATCH, rcounts=get_absolute, rgtf="gtf.gtf"
     shell:  
         """
-            {params.tool} -c {input.counts} -g {input.gtf} -o {output} -s {params.scratch}
+            {params.tool} -c {params.rcounts} -g {params.rgtf} -o {output} -s {params.scratch}
         """
 
 # rule step_03
 # rule step_04
 # rule step_05
-# rule step_06
+# rule step_06CRC0069_NT72h_1_dir
+
+
+## rule to make a dir for each sample with the starting tsv and the needed gtf
+# need to copy instead on ln because rCASC copies to another dir that is then mounted 
+# in the docker as a volume.
+rule directories:
+    input: counts=CSV_DIR+'/{sample}.tsv', gtf=RCASC_GTF
+    output: counts="{sample}_dir/{sample}.tsv", gtf="{sample}_dir/gtf.gtf"
+    params: dir="{sample}_dir"
+    shell:  
+        """
+            mkdir -p {params.dir}
+            cp {input.counts} {output.counts}
+            cp {input.gtf} {output.gtf}
+        """
+    

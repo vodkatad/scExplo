@@ -17,12 +17,15 @@ if (is.null(opt$counts) | !is.null(opt$help) | is.null(opt$gtf) | is.null(opt$ou
 
 INPUT <- opt$counts
 
+
 #WD="/path_to_raw_and_saver_data/" # need to be in the same directory?
 #SCRATCH <- "/home/rcalogero/scratch/"  
 SCRATCH <- opt$scratch
 SEPARATOR <- ","
 GTF <- opt$gtf
+
+odir <- dirname(opt$output)
 #setwd(WD)
 mitoRiboUmi(group = "docker", scratch.folder=SCRATCH, file=INPUT, separator=SEPARATOR, gtf.name=GTF, bio.type="protein_coding", umiXgene=3) # TODO set 3 as param
 # cannot be run in parallel if they write files with the same names.
-file.rename(from="Ribo_mito.pdf", to=opt$output)
+file.rename(from=file.path(odir, "Ribo_mito.pdf"), to=opt$output)
