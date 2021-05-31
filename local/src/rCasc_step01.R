@@ -1,10 +1,11 @@
+#!/usr/bin/env Rscript
 library(getopt)
 library(SAVER)
 
 opts <- matrix(c(
   'help', 'h', 0, 'logical',
   'counts', 'c', 1, 'character',
-  'saver', 's', 1, 'character'), ncol=4, byrow=TRUE)
+  'saver', 's', 1, 'character',
   'cores', 'p', 2, 'numeric'), ncol=4, byrow=TRUE)
 opt <- getopt(opts)
 
@@ -20,7 +21,8 @@ if (!is.null(opt$cores)) {
 WD <- dirname(opt$counts)
 INPUT <- basename(opt$counts)
 SEPARATOR <- ","
-
+print(WD)
+print(INPUT)
 cwd <- getwd()
 setwd(WD)
 raw.data <- read.table(INPUT, sep=SEPARATOR, header = TRUE, row.names=1)

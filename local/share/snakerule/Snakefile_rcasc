@@ -1,9 +1,12 @@
 include: "conf.sk"
 
+rule all_rcasc_steps:
+    input: expand("{sample}_saver.tsv.gz", sample=SAMPLES)
+
 rule step_01_saver:
     input: CSV_DIR+'/{sample}.tsv'
     output: "{sample}_saver.tsv.gz"
-    params: tool=SRC_DIR+'rCasc_step01.R', cores=CORES
+    params: tool=SRC_DIR+'/rCasc_step01.R', cores=CORES
     shell:  
         """
             {params.tool} -c {input} -s {output} -p {params.cores}
