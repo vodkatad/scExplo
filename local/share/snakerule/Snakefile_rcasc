@@ -3,9 +3,10 @@ include: "conf.sk"
 rule all_rcasc_steps:
     input: expand("{sample}_dir/{sample}_ribo_mito_raw.pdf", sample=SAMPLES)
 
+# move in dir?
 rule step_01_saver:
     input: CSV_DIR+'/{sample}.tsv'
-    output: "{sample}_saver.tsv.gz"
+    output: "{sample}_saver.csv.gz"
     params: tool=SRC_DIR+'/rCASC_step01.R', cores=CORES
     shell:  
         """
@@ -14,6 +15,9 @@ rule step_01_saver:
 
 def get_absolute(wildcards, input):
     return os.path.join(os.getcwd(), input.counts)
+
+def get_absolute_all(rpath):
+    return os.path.join(os.getcwd(), rpath)
 
 # rCASC needs absolute paths as input, but not for the gtf, it should be in the directory of -c 
 # that will be copied to scratch before setting scratch as a volume for the docker.
@@ -27,10 +31,44 @@ rule step_02_cc_ribomito:
             echo 'y' | {params.tool} -c {params.rcounts} -g {params.rgtf} -o {output} -s {params.scratch}
         """
 
-# rule step_03
-# rule step_04
-# rule step_05
-# rule step_06CRC0069_NT72h_1_dir
+# gtf is looked for in counts dir, that needs to be an absolute path.
+# other output:
+# {sample}_dir/Results/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}/PCE_bowPlot.pdf
+rule step_03_topsd_topexpr:
+    input: counts='{sample}_dir/{sample}.tsv', gtf='{sample}_dir/gtf.gtf', saver="{sample}_saver.csv.gz"
+    output: cc="{sample}_dir/filtered_annotated_{sample}_cellCycle.tsv"
+    params: tool=SRC_DIR+'/rCASC_step03.R', scratch=SCRATCH, rcounts=get_absolute, rgtf="gtf.gtf", saver=get_absolute_all("{sample}_dir/saver_{sample}.tsv"),
+            saverfarm=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"),
+            saverfarmva=get_absolute_all("{sample}_dir/filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv"),
+            saverfa=get_absolute_all("{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv")
+    shell:  
+        """
+            gunzip -c {input.saver} > {wildcards.sample}_dir/saver_{wildcards.sample}.tsv
+            {params.tool} -c {params.rcounts} -g {params.rgtf} -s {params.scratch} -a {params.saver} -f {params.saverfa} -r {params.saverfarm} -v {params.saverfarmva} 
+        """
+
+
+rule step_04_seuratboot:
+    input: vande="{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv"
+    params: tool=SRC_DIR+'/rCASC_step04.R', vande=get_absolute_all("{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv"), scratch=SCRATCH
+    output: "{sample}_step04_{pc}"
+    shell:  
+        """
+            {params.tool} -v {params.vande} -s {params.scratch} -o boh -p {wildcards.pc}
+            touch {output}
+        """
+
+
+rule step_05_comet_pb:
+    input: vande="{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv"
+    params: tool=SRC_DIR+'/rCASC_step05.R', vande=get_absolute_all("{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv"), scratch=SCRATCH
+    output: "{sample}_{nc}_cc.tsv"
+    shell:  
+        """
+            {params.tool} -v {params.vande} -s {params.scratch} -t {output} -o {wildcards.sample}_{wildcards.nc} -n {wildcards.sample} -y {CYCLETODO} -c {wildcards.nc}
+        """
+
+# rule step_06 integration -> perhaps in different directory TODO
 
 
 ## rule to make a dir for each sample with the starting tsv and the needed gtf
