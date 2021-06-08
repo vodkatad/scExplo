@@ -21,7 +21,7 @@ if (is.null(opt$vande)  | is.null(opt$scratch) | !is.null(opt$help) | is.null(op
 SCRATCH <- opt$scratch
 SEPARATOR <- ','
 vande_f <- opt$vande
-output_d <- opt$output
+output_d <- opt$output # this is the clustering file not output!!!
 cycle_f <- opt$cycle
 cls <- opt$cls
 PROJECTNAME <- opt$name
