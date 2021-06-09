@@ -1,7 +1,7 @@
 include: "conf.sk"
 
 rule all_rcasc_steps:
-    input: expand("{sample}_dir/{sample}_ribo_mito_raw.pdf", sample=SAMPLES)
+    input: expand("{sample}_cc.tsv", sample=SAMPLES)
 
 # move in dir?
 rule step_01_saver:
@@ -53,24 +53,39 @@ rule step_03_topsd_topexpr:
 rule step_04_seuratboot:
     input: vande="{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv"
     params: tool=SRC_DIR+'/rCASC_step04.R', vande=get_absolute_all("{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv"), scratch=SCRATCH
-    output: t="{sample}_step04_{pc}", c='{sample}_seurat_clusters.csv'
+    output: t="{sample}_step04_{pc}", c='{sample}_seurat_clusters_{pc}.csv'
     shell:  
         """
             {params.tool} -v {params.vande} -s {params.scratch} -o boh -p {wildcards.pc}
-            touch {output}.t 
-            ln -s {wildcards.sample}_dir/Results/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}/*/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{wildcards.sample}_clustering.output.csv {output.c}
+            touch {output.t}
+            ln -s {wildcards.sample}_dir/Results/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{wildcards.sample}/*/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{wildcards.sample}_clustering.output.csv {output.c}
         """
 
-# TODO determine n. of clusters to fetch the clustering output as input for step_05
-# TODO FIX -o: it's the clustering output
+# TODO determine n. of clusters to fetch the clustering output as input for step_05 <- do in the R code? or with another f(x) from filename?
+def find_absolute_path(wildcards):
+    import glob
+    link = glob.glob(wildcards.sample+'_seurat_clusters_*.csv')
+    linked = os.readlink(link[0])
+    return(os.path.realpath(linked))
+
+NC = 7
+# echo y again? TODO
 rule step_05_comet_pb:
-    input: vande="{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv"
-    params: tool=SRC_DIR+'/rCASC_step05.R', vande=get_absolute_all("{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv"), scratch=SCRATCH
-    output: "{sample}_{nc}_cc.tsv"
+    input: vande="{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv", cycle="{sample}_dir/filtered_annotated_{sample}_cellCycle.tsv"
+    params: tool=SRC_DIR+'/rCASC_step05.R', vande=get_absolute_all("{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv"), scratch=SCRATCH,
+            cluster=find_absolute_path, nc=NC
+    output: "{sample}_cc.tsv"
     shell:  
         """
-            {params.tool} -v {params.vande} -s {params.scratch} -t {output} -o {wildcards.sample}_{wildcards.nc} -n {wildcards.sample} -y {CYCLETODO} -c {wildcards.nc}
+            {params.tool} -v {params.vande} -s {params.scratch} -t {output} -o {params.cluster} -n {wildcards.sample} -y {input.cycle} -c {params.nc}
         """
+# other outputs of this rule:
+# -rw-r--r-- 1 egrassi trcanmed     780591 Jun  9 07:18 filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_CRC0069_CTX72h_1_bulkColumn.csv
+# -rw-r--r-- 1 egrassi trcanmed     712553 Jun  9 07:18 filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_CRC0069_CTX72h_1_bulklog2.csv
+# -rw-r--r-- 1 egrassi trcanmed     762163 Jun  9 07:18 filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_CRC0069_CTX72h_1_bulkRow.csv
+# -rwxrwxr-x 1 egrassi trcanmed     361645 Jun  9 07:21 filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_CRC0069_CTX72h_1_clustering.output.csv
+# -rwxrwxrwx 1 root    root       84972451 Jun  9 07:21 filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_CRC0069_CTX72h_1.csv
+# CRC0069_CTX72h_1_dir/Results/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_CRC0069_CTX72h_1/7/output
 
 # rule step_06 integration -> perhaps in different directory TODO
 

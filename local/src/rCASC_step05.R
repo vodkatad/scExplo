@@ -13,9 +13,9 @@ opts <- matrix(c(
   'cls', 'c', 1, 'numeric'), ncol=4, byrow=TRUE)
 opt <- getopt(opts)
 
-if (is.null(opt$vande)  | is.null(opt$scratch) | !is.null(opt$help) | is.null(opt$output) | is.null(opt$cls) | is.null(opt$name) | !is.null(opt$cycle) | is.null(opt$output_c)) {
+if (is.null(opt$vande)  | is.null(opt$scratch) | !is.null(opt$help) | is.null(opt$output) | is.null(opt$cls) | is.null(opt$name) | is.null(opt$cycle) | is.null(opt$output_c)) {
     cat(getopt(opts, usage=TRUE))
-    stop('-v, -n -c -s and -o are mandatory')
+    stop('-v, -n -c -s -y -t and -o are mandatory')
 }
 
 SCRATCH <- opt$scratch
@@ -23,7 +23,7 @@ SEPARATOR <- ','
 vande_f <- opt$vande
 output_d <- opt$output # this is the clustering file not output!!!
 cycle_f <- opt$cycle
-cls <- opt$cls
+CLS <- opt$cls
 PROJECTNAME <- opt$name
 SCRATCH <- opt$scratch
 #$CLS = 5
