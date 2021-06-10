@@ -31,6 +31,12 @@ SCRATCH <- opt$scratch
 #CLSOUT=paste(WD,"path_to_Results",CLS,"path_to_clustering.output_file",sep="/")
 #PROJECTNAME="XX"
 
+# we determine CLS using the clustering file
+cc <- read.table(cycle_f, SEPARATOR, header=F, stringsAsFactors=F)
+cls <- read.table(output_d, SEPARATOR, header=T, stringsAsFactors=F, row.names=1)
+cls.u <- unique(cls$Belonging_Cluster)
+CLS <- length(cls.u)
+print(paste0('N.clusters= ', CLS))
 #pbulk
 bulkClusters(group="docker", scratch.folder=SCRATCH, file=vande_f, separator=SEPARATOR, cl=output_d)
 
@@ -43,9 +49,6 @@ autoencoder4pseudoBulk(group="docker", scratch.folder=SCRATCH, file=vande_f, sep
 
 save.image('pippo.Rdata')
 #associating cell cycle to clusters
-cc <- read.table(cycle_f, SEPARATOR, header=F, stringsAsFactors=F)
-cls <- read.table(output_d, SEPARATOR, header=T, stringsAsFactors=F, row.names=1)
-cls.u <- unique(cls$Belonging_Cluster)
 
 cc.table <- matrix(data= rep(0, (3 * CLS)), ncol=3)
 cc.table <- as.data.frame(cc.table)

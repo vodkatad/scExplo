@@ -17,6 +17,6 @@ if (is.null(opt$vande) | !is.null(opt$help) | is.null(opt$pca)) {
 SCRATCH <- opt$scratch
 SEPARATOR <- ','
 #save.image('pluto.Rdata')
-setwd(basedir(opt$vande))
+setwd(dirname(opt$vande))
 seuratBootstrap(group="docker", scratch.folder=SCRATCH, file=opt$vande, nPerm=90, permAtTime=10, percent=10, separator=SEPARATOR, pcaDimensions=opt$pca, seed = 43)
 # output is..the clustering file

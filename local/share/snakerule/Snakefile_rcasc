@@ -36,7 +36,7 @@ rule step_02_cc_ribomito:
 # {sample}_dir/Results/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}/PCE_bowPlot.pdf
 rule step_03_topsd_topexpr:
     input: counts='{sample}_dir/{sample}.tsv', gtf='{sample}_dir/gtf.gtf', saver="{sample}_saver.csv.gz"
-    output: cc="{sample}_dir/filtered_annotated_{sample}_cellCycle.tsv"
+    output: cc="{sample}_dir/filtered_annotated_{sample}_cellCycle.tsv", vande="{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv"
     params: tool=SRC_DIR+'/rCASC_step03.R', scratch=SCRATCH, rcounts=get_absolute, rgtf="gtf.gtf", saver=get_absolute_all("{sample}_dir/saver_{sample}.tsv"),
             saverfarm=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"),
             saverfarmva=get_absolute_all("{sample}_dir/filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv"),
@@ -47,37 +47,34 @@ rule step_03_topsd_topexpr:
             {params.tool} -c {params.rcounts} -g {params.rgtf} -s {params.scratch} -a {params.saver} -f {params.saverfa} -r {params.saverfarm} -v {params.saverfarmva} 
         """
 
+# upto here
+#real    105m47.706s
+#user    6m22.494s
+#sys     0m57.360s
+
 
 # long steps that I am not sure why uses all available cores (or a hardcoded fixed N that I missed somehow?)
 # i.e. permAtTime?
 rule step_04_seuratboot:
     input: vande="{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv"
     params: tool=SRC_DIR+'/rCASC_step04.R', vande=get_absolute_all("{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv"), scratch=SCRATCH
-    output: t="{sample}_step04_{pc}", c='{sample}_seurat_clusters_{pc}.csv'
+    output: t="{sample}_step04_{pc}", c='{sample}_seurat_clusters_{pc}.csv', 
     shell:  
         """
-            {params.tool} -v {params.vande} -s {params.scratch} -o boh -p {wildcards.pc}
+            {params.tool} -v {params.vande} -s {params.scratch} -p {wildcards.pc}
             touch {output.t}
             ln -s {wildcards.sample}_dir/Results/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{wildcards.sample}/*/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{wildcards.sample}_clustering.output.csv {output.c}
         """
 
-# TODO determine n. of clusters to fetch the clustering output as input for step_05 <- do in the R code? or with another f(x) from filename?
-def find_absolute_path(wildcards):
-    import glob
-    link = glob.glob(wildcards.sample+'_seurat_clusters_*.csv')
-    linked = os.readlink(link[0])
-    return(os.path.realpath(linked))
-
-NC = 7
-# echo y again? TODO
 rule step_05_comet_pb:
-    input: vande="{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv", cycle="{sample}_dir/filtered_annotated_{sample}_cellCycle.tsv"
+    input: vande="{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv", cycle="{sample}_dir/filtered_annotated_{sample}_cellCycle.tsv", step="{sample}_step04_{pc}"
     params: tool=SRC_DIR+'/rCASC_step05.R', vande=get_absolute_all("{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv"), scratch=SCRATCH,
-            cluster=find_absolute_path, nc=NC
-    output: "{sample}_cc.tsv"
+            find_clu=SRC_DIR+'/find_clu.py'
+    output: "{sample}_cc_{pc}.tsv"
     shell:  
         """
-            {params.tool} -v {params.vande} -s {params.scratch} -t {output} -o {params.cluster} -n {wildcards.sample} -y {input.cycle} -c {params.nc}
+            CLU=$({params.find_clu} {wildcards.sample})
+            echo -en "y\\ny\\ny\\n" | {params.tool} -v {params.vande} -s {params.scratch} -t {output} -o $CLU -n {wildcards.sample} -y {input.cycle}
         """
 # other outputs of this rule:
 # -rw-r--r-- 1 egrassi trcanmed     780591 Jun  9 07:18 filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_CRC0069_CTX72h_1_bulkColumn.csv
@@ -86,6 +83,12 @@ rule step_05_comet_pb:
 # -rwxrwxr-x 1 egrassi trcanmed     361645 Jun  9 07:21 filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_CRC0069_CTX72h_1_clustering.output.csv
 # -rwxrwxrwx 1 root    root       84972451 Jun  9 07:21 filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_CRC0069_CTX72h_1.csv
 # CRC0069_CTX72h_1_dir/Results/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_CRC0069_CTX72h_1/7/output
+
+# The real long step is ae_pseudobulk 
+#real    1268m51.369s
+#user    5m39.218s
+#sys     7m18.356s
+
 
 # rule step_06 integration -> perhaps in different directory TODO
 
