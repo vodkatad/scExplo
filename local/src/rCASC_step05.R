@@ -9,11 +9,11 @@ opts <- matrix(c(
   'output', 'o', 1, 'character',
   'name', 'n', 1, 'character',
   'cycle', 'y', 1, 'character',
-  'output_c', 't', 1, 'character',
-  'cls', 'c', 1, 'numeric'), ncol=4, byrow=TRUE)
+  'output_c', 't', 1, 'character'
+), ncol=4, byrow=TRUE)
 opt <- getopt(opts)
 
-if (is.null(opt$vande)  | is.null(opt$scratch) | !is.null(opt$help) | is.null(opt$output) | is.null(opt$cls) | is.null(opt$name) | is.null(opt$cycle) | is.null(opt$output_c)) {
+if (is.null(opt$vande)  | is.null(opt$scratch) | !is.null(opt$help) | is.null(opt$output) | is.null(opt$name) | is.null(opt$cycle) | is.null(opt$output_c)) {
     cat(getopt(opts, usage=TRUE))
     stop('-v, -n -c -s -y -t and -o are mandatory')
 }
@@ -23,7 +23,6 @@ SEPARATOR <- ','
 vande_f <- opt$vande
 output_d <- opt$output # this is the clustering file not output!!!
 cycle_f <- opt$cycle
-CLS <- opt$cls
 PROJECTNAME <- opt$name
 SCRATCH <- opt$scratch
 #$CLS = 5
@@ -58,8 +57,6 @@ rownames(cc.table) <- paste("cl", cls.u, sep="")
 for(i in cls.u){
   cls.tmp <- cls[which(cls$Belonging_Cluster == i),]
   cc.tmp <- cc[which(cc[,1] %in% rownames(cls.tmp)),]
-  cc.v <- c(0,0,0)
-  names(cc.v) <- c("G1", "G2M", "S")
   cc.df <- as.data.frame.matrix(table(cc.tmp))
   cc.df.sum <- apply(cc.df, 2, sum)
   cc.table[i,which(names(cc.table) %in% names(cc.df.sum))] <- as.numeric(cc.df.sum)

@@ -1,0 +1,28 @@
+import os
+def find_prj_root(path=os.getcwd()):
+    if os.path.isfile(os.path.join(path,'.PRJ_ROOT')):
+        return path
+    else:
+        if path:
+            return find_prj_root(os.path.dirname(path))
+        else:
+            raise Exception('Can not find the PRJ_ROOT directory')
+
+PRJ_ROOT=find_prj_root()
+BIOINFO_ROOT = os.getenv('BIOINFO_ROOT')
+SNAKE_ROOT=os.getenv('SNAKE_ROOT')
+
+BIN_DIR=PRJ_ROOT+'/local/bin'
+SRC_DIR=PRJ_ROOT+'/local/src'
+
+#SAMPLES=["CRC0327_NT_1", "CRC0327_cetux_1", "CRC0322_NT_1_bis", "CRC0322_cetux_1", "CRC0327_NT_2", "CRC0327_cetux_2", "CRC1502_NT_1", "CRC1502_cetux_1"]
+SAMPLES=["CRC0322_NT_1_bis", "CRC1502_NT_1"]
+NSAMPLES=len(SAMPLES)
+
+CSV_DIR='/mnt/work1/snaketree/prj/scRNA/local/share/data/Ire_cetuxi_first_and_reseq'
+
+ALL_CSV=expand(CSV_DIR+'/{sample}.tsv', sample=SAMPLES)
+CORES=10
+
+RCASC_GTF="/mnt/work1/calogero/reanalysis_on_AIsc/comparing_CRC0322/CRC0322_NT_1_bis_clx/Homo_sapiens.GRCh38.101.gtf"
+SCRATCH="/tmp"

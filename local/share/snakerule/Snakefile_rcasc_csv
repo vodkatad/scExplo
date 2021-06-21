@@ -1,0 +1,112 @@
+include: "conf.sk"
+
+rule all_dir:
+    input: expand("{sample}_dir/{sample}.tsv", sample=SAMPLES)
+
+rule all_rcasc_steps:
+    input: expand("{sample}_cc_10.tsv", sample=SAMPLES)
+
+# move in dir?
+rule step_01_saver:
+    input: CSV_DIR+'/{sample}.csv'
+    output: "{sample}_saver.csv.gz"
+    params: tool=SRC_DIR+'/rCASC_step01.R', cores=CORES
+    shell:  
+        """
+            {params.tool} -c {input} -s {output} -p {params.cores}
+        """
+
+def get_absolute(wildcards, input):
+    return os.path.join(os.getcwd(), input.counts)
+
+def get_absolute_all(rpath):
+    return os.path.join(os.getcwd(), rpath)
+
+# rCASC needs absolute paths as input, but not for the gtf, it should be in the directory of -c 
+# that will be copied to scratch before setting scratch as a volume for the docker.
+# TODO add yes somehow to answer the rm question
+rule step_02_cc_ribomito:
+    input: counts='{sample}_dir/{sample}.tsv', gtf='{sample}_dir/gtf.gtf'
+    output: "{sample}_dir/{sample}_ribo_mito_raw.pdf"
+    params: tool=SRC_DIR+'/rCASC_step02.R', scratch=SCRATCH, rcounts=get_absolute, rgtf="gtf.gtf"
+    shell:  
+        """
+            echo 'y' | {params.tool} -c {params.rcounts} -g {params.rgtf} -o {output} -s {params.scratch}
+        """
+
+# gtf is looked for in counts dir, that needs to be an absolute path.
+# other output:
+# {sample}_dir/Results/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}/PCE_bowPlot.pdf
+rule step_03_topsd_topexpr:
+    input: counts='{sample}_dir/{sample}.tsv', gtf='{sample}_dir/gtf.gtf', saver="{sample}_saver.csv.gz"
+    output: cc="{sample}_dir/filtered_annotated_{sample}_cellCycle.tsv", vande="{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv"
+    params: tool=SRC_DIR+'/rCASC_step03.R', scratch=SCRATCH, rcounts=get_absolute, rgtf="gtf.gtf", saver=get_absolute_all("{sample}_dir/saver_{sample}.tsv"),
+            saverfarm=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"),
+            saverfarmva=get_absolute_all("{sample}_dir/filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv"),
+            saverfa=get_absolute_all("{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv")
+    shell:  
+        """
+            gunzip -c {input.saver} > {wildcards.sample}_dir/saver_{wildcards.sample}.tsv
+            {params.tool} -c {params.rcounts} -g {params.rgtf} -s {params.scratch} -a {params.saver} -f {params.saverfa} -r {params.saverfarm} -v {params.saverfarmva} 
+        """
+
+# upto here
+#real    105m47.706s
+#user    6m22.494s
+#sys     0m57.360s
+
+
+# long steps that I am not sure why uses all available cores (or a hardcoded fixed N that I missed somehow?)
+# i.e. permAtTime?
+rule step_04_seuratboot:
+    input: vande="{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv"
+    params: tool=SRC_DIR+'/rCASC_step04.R', vande=get_absolute_all("{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv"), scratch=SCRATCH
+    output: t="{sample}_step04_{pc}", c='{sample}_seurat_clusters_{pc}.csv', 
+    shell:  
+        """
+            {params.tool} -v {params.vande} -s {params.scratch} -p {wildcards.pc}
+            touch {output.t}
+            ln -s {wildcards.sample}_dir/Results/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{wildcards.sample}/*/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{wildcards.sample}_clustering.output.csv {output.c}
+        """
+
+rule step_05_comet_pb:
+    input: vande="{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv", cycle="{sample}_dir/filtered_annotated_{sample}_cellCycle.tsv", step="{sample}_step04_{pc}"
+    params: tool=SRC_DIR+'/rCASC_step05.R', vande=get_absolute_all("{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv"), scratch=SCRATCH,
+            find_clu=SRC_DIR+'/find_clu.py'
+    output: "{sample}_cc_{pc}.tsv"
+    shell:  
+        """
+            CLU=$({params.find_clu} {wildcards.sample})
+            echo -en "y\\ny\\ny\\n" | {params.tool} -v {params.vande} -s {params.scratch} -t {output} -o $CLU -n {wildcards.sample} -y {input.cycle}
+        """
+# other outputs of this rule:
+# -rw-r--r-- 1 egrassi trcanmed     780591 Jun  9 07:18 filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_CRC0069_CTX72h_1_bulkColumn.csv
+# -rw-r--r-- 1 egrassi trcanmed     712553 Jun  9 07:18 filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_CRC0069_CTX72h_1_bulklog2.csv
+# -rw-r--r-- 1 egrassi trcanmed     762163 Jun  9 07:18 filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_CRC0069_CTX72h_1_bulkRow.csv
+# -rwxrwxr-x 1 egrassi trcanmed     361645 Jun  9 07:21 filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_CRC0069_CTX72h_1_clustering.output.csv
+# -rwxrwxrwx 1 root    root       84972451 Jun  9 07:21 filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_CRC0069_CTX72h_1.csv
+# CRC0069_CTX72h_1_dir/Results/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_CRC0069_CTX72h_1/7/output
+
+# The real long step is ae_pseudobulk 
+#real    1268m51.369s
+#user    5m39.218s
+#sys     7m18.356s
+
+
+# rule step_06 integration -> perhaps in different directory TODO
+
+
+## rule to make a dir for each sample with the starting tsv and the needed gtf
+# need to copy instead on ln because rCASC copies to another dir that is then mounted 
+# in the docker as a volume.
+rule directories:
+    input: counts=CSV_DIR+'/{sample}.csv', gtf=RCASC_GTF
+    output: counts="{sample}_dir/{sample}.tsv", gtf="{sample}_dir/gtf.gtf"
+    params: dir="{sample}_dir"
+    shell:  
+        """
+            mkdir -p {params.dir}
+            cp {input.counts} {output.counts}
+            cp {input.gtf} {output.gtf}
+        """
+    
