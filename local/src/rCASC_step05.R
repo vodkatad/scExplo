@@ -59,8 +59,16 @@ for(i in cls.u){
   cc.tmp <- cc[which(cc[,1] %in% rownames(cls.tmp)),]
   cc.df <- as.data.frame.matrix(table(cc.tmp))
   cc.df.sum <- apply(cc.df, 2, sum)
-  cc.table[i,which(names(cc.table) %in% names(cc.df.sum))] <- as.numeric(cc.df.sum)
+  #cc.table[i,which(names(cc.table) %in% names(cc.df.sum))] <- as.numeric(cc.df.sum)
+  cc.table[which(rownames(cc.table)==i),which(names(cc.table) %in% names(cc.df.sum))] <- as.numeric(cc.df.sum)
 }
 
 cc.table <- cc.table[order(rownames(cc.table)),]
+
+t1 <- table(cls$Belonging_Cluster)
+t2 <- rowSums(cc.table)
+if (!all(as.numeric(t1)==as.numeric(t2))) {
+	stop('Qualquadra non cosa in cc-cl!')
+}
+
 write.table(cc.table, opt$output_c, sep="\t", col.names=NA)

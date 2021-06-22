@@ -18,12 +18,14 @@ if (is.null(opt$vande) | is.null(opt$clusters) | is.null(opt$data) | is.null(opt
 
 
 library(ggplot2)
+print(opt$thr)
 cl <- read.table(opt$clusters, sep=",", header=TRUE)
 data <- read.table(opt$data, sep=",", header=TRUE, row.names=1)
 data2 <- read.table(opt$vande, sep=",", header=TRUE)
 genes <- strsplit(as.character(data2$X),":")
 gg <- unlist(lapply(genes, function(x) {x[1]}))
 data3 <- data[rownames(data) %in% gg,]
+save.image('pippo.Rdata')
 less <- apply(data3, 2, function(x) {sum(x<opt$thr)})
 clu <- unique(cl$Belonging_Cluster)
 clus <- lapply(clu, function(x) { cells <- cl[cl$Belonging_Cluster ==  x, 'cellName']; less[names(less) %in% cells] })
