@@ -110,3 +110,17 @@ rule directories:
             cp {input.gtf} {output.gtf}
         """
     
+
+# This rule will think that se is able to run even if the clustering output is not there, but will fail whend find_clu.py will
+# see that there is not clustering done yet. TODO add a dynamic dependency (dynamic w.r.t. the number of found clusters).
+rule violin_UMI:
+    input: vande="{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv", data="{sample}_dir/{sample}.tsv"
+    params: tool=SRC_DIR+'/violin_seen_UMI.R',
+            find_clu=SRC_DIR+'/find_clu.py'
+    output: "{sample}_UMIviolin_{thr}.tsv"
+    shell:  
+        """
+            CLU=$({params.find_clu} {wildcards.sample})
+            {params.tool} -t {wildcards.thr} -v {input.vande} -d {input.data} -o {output} -c $CLU 
+        """
+

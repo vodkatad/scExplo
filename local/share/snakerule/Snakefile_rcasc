@@ -92,6 +92,16 @@ rule step_05_comet_pb:
 
 # rule step_06 integration -> perhaps in different directory TODO
 
+rule violin_UMI:
+    input: vande="{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv", data="{sample}_dir/{sample}.tsv"
+    params: tool=SRC_DIR+'/violin_seen_UMI.R',
+            find_clu=SRC_DIR+'/find_clu.py'
+    output: "{sample}_UMIviolin_{thr}.tsv"
+    shell:  
+        """
+            CLU=$({params.find_clu} {wildcards.sample})
+            {params.tool} -t {wildcards.thr} -v {input.vande} -d {input.data} -o {output} -c $CLU 
+        """
 
 ## rule to make a dir for each sample with the starting tsv and the needed gtf
 # need to copy instead on ln because rCASC copies to another dir that is then mounted 
