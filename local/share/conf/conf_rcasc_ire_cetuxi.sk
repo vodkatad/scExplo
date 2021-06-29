@@ -16,7 +16,7 @@ BIN_DIR=PRJ_ROOT+'/local/bin'
 SRC_DIR=PRJ_ROOT+'/local/src'
 
 #SAMPLES=["CRC0327_NT_1", "CRC0327_cetux_1", "CRC0322_NT_1_bis", "CRC0322_cetux_1", "CRC0327_NT_2", "CRC0327_cetux_2", "CRC1502_NT_1", "CRC1502_cetux_1"]
-SAMPLES=["CRC0322_NT_1_bis", "CRC1502_NT_1"]
+SAMPLES=["CRC0322_NT_1_bis", "CRC1502_NT_1","CRC0322_NT_1_3000"]
 NSAMPLES=len(SAMPLES)
 
 CSV_DIR='/mnt/work1/snaketree/prj/scRNA/local/share/data/Ire_cetuxi_first_and_reseq'

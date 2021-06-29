@@ -69,6 +69,7 @@ rule step_04_seuratboot:
             ln -s {wildcards.sample}_dir/Results/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{wildcards.sample}/*/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{wildcards.sample}_clustering.output.csv {output.c}
         """
 
+
 rule step_05_comet_pb:
     input: vande="{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv", cycle="{sample}_dir/filtered_annotated_{sample}_cellCycle.tsv", step="{sample}_step04_{pc}"
     params: tool=SRC_DIR+'/rCASC_step05.R', vande=get_absolute_all("{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv"), scratch=SCRATCH,
@@ -79,7 +80,19 @@ rule step_05_comet_pb:
             CLU=$({params.find_clu} {wildcards.sample})
             echo -en "y\\ny\\ny\\n" | {params.tool} -v {params.vande} -s {params.scratch} -t {output} -o $CLU -n {wildcards.sample} -y {input.cycle}
         """
-# other outputs of this rule:
+
+rule step_05bis_cycle:
+    input: cycle="{sample}_dir/filtered_annotated_{sample}_cellCycle.tsv", step="{sample}_step04_{pc}"
+    params: tool=SRC_DIR+'/rCASC_step05bis.R',
+            find_clu=SRC_DIR+'/find_clu.py'
+    output: "{sample}_cyclecluster_{pc}.tsv"
+    shell:  
+        """
+            CLU=$({params.find_clu} {wildcards.sample})
+            {params.tool} -t {output} -o $CLU -y {input.cycle}
+        """
+
+# other outputs of step05:
 # -rw-r--r-- 1 egrassi trcanmed     780591 Jun  9 07:18 filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_CRC0069_CTX72h_1_bulkColumn.csv
 # -rw-r--r-- 1 egrassi trcanmed     712553 Jun  9 07:18 filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_CRC0069_CTX72h_1_bulklog2.csv
 # -rw-r--r-- 1 egrassi trcanmed     762163 Jun  9 07:18 filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_CRC0069_CTX72h_1_bulkRow.csv
@@ -112,7 +125,7 @@ rule directories:
     
 
 # This rule will think that se is able to run even if the clustering output is not there, but will fail whend find_clu.py will
-# see that there is not clustering done yet. TODO add a dynamic dependency (dynamic w.r.t. the number of found clusters).
+# see that there is not clustering done yet. TODO add a dynamic dependency (dynamic w.r.t. the number of found clusters).   
 rule violin_UMI:
     input: vande="{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv", data="{sample}_dir/{sample}.tsv"
     params: tool=SRC_DIR+'/violin_seen_UMI.R',

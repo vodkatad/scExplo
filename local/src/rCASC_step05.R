@@ -31,7 +31,7 @@ SCRATCH <- opt$scratch
 #PROJECTNAME="XX"
 
 # we determine CLS using the clustering file
-cc <- read.table(cycle_f, SEPARATOR, header=F, stringsAsFactors=F)
+#cc <- read.table(cycle_f, SEPARATOR, header=F, stringsAsFactors=F)
 cls <- read.table(output_d, SEPARATOR, header=T, stringsAsFactors=F, row.names=1)
 cls.u <- unique(cls$Belonging_Cluster)
 CLS <- length(cls.u)
@@ -49,26 +49,26 @@ autoencoder4pseudoBulk(group="docker", scratch.folder=SCRATCH, file=vande_f, sep
 save.image('pippo.Rdata')
 #associating cell cycle to clusters
 
-cc.table <- matrix(data= rep(0, (3 * CLS)), ncol=3)
-cc.table <- as.data.frame(cc.table)
-names(cc.table) <- c("G1","G2M","S")
-rownames(cc.table) <- paste("cl", cls.u, sep="")
+# cc.table <- matrix(data= rep(0, (3 * CLS)), ncol=3)
+# cc.table <- as.data.frame(cc.table)
+# names(cc.table) <- c("G1","G2M","S")
+# rownames(cc.table) <- paste("cl", cls.u, sep="")
 
-for(i in cls.u){
-  cls.tmp <- cls[which(cls$Belonging_Cluster == i),]
-  cc.tmp <- cc[which(cc[,1] %in% rownames(cls.tmp)),]
-  cc.df <- as.data.frame.matrix(table(cc.tmp))
-  cc.df.sum <- apply(cc.df, 2, sum)
-  #cc.table[i,which(names(cc.table) %in% names(cc.df.sum))] <- as.numeric(cc.df.sum)
-  cc.table[which(rownames(cc.table)==i),which(names(cc.table) %in% names(cc.df.sum))] <- as.numeric(cc.df.sum)
-}
+# for(i in cls.u){
+#   cls.tmp <- cls[which(cls$Belonging_Cluster == i),]
+#   cc.tmp <- cc[which(cc[,1] %in% rownames(cls.tmp)),]
+#   cc.df <- as.data.frame.matrix(table(cc.tmp))
+#   cc.df.sum <- apply(cc.df, 2, sum)
+#   #cc.table[i,which(names(cc.table) %in% names(cc.df.sum))] <- as.numeric(cc.df.sum)
+#   cc.table[which(rownames(cc.table)==i),which(names(cc.table) %in% names(cc.df.sum))] <- as.numeric(cc.df.sum)
+# }
 
-cc.table <- cc.table[order(rownames(cc.table)),]
+# cc.table <- cc.table[order(rownames(cc.table)),]
 
-t1 <- table(cls$Belonging_Cluster)
-t2 <- rowSums(cc.table)
-if (!all(as.numeric(t1)==as.numeric(t2))) {
-	stop('Qualquadra non cosa in cc-cl!')
-}
+# t1 <- table(cls$Belonging_Cluster)
+# t2 <- rowSums(cc.table)
+# if (!all(as.numeric(t1)==as.numeric(t2))) {
+# 	stop('Qualquadra non cosa in cc-cl!')
+# }
 
-write.table(cc.table, opt$output_c, sep="\t", col.names=NA)
+# write.table(cc.table, opt$output_c, sep="\t", col.names=NA)
