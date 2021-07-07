@@ -1,6 +1,17 @@
 SEURAT_MARKERS="../../local/src/seurat_markers.R" # partial for compatibility with things run with old version without PCA (now re-running scRNA_Ire_cetuxi_nofilt)
 include: "conf.sk"
 
+
+samples_map = {}
+rev_samples_map = {}
+for i in range(0,len(SAMPLES)):
+    samples_map[SAMPLES[i]] = OSAMPLES[i]
+    rev_samples_map[OSAMPLES[i]] = SAMPLES[i]
+
+rule pippo:
+    run:
+        print(samples_map)
+
 rule all_counts:
     input: expand("{sample}.done", sample=SAMPLES)
 
@@ -45,6 +56,20 @@ rule basic_numbers:
         res['genes'] = pd.Series(res['Median Genes per Cell'].str.replace(',', '')).astype(int)
         sns_plot = sns.relplot(x="cells", y="genes", hue="treat", style="case", data=res)
         sns_plot.savefig(output.plot)
+
+#egrassi@godot:/mnt/trcanmed/snaketree/prj/scRNA/dataset/scRNA_Ire_cetuxi$ ln -s Sample_S26095_501/outs/cloupe.cloupe CRC0322_NT_1.cloupe
+
+rule all_cloupe_ln:
+    input: expand("{sample}.cloupe", sample=OSAMPLES)
+
+# I need 1hour tidying up all the different solutions for mapping samples names once and for all :(
+rule cloupe_ln:
+    output: "{sample}.cloupe"
+    params: inp=lambda wildcards: rev_samples_map[wildcards.sample]+'/outs/cloupe.cloupe'
+    shell:
+        """
+            ln -s {params.inp} {output}            
+        """
 
 # TODO if specific file exists in local get it otherwise link the generic one
 rule seuratparams:
@@ -271,10 +296,6 @@ rule all_tsv:
     input: expand("{sample}.tsv", sample=SAMPLES[0:])
 
 
-samples_map = {}
-for i in range(0,len(SAMPLES)):
-   samples_map[SAMPLES[i]] = OSAMPLES[i]
-
 rule tocsv:
     params: tool=CELLRANGER, out=lambda wildcards: samples_map[wildcards.sample]+".tsv"
     input: "{sample}/outs/filtered_feature_bc_matrix.h5"
@@ -317,7 +338,7 @@ def find_ln(wildcards):
         return w
     else:
         raise ValueError("Check you SAMPLES_ORIG and SAMPLES in conf.sk!")
-            
+           
 rule ln:
     input: find_ln
     output: "{sample}_Seurat_prelim.Rdata"
@@ -379,7 +400,7 @@ rule match_clusters:
 rule gsea_input_markers:
     input: "{sample}_0.2.clusters_markers.tsv"
     output: "{sample}.markers.gsea_in"
-    shell: # todo fixme get FC!
+    shell:
         """
             echo -e "geneid\\tname\\tsort" > {output}
             sed 1d {input} | bawk '{{print $8,"cl"$7,$3}}' >> {output}

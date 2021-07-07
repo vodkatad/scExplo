@@ -270,7 +270,7 @@ rule go:
 ### cellranger 2csv
 #(base) [outs]egrassi@hactarlogin$ ../../../../local/src/cellranger-3.1.0/cellranger mat2csv filtered_feature_bc_matrix.h5 test.csv
 rule all_tsv:
-    input: expand("{sample}.tsv", sample=SAMPLES[0:])
+    input: expand("{sample}.tsv", sample=SAMPLES)
 
 
 samples_map = {}
