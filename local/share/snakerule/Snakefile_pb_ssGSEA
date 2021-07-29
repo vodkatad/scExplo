@@ -71,6 +71,14 @@ rule fromTsvToCsv_unquoted:
             cat {input} | sed 1d | tr "," "\\t" | bawk '$5 != "" {{print $5}}' | sort | uniq > {output}
         """
 
+rule fromTsvToCsv_quoted_bis:
+    input: PRJ_ROOT+'/local/share/data/msigdb/yap_gregorieff2015_homologs_human.csv'
+    output: "yapgregorieff_hs_symbol.tsv"
+    shell:
+        """
+            tr -d '"' < {input} | sed 1d | tr "," "\\t" | bawk '$3 != "" {{print $3}}' | sort | uniq > {output}
+        """
+
 rule makeSignRds:
     input: "{sign}_hs_symbol.tsv"
     output: "{sign}_hs_symbol.rds"
@@ -88,6 +96,16 @@ rule makeSignCollectioRDS:
         """
             {params.tool} -i {params.allin} -o {output}
         """
+
+rule makeSignCollectioRDS_bis:
+    input: "RSC_hs_symbol.rds", "Lgr5_hs_symbol.rds", 'yapgregorieff_hs_symbol.rds'
+    output: "allCSC_hs_symbol.rds"
+    params: tool=BIN_DIR+'/getGseaCollection', allin=lambda wildcards, input: ','.join(input)
+    shell:
+        """
+            {params.tool} -i {params.allin} -o {output}
+        """
+
 
 rule load_signatures_symbol:
     input: PRJ_ROOT+'/local/share/data/msigdb/{sign}.all.v7.4.symbols.gmt'

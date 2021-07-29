@@ -7,11 +7,20 @@ CRIS=PRJ_ROOT+"local/share/data/cris_wanted_gs.tsv"
 TRANSCRIPTOME=PRJ_ROOT+"local/share/data/refdata-cellranger-GRCh38-1.2.0"
 # TODO redo with wget http://cf.10xgenomics.com/supp/cell-exp/refdata-cellranger-GRCh38-3.0.0.tar.gz
 MEM=90
-CORES=24
+CORES=6
 CELLRANGER=PRJ_ROOT+"local/src/cellranger-3.1.0/cellranger"
-FASTQ_DIR=PRJ_ROOT+"local/share/data/ire_cetuxi/ln_fq/"
-SAMPLES=["Sample_S26093_499","Sample_S26094_500","Sample_S26095_501","Sample_S26096_502","Sample_S26369_503","Sample_S26370_504","Sample_S26371_505","Sample_S26371_506"]
-OSAMPLES=["CRC0327_NT_1", "CRC0327_cetux_1", "CRC0322_NT_1", "CRC0322_cetux_1", "CRC0327_NT_2", "CRC0327_cetux_2", "CRC1502_NT_1", "CRC1502_cetux_1"]
+FASTQ_DIR=PRJ_ROOT+"local/share/data/longer/fastq/"
+SAMPLES=["Sample_S33222_616","Sample_S33223_617","Sample_S33224_618","Sample_S33225_619","Sample_S33226_620","Sample_S33227_621","Sample_S33228_622","Sample_S33229_623"]
+OSAMPLES=["CRC0069_NT72h_1","CRC0542_NT72h_1","CRC0069_CTX72h_1","CRC0542_CTX72h_1","CRC1307_NT72h_1","CRC0542_NT1WK_1","CRC1307_CXT72h_1","CRC0542_CTX1WK_1"]
+#1   CRC0069_NT72h_1 616
+#2   CRC0542_NT72h_1 617
+#3   CRC0069_CTX72h_1    618
+#4   CRC0542_CTX72h_1    619
+#1   CRC1307_NT72h_1 620
+#   CRC0542_NT1WK_1 621
+#3   CRC1307_CXT72h_1    622
+#4   CRC0542_CTX1WK_1    623
+
 NSAMPLES=len(SAMPLES)
 #GSEA_PATHWAYS=PRJ_ROOT+"local/share/data/Hallmark_curated_hs_entred.RData"
 #GSEA_PATHWAYS=PRJ_ROOT+"local/share/data/Hallmark_curated_hs_symbol.RData"
