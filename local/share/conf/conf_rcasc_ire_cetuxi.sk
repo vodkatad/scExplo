@@ -28,3 +28,4 @@ RCASC_GTF="/mnt/work1/calogero/reanalysis_on_AIsc/comparing_CRC0322/CRC0322_NT_1
 SCRATCH="/tmp"
 
 VIO_GENES='/mnt/cold1/snaketree/prj/scRNA/local/share/data/Ire_cetuxi_first_and_reseq/genes_ensg.tsv'
+CYCLE_GENES='/mnt/cold1/snaketree/prj/scRNA/local/share/data/Ire_cetuxi_first_and_reseq/regev_lab_cell_cycle_genes_onlyensg.txt'
