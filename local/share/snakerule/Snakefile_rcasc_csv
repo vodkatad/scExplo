@@ -137,3 +137,22 @@ rule violin_UMI:
             {params.tool} -t {wildcards.thr} -v {input.vande} -d {input.data} -o {output} -c $CLU 
         """
 
+########### Seurat integration, WARNING needs the required saver outputs to be there, un-chained rule.
+def find_saver_allsample(wildcards):
+    import glob
+    res = glob.glob(wildcards.sample+'*_saver.csv.gz')
+    return res
+
+#TODO docker that starts from repbioinfo/seuratpermutation and has the required packages for DEG analyses
+rule seurat_integration:
+    input: find_saver_allsample # '{sample}_seurat_saver.csv.gz'
+    output: cy="{sample}_res{res}_{kind}_clu_cycle.tsv", climage="{sample}_res{res}_{kind}_UMAP.png", markers="{sample}_res{res}_{kind}_markers.tsv",
+            markersall="{sample}_res{res}_{kind}_markersall.tsv", markersdir="{sample}_res{res}_{kind}_markers", viodir="{sample}_res{res}_{kind}_violins"
+    params: tool=SRC_DIR+'/seurat_integration.R', genes=VIO_GENES, cinput=lambda wildcards, input: ','.join(input)
+    #docker: 'repbioinfo/seuratpermutation'
+    shell:
+        """
+            rm -rf {output.viodir} {output.markersdir}
+            mkdir {output.viodir} {output.markersdir}
+            {params.tool} -i {params.cinput} -r {wildcards.res} -g {params.genes} -k {wildcards.kind} -p {wildcards.sample}_res{wildcards.res}_wildcards.kind_
+        """
