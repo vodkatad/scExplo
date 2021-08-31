@@ -9,13 +9,14 @@ opts <- matrix(c(
   'res', 'r', 1, 'numeric',
   'npc', 'n', 1, 'numeric',
   'cycle', 'c', 1, 'character',
-  'prefix', 'p', 1, 'character',
+  'prefix', 'x', 1, 'character',
   'genes', 'g', 1, 'character'), ncol=4, byrow=TRUE)
 opt <- getopt(opts)
 
-if (is.null(opt$prefix) | is.null(opt$genes) | is.null(opt$res) | is.null(opt$kind) | is.null(opt$input) | is.null(opt$ccgenes) | is.null(opt$npc) | !is.null(opt$help)) {
+save.image('pippo.Rdata')
+if (is.null(opt$prefix) | is.null(opt$genes) | is.null(opt$res) | is.null(opt$kind) | is.null(opt$input) | is.null(opt$cycle) | is.null(opt$npc) | !is.null(opt$help)) {
   cat(getopt(opts, usage=TRUE))
-  stop('-p, -g, -r, -k, -c -n and - i are all mandatory')
+  stop('-x, -g, -r, -k, -c -n and - i are all mandatory')
 }
 
 
@@ -43,17 +44,17 @@ output_markersall_f <- paste0(prefix, 'markersall.tsv')
 outputd_markers <- paste0(prefix, '_markers')
 outputd_violins <- paste0(prefix, '_violins')
 
-input_files_l <- unlist(strsplit(input_files ','))
+input_files_l <- unlist(strsplit(input_files, ','))
 
 set.seed(42)
 
 createSeurat <- function(file) {
-  df <- read.table(file, sep=',', header=TRUE, row.names=1)
+  df <- read.table(gzfile(file), sep=',', header=TRUE, row.names=1)
   res <- CreateSeuratObject(df)
   return(res)
 }
 
-data_list <- createSeurat(input_files_l)
+data_list <- lapply(input_files_l, createSeurat)
 
 data_list <- lapply(X = data_list, FUN = function(x) {
     x <- NormalizeData(x)
