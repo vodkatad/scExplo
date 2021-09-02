@@ -9,14 +9,15 @@ opts <- matrix(c(
   'res', 'r', 1, 'numeric',
   'npc', 'n', 1, 'numeric',
   'cycle', 'c', 1, 'character',
+  'base', 'b', 1, 'character',
   'prefix', 'x', 1, 'character',
   'genes', 'g', 1, 'character'), ncol=4, byrow=TRUE)
 opt <- getopt(opts)
 
 save.image('pippo.Rdata')
-if (is.null(opt$prefix) | is.null(opt$genes) | is.null(opt$res) | is.null(opt$kind) | is.null(opt$input) | is.null(opt$cycle) | is.null(opt$npc) | !is.null(opt$help)) {
+if (is.null(opt$prefix) | is.null(opt$genes) | is.null(opt$res) | is.null(opt$kind) | is.null(opt$input) | is.null(opt$cycle) | is.null(opt$npc) | is.null(opt$base) | !is.null(opt$help)) {
   cat(getopt(opts, usage=TRUE))
-  stop('-x, -g, -r, -k, -c -n and - i are all mandatory')
+  stop('-b -x, -g, -r, -k, -c -n and - i are all mandatory')
 }
 
 
@@ -27,6 +28,7 @@ resolution <- opt$res
 kind <- opt$kind
 ccgenes_f <- opt$cycle
 npc <- opt$npc
+based <- opt$base
 
 KINDS <- c('all','G1')#,'correct')
 if (!kind %in% KINDS) { 
@@ -36,13 +38,21 @@ if (!kind %in% KINDS) {
 
 #CRC0322_res0.1_G1_clu_cycle.tsv, CRC0322_res0.1_G1_UMAP.png, CRC0322_res0.1_G1_markers.tsv, CRC0322_res0.1_G1_markersall.tsv, CRC0322_res0.1_G1_markers, CRC0322_res0.1_G1_violins
 # prefix == CRC0322_res0.1_G1_
+
 output_clucy_f <- paste0(prefix, 'clu_cycle.tsv')
+output_cy_f <- paste0(prefix, 'cycle.tsv')
 output_umap_f <- paste0(prefix, 'UMAP.pdf')
 output_PC_f <- paste0(prefix, 'PC.pdf')
 output_markers_f <- paste0(prefix, 'markers.tsv')
 output_markersall_f <- paste0(prefix, 'markersall.tsv')
-outputd_markers <- paste0(prefix, '_markers')
-outputd_violins <- paste0(prefix, '_violins')
+outputd_markers <- paste0(based, prefix, 'markers')
+outputd_violins <- paste0(based, prefix, 'violins')
+cdir <- getwd()
+
+print(outputd_violins)
+print(outputd_markers)
+print(cdir)
+print(genes_f)
 
 input_files_l <- unlist(strsplit(input_files, ','))
 
@@ -65,22 +75,26 @@ features <- SelectIntegrationFeatures(object.list = data_list) # nfeatures 5000?
 anchors <- FindIntegrationAnchors(object.list = data_list, anchor.features = features)
 sdata <- IntegrateData(anchorset = anchors) 
 DefaultAssay(sdata) <- "integrated"
+
+print('integrated')
 sdata <- ScaleData(sdata, verbose = FALSE)
 
-pdf(output_PC_f)
-ElbowPlot(sdata)
-dev.off()
+print('scaled')
 
 # Is this step needed if we repeat it after scaling on cell cycle?
 sdata <- RunPCA(sdata, npcs = npc, verbose = FALSE)
 sdata <- RunUMAP(sdata, reduction = "pca", dims = 1:npc)
 sdata <- FindNeighbors(sdata, reduction = "pca", dims = 1:npc)
 cells <- colnames(sdata)
-samples <- substring(cells, 20, 21) # the number assigned after cell barcode to each sample
+samples <- substring(cells, 20, 21) # the number assigned after cell barcode to each sample # FIXME bug if more than 10 integrated samples
+print('PCA1')
+pdf(output_PC_f)
+ElbowPlot(sdata)
+dev.off()
 # do we want to do something similar? or map to input names?
 # FIXME TODO
 #samples <- ifelse(samples == 1, 'NT_1', ifelse(samples == 2, "NT_2", ifelse(samples == 3, "CTX_1", "CTX_2")))
-#CRC0327_saver$sample <- samples
+sdata$sample <- samples
 
 cycle <- read.table(ccgenes_f)
 s.genes <- cycle[seq(1,44),]
@@ -89,6 +103,7 @@ g2m.genes <- cycle[seq(45,97),]
 
 sdata <- CellCycleScoring(object = sdata, s.features = s.genes, g2m.features = g2m.genes, set.ident=TRUE)
 
+print('cc')
 # if kind == "correct"
 #sdata <- ScaleData(sdata, verbose = FALSE)
 #sdata <- ScaleData(sdata,  vars.to.regress = c("S.Score", "G2M.Score")) #, features = rownames(CRC0327_saver))
@@ -99,6 +114,9 @@ sdata <- CellCycleScoring(object = sdata, s.features = s.genes, g2m.features = g
 #write.table(cc_df, file="cycle.tsv", sep="\t", quote=F)
 #table(CRC0327_saver$Phase, CRC0327_saver$sample)
 #table(CRC0327_saver$Phase)
+df <- data.frame(row.names=names(sdata$orig.ident), sample=sdata$sample, cycle=sdata$Phase)
+write.table(df, file=output_cy_f, sep="\t", quote=F)
+
 if (kind == 'G1') {
   cc_df <- data.frame(id=colnames(sdata), phase=sdata$Phase)
   toRemove <- cc_df[cc_df$phase != 'G1', 'id']
@@ -106,6 +124,7 @@ if (kind == 'G1') {
   sdata <- RunPCA(sdata, npcs = npc, verbose = FALSE) # chose?
   sdata <- RunUMAP(sdata, reduction = "pca", dims = 1:npc)
   sdata <- FindNeighbors(sdata, reduction = "pca", dims = 1:npc)
+  print('PCA2')
 } #else if (kind == "correct") {
 #sdata <- ScaleData(sdata, verbose = FALSE)
 #sdata <- ScaleData(sdata,  vars.to.regress = c("S.Score", "G2M.Score")) #, features = rownames(CRC0327_saver))
@@ -119,7 +138,8 @@ pdf(output_umap_f)
 DimPlot(sdata, reduction = "umap")
 graphics.off()
 
-	
+
+print('clustered')
 df <- data.frame(row.names=names(sdata$orig.ident), sample=sdata$sample, cluster=sdata$seurat_clusters, cycle=sdata$Phase)
 write.table(df, file=output_clucy_f, sep="\t", quote=F)
 
@@ -127,6 +147,7 @@ n_cl <- length(unique(df$cluster))
 n_markers_vs_all <- data.frame(cl=seq(0, (n_cl-1)), n=rep(NA, n_cl))
 DefaultAssay(sdata) <- "RNA"
 
+print(outputd_markers)
 setwd(outputd_markers)
 for (i in seq(0,(n_cl-1))) {
 	n <- 0
@@ -139,10 +160,11 @@ for (i in seq(0,(n_cl-1))) {
 	)
 	n_markers_vs_all[i+1, 'n'] <- n                
 }
-setwd(..)
+setwd(cdir)
 write.table(n_markers_vs_all, file=output_markers_f, sep="\t", quote=F)
 setwd(outputd_markers)
 	
+print('markers1')
 n_markers <- matrix(rep(NA, n_cl*n_cl), nrow=n_cl, ncol=n_cl)
 for (i in seq(0,(n_cl-1))) {
 	j <- i+1
@@ -160,24 +182,24 @@ for (i in seq(0,(n_cl-1))) {
 		j <- j + 1
 	}
 }
+setwd(cdir)
 write.table(n_markers, file=output_markersall_f, sep="\t", quote=F)
 # plot of numbers? I'd say separate rule here
+print('markers2')
 
+setwd(cdir)
 genes <- read.table(genes_f, sep="\t", header=F)
 colnames(genes) <- c('symbol', 'ensg')
 
-genes_expl <- do.call(rbind, lapply(genes$symbol, function(x) { y <- genes[genes$symbol==x,, drop=F]; 
-                                                                ensgs <- strsplit(as.character( y$ensg),','); 
-                                                                res=unlist(unique(ensgs)); 
-                                                                data.frame(sym=rep(x,length(res)), ens=res)}))
+print('genes')
+genes_expl <- do.call(rbind, lapply(genes$symbol, function(x) {y <- genes[genes$symbol==x,, drop=F]; ensgs <- strsplit(as.character( y$ensg),','); res=unlist(unique(ensgs)); data.frame(sym=rep(x,length(res)), ens=res)}))
 
-setwd(..)
 setwd(outputd_violins)
-for (i in seq(1, nrow(genes))) {
+for (i in seq(1, nrow(genes_expl))) {
  	tryCatch({
-	  pdf(paste0(genes[i,'sym'], "_", genes[i,'ens'], '_res', resolution ,'.pdf')); 
-	  print(VlnPlot(sdata, genes[i,'ens']));
-  	dev.off()
+	  pdf(paste0(genes_expl[i,'sym'], "_", genes_expl[i,'ens'], '_res', resolution ,'.pdf'))
+	  print(VlnPlot(sdata, genes_expl[i,'ens']))
+  	  dev.off()
   },
 	error=function(cond) {}
   ) # do we need to swallow here too? TODO FIXME
