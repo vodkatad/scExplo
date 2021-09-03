@@ -115,17 +115,29 @@ rule violin_UMI:
             {params.tool} -t {wildcards.thr} -v {input.vande} -d {input.data} -o {output} -c $CLU 
         """
 
-## rule to make a dir for each sample with the starting tsv and the needed gtf
-# need to copy instead on ln because rCASC copies to another dir that is then mounted 
-# in the docker as a volume.
-rule directories:
-    input: counts=CSV_DIR+'/{sample}.tsv', gtf=RCASC_GTF
-    output: counts="{sample}_dir/{sample}.tsv", gtf="{sample}_dir/gtf.gtf"
-    params: dir="{sample}_dir"
-    shell:  
+########### Seurat integration, WARNING needs the required saver outputs to be there, un-chained rule.
+def find_saver_allsample(wildcards):
+    import glob
+    res = glob.glob(wildcards.sample+'*_saver.csv.gz')
+    return res
+
+
+#TODO docker that starts from repbioinfo/seuratpermutation and has the required packages for DEG analyses
+
+#install.packages('BiocManager')
+#BiocManager::install('multtest')
+#install.packages('metap')
+#BiocManager::install('limma')
+
+rule seurat_integration:
+    input: find_saver_allsample # '{sample}_seurat_saver.csv.gz'
+    output: cy="{sample}_res{res}_{kind}_clu_cycle.tsv", climage="{sample}_res{res}_{kind}_UMAP.pdf", markers="{sample}_res{res}_{kind}_markers.tsv",
+            markersall="{sample}_res{res}_{kind}_markersall.tsv", markersdir=directory("{sample}_res{res}_{kind}_markers"), viodir=directory("{sample}_res{res}_{kind}_violins"), pcs="{sample}_res{res}_{kind}_PC.pdf"
+    params: tool=SRC_DIR+'/seurat_integration.R', genes=VIO_GENES, cinput=lambda wildcards, input: ','.join(input), cycle=CYCLE_GENES, base=BASED
+    docker: 'seuratintegration_deg_getopt'
+    shell:
         """
-            mkdir -p {params.dir}
-            cp {input.counts} {output.counts}
-            cp {input.gtf} {output.gtf}
+            rm -rf {output.viodir} {output.markersdir}
+            mkdir {output.viodir} {output.markersdir}
+            {params.tool} -i {params.cinput} -r {wildcards.res} -g {params.genes} -k {wildcards.kind} -x {wildcards.sample}_res{wildcards.res}_{wildcards.kind}_ -n 10 -c {params.cycle} -b {params.base}
         """
-    

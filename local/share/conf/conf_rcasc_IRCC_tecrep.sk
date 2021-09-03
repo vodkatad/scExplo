@@ -15,10 +15,10 @@ SNAKE_ROOT=os.getenv('SNAKE_ROOT')
 BIN_DIR=PRJ_ROOT+'/local/bin'
 SRC_DIR=PRJ_ROOT+'/local/src'
 
-SAMPLES=["CRC0069_NT72h_1","CRC0542_NT72h_1","CRC0069_CTX72h_1","CRC0542_CTX72h_1"]#,"CRC1307_NT72h_1","CRC0542_NT1WK_1","CRC1307_CXT72h_1","CRC0542_CTX1WK_1"]
+SAMPLES=["CRC0327_NT_t1.tsv","CRC0327_NT_t2.tsv"]
 NSAMPLES=len(SAMPLES)
 
-CSV_DIR=SNAKE_ROOT+'/prj/scRNA/dataset/cetuxi_longer'
+CSV_DIR='/mnt/cold1/snaketree/prj/scRNA/dataset/IRCC_tecrep'
 
 ALL_CSV=expand(CSV_DIR+'/{sample}.tsv', sample=SAMPLES)
 CORES=10
@@ -28,9 +28,9 @@ SCRATCH="/tmp"
 
 VIO_GENES='/mnt/cold1/snaketree/prj/scRNA/local/share/data/Ire_cetuxi_first_and_reseq/genes_ensg.tsv'
 CYCLE_GENES='/mnt/cold1/snaketree/prj/scRNA/local/share/data/Ire_cetuxi_first_and_reseq/regev_lab_cell_cycle_genes_onlyensg.txt'
-BASED='/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_longer/'
+BASED='/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_IRCC_tecrep/'
 
 
 rule all_seurat_integration:
-    input: expand("{sample}_res{res}_G1_clu_cycle.tsv", res=[0.01, 0.05, 0.1, 0.2, 0.5], sample=["CRC0542", "CRC0069"])
+    input: expand("{sample}_res{res}_G1_clu_cycle.tsv", res=[0.01, 0.05, 0.1, 0.2, 0.5], sample=["CRC0327"])
 

@@ -143,15 +143,8 @@ def find_saver_allsample(wildcards):
     res = glob.glob(wildcards.sample+'*_saver.csv.gz')
     return res
 
-rule all_seurat_integration:
-    input: expand("CRC0322_res{res}_G1_clu_cycle.tsv", res=[0.01, 0.05, 0.1, 0.2, 0.5])
-
-#TODO docker that starts from repbioinfo/seuratpermutation and has the required packages for DEG analyses
-
-#install.packages('BiocManager')
-#BiocManager::install('multtest')
-#install.packages('metap')
-#BiocManager::install('limma')
+wildcard_constraints:
+	sample="CRC\d+"
 
 rule seurat_integration:
     input: find_saver_allsample # '{sample}_seurat_saver.csv.gz'
