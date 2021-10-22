@@ -30,11 +30,12 @@ ccgenes_f <- opt$cycle
 npc <- opt$npc
 based <- opt$base
 
-KINDS <- c('all','G1')#,'correct')
+KINDS <- c('all','G1','correct')
 if (!kind %in% KINDS) { 
   stop('-k can only be all, G1 or correct')
   stop('correct still to be implemented!')
 }
+
 
 #CRC0322_res0.1_G1_clu_cycle.tsv, CRC0322_res0.1_G1_UMAP.png, CRC0322_res0.1_G1_markers.tsv, CRC0322_res0.1_G1_markersall.tsv, CRC0322_res0.1_G1_markers, CRC0322_res0.1_G1_violins
 # prefix == CRC0322_res0.1_G1_
@@ -56,7 +57,12 @@ print(genes_f)
 
 input_files_l <- unlist(strsplit(input_files, ','))
 
+samples <- basename(input_files_l)
+samples <- gsub('_saver.csv.gz','', samples, fixed=TRUE)
+
 set.seed(42)
+
+save.image('pluto.Rdata')
 
 createSeurat <- function(file) {
   df <- read.table(gzfile(file), sep=',', header=TRUE, row.names=1)
@@ -67,6 +73,12 @@ createSeurat <- function(file) {
 data_list <- lapply(input_files_l, createSeurat)
 
 data_list <- lapply(X = data_list, FUN = function(x) {
+    ## mito removal
+    #x[["percent.mito"]] <- PercentageFeatureSet(x, pattern = "^MT-") # need to work on ENSG :(
+    #x <- subset(x, subset = percent.mito < 25)
+    #Raf:
+    #Per ribosomali tutto quello sotto il 50% delle conte totali è buono sopra sono i doppietti
+    #Per rna umano sano in genere la soglia del mitocondriali è al disotto del 10%
     x <- NormalizeData(x)
     x <- FindVariableFeatures(x, selection.method = "vst", nfeatures = 5000)
 })
@@ -86,15 +98,15 @@ sdata <- RunPCA(sdata, npcs = npc, verbose = FALSE)
 sdata <- RunUMAP(sdata, reduction = "pca", dims = 1:npc)
 sdata <- FindNeighbors(sdata, reduction = "pca", dims = 1:npc)
 cells <- colnames(sdata)
-samples <- substring(cells, 20, 21) # the number assigned after cell barcode to each sample # FIXME bug if more than 10 integrated samples
+
+# add info on samples name to the object
+samples_n <- sapply(strsplit(cells, "_"), function(x){x[[2]]})
+sdata$sample <- samples[as.numeric(samples_n)]
+
 print('PCA1')
 pdf(output_PC_f)
 ElbowPlot(sdata)
 dev.off()
-# do we want to do something similar? or map to input names?
-# FIXME TODO
-#samples <- ifelse(samples == 1, 'NT_1', ifelse(samples == 2, "NT_2", ifelse(samples == 3, "CTX_1", "CTX_2")))
-sdata$sample <- samples
 
 cycle <- read.table(ccgenes_f)
 s.genes <- cycle[seq(1,44),]
@@ -104,16 +116,7 @@ g2m.genes <- cycle[seq(45,97),]
 sdata <- CellCycleScoring(object = sdata, s.features = s.genes, g2m.features = g2m.genes, set.ident=TRUE)
 
 print('cc')
-# if kind == "correct"
-#sdata <- ScaleData(sdata, verbose = FALSE)
-#sdata <- ScaleData(sdata,  vars.to.regress = c("S.Score", "G2M.Score")) #, features = rownames(CRC0327_saver))
-#sdata <- RunPCA(sdata, npcs = npc, verbose = FALSE) # chose?
-#sdata <- RunUMAP(sdata, reduction = "pca", dims = 1:npc)
-#sdata <- FindNeighbors(sdata, reduction = "pca", dims = 1:npc)
 
-#write.table(cc_df, file="cycle.tsv", sep="\t", quote=F)
-#table(CRC0327_saver$Phase, CRC0327_saver$sample)
-#table(CRC0327_saver$Phase)
 df <- data.frame(row.names=names(sdata$orig.ident), sample=sdata$sample, cycle=sdata$Phase)
 write.table(df, file=output_cy_f, sep="\t", quote=F)
 
@@ -125,13 +128,13 @@ if (kind == 'G1') {
   sdata <- RunUMAP(sdata, reduction = "pca", dims = 1:npc)
   sdata <- FindNeighbors(sdata, reduction = "pca", dims = 1:npc)
   print('PCA2')
-} #else if (kind == "correct") {
-#sdata <- ScaleData(sdata, verbose = FALSE)
-#sdata <- ScaleData(sdata,  vars.to.regress = c("S.Score", "G2M.Score")) #, features = rownames(CRC0327_saver))
-#sdata <- RunPCA(sdata, npcs = npc, verbose = FALSE) # chose?
-#sdata <- RunUMAP(sdata, reduction = "pca", dims = 1:npc)
-#sdata <- FindNeighbors(sdata, reduction = "pca", dims = 1:npc)
-#}
+} else if (kind == "correct") {
+  #sdata <- ScaleData(sdata, verbose = FALSE)
+  sdata <- ScaleData(sdata,  vars.to.regress = c("S.Score", "G2M.Score")) #, features = rownames(CRC0327_saver))
+  sdata <- RunPCA(sdata, npcs = npc, verbose = FALSE) # chose?
+  sdata <- RunUMAP(sdata, reduction = "pca", dims = 1:npc)
+  sdata <- FindNeighbors(sdata, reduction = "pca", dims = 1:npc)
+}
 
 sdata <- FindClusters(sdata, resolution = resolution)
 pdf(output_umap_f)

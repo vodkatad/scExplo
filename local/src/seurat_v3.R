@@ -31,6 +31,9 @@ srdata <- CreateSeuratObject(counts = data, min.cells = pars$min_cells, min.feat
 #mito.genes <- grep(pattern = "^MT-", x = rownames(x = srdata@data), value = TRUE)
 #percent.mito <- Matrix::colSums(srdata@raw.data[mito.genes, ])/Matrix::colSums(srdata@raw.data)
 srdata[["percent.mito"]] <- PercentageFeatureSet(srdata, pattern = "^MT-")
+#Raf:
+#Per ribosomali tutto quello sotto il 50% delle conte totali è buono sopra sono i doppietti
+#Per rna umano sano in genere la soglia del mitocondriali è al disotto del 10%
 #srdata <- AddMetaData(object = srdata, metadata = percent.mito, col.name = "percent.mito")
 
 pdf("violin.pdf")

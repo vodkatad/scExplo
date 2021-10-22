@@ -50,11 +50,31 @@ rule step_03_topsd_topexpr:
             {params.tool} -c {params.rcounts} -g {params.rgtf} -s {params.scratch} -a {params.saver} -f {params.saverfa} -r {params.saverfarm} -v {params.saverfarmva} 
         """
 
+#rule step_03bis_saver_alive:
+#    input: saver="{sample}_saver.csv.gz", alive="{sample}_dir/filtered_annotated_{sample}.tsv"
+#    output: csv="{sample}_saverAlive.csv.gz"
+#    run:
+#        import pandas as pd    
+#        saverdf = pd.read_csv(input.saver, compression='gzip')
+#        alivedf = pd.read_csv(input.alive)
+#        res = saverdf[[alivedf.columns.values]]
+#        res.to_csv(output.csv)
+#
+rule all_saver_alive:
+    input: expand("{sample}_saverAlive.csv.gz", sample=SAMPLES)
+
+rule step_03bis_saver_alive:
+    input: saver="{sample}_saver.csv.gz", alive="{sample}_dir/filtered_annotated_{sample}.tsv"
+    output: csv="{sample}_saverAlive.csv.gz"
+    shell:
+        """
+            Rscript -e "s=read.csv(gzfile('{input.saver}'), row.names = 1); a=read.csv('{input.alive}', row.names = 1); r=s[, colnames(a)]; write.csv(r, file=gzfile('{output.csv}'), row.names=TRUE)"
+        """
+
 # upto here
 #real    105m47.706s
 #user    6m22.494s
 #sys     0m57.360s
-
 
 # long steps that I am not sure why uses all available cores (or a hardcoded fixed N that I missed somehow?)
 # i.e. permAtTime?
@@ -123,7 +143,6 @@ rule directories:
             cp {input.gtf} {output.gtf}
         """
     
-
 # This rule will think that se is able to run even if the clustering output is not there, but will fail whend find_clu.py will
 # see that there is not clustering done yet. TODO add a dynamic dependency (dynamic w.r.t. the number of found clusters).   
 rule violin_UMI:
@@ -143,8 +162,8 @@ def find_saver_allsample(wildcards):
     res = glob.glob(wildcards.sample+'*_saver.csv.gz')
     return res
 
-wildcard_constraints:
-	sample="CRC\d+"
+#wildcard_constraints:
+#	sample="CRC\d+"
 
 rule seurat_integration:
     input: find_saver_allsample # '{sample}_seurat_saver.csv.gz'
