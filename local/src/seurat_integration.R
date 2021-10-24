@@ -58,7 +58,7 @@ print(genes_f)
 input_files_l <- unlist(strsplit(input_files, ','))
 
 samples <- basename(input_files_l)
-samples <- gsub('_saver.csv.gz','', samples, fixed=TRUE)
+samples <- gsub('_saverAlive.csv.gz','', samples, fixed=TRUE)
 
 set.seed(42)
 

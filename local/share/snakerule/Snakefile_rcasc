@@ -1,5 +1,22 @@
 include: "conf.sk"
 
+rule all_dir:
+    input: expand("{sample}_dir/{sample}.tsv", sample=SAMPLES)
+
+## rule to make a dir for each sample with the starting tsv and the needed gtf
+# need to copy instead on ln because rCASC copies to another dir that is then mounted 
+# in the docker as a volume.
+rule directories:
+    input: counts=CSV_DIR+'/{sample}.csv', gtf=RCASC_GTF
+    output: counts="{sample}_dir/{sample}.tsv", gtf="{sample}_dir/gtf.gtf"
+    params: dir="{sample}_dir"
+    shell:  
+        """
+            mkdir -p {params.dir}
+            cp {input.counts} {output.counts}
+            cp {input.gtf} {output.gtf}
+        """
+
 rule all_rcasc_steps:
     input: expand("{sample}_cc.tsv", sample=SAMPLES)
 
@@ -51,7 +68,19 @@ rule step_03_topsd_topexpr:
 #real    105m47.706s
 #user    6m22.494s
 #sys     0m57.360s
+rule all_filtered:
+    input: expand("{sample}_dir/filtered_annotated_{sample}_cellCycle.tsv", sample=SAMPLES)
 
+rule all_saver_alive:
+    input: expand("{sample}_saverAlive.csv.gz", sample=SAMPLES)
+
+rule step_03bis_saver_alive:
+    input: saver="{sample}_saver.csv.gz", alive="{sample}_dir/filtered_annotated_{sample}.tsv"
+    output: csv="{sample}_saverAlive.csv.gz"
+    shell:
+        """
+            Rscript -e "s=read.csv(gzfile('{input.saver}'), row.names = 1); a=read.csv('{input.alive}', row.names = 1); r=s[, colnames(a)]; write.csv(r, file=gzfile('{output.csv}'), row.names=TRUE)"
+        """
 
 # long steps that I am not sure why uses all available cores (or a hardcoded fixed N that I missed somehow?)
 # i.e. permAtTime?
