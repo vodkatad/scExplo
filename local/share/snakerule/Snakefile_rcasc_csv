@@ -71,6 +71,23 @@ rule step_03bis_saver_alive:
             Rscript -e "s=read.csv(gzfile('{input.saver}'), row.names = 1); a=read.csv('{input.alive}', row.names = 1); r=s[, colnames(a)]; write.csv(r, file=gzfile('{output.csv}'), row.names=TRUE)"
         """
 
+
+rule step_03bis_saver_alive_pc:
+    input: saver="{sample}_saver.csv.gz", alive="{sample}_dir/filtered_annotated_{sample}.tsv"
+    output: csv="{sample}_saverAlivePC.csv.gz"
+    shell:
+        """
+            Rscript -e "s=read.csv(gzfile('{input.saver}'), row.names = 1); 
+            a=read.csv('{input.alive}', row.names = 1); 
+            r=s[rownames(a), colnames(a)]; 
+            write.csv(r, file=gzfile('{output.csv}'), row.names=TRUE)"
+        """
+
+
+
+
+# TODO same filtering also rows!
+
 # upto here
 #real    105m47.706s
 #user    6m22.494s
