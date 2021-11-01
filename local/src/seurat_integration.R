@@ -95,6 +95,12 @@ print('scaled')
 
 # Is this step needed if we repeat it after scaling on cell cycle?
 sdata <- RunPCA(sdata, npcs = npc, verbose = FALSE)
+
+print('PCA1')
+pdf(output_PC_f)
+ElbowPlot(sdata)
+dev.off()
+
 sdata <- RunUMAP(sdata, reduction = "pca", dims = 1:npc)
 sdata <- FindNeighbors(sdata, reduction = "pca", dims = 1:npc)
 cells <- colnames(sdata)
@@ -102,11 +108,6 @@ cells <- colnames(sdata)
 # add info on samples name to the object
 samples_n <- sapply(strsplit(cells, "_"), function(x){x[[2]]})
 sdata$sample <- samples[as.numeric(samples_n)]
-
-print('PCA1')
-pdf(output_PC_f)
-ElbowPlot(sdata)
-dev.off()
 
 cycle <- read.table(ccgenes_f)
 s.genes <- cycle[seq(1,44),]
@@ -206,4 +207,12 @@ for (i in seq(1, nrow(genes_expl))) {
   },
 	error=function(cond) {}
   ) # do we need to swallow here too? TODO FIXME
+}
+
+# https://www.biostars.org/p/9478172/
+norm_data <- GetAssayData(object = sdata, slot = "data")
+write.table(norm_data, file=gzfile('norm.tsv.gz'), sep="\t", quote=F)
+if (any(Assays(sdata) == 'scale_data')) {
+  scaled_data <- GetAssayData(object = sdata, slot = "scale_data")
+  write.table(scaled_data, file=gzfile('scaled.tsv.gz'), sep="\t", quote=F)
 }
