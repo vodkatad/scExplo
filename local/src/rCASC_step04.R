@@ -19,5 +19,5 @@ SEPARATOR <- ','
 #save.image('pluto.Rdata')
 setwd(dirname(opt$vande))
 # 143
-seuratBootstrap(group="docker", scratch.folder=SCRATCH, file=opt$vande, nPerm=90, permAtTime=10, percent=10, separator=SEPARATOR, pcaDimensions=opt$pca, seed = 157)
+seuratBootstrap(group="docker", scratch.folder=SCRATCH, file=opt$vande, nPerm=40, permAtTime=10, percent=10, separator=SEPARATOR, pcaDimensions=opt$pca, seed = 157, resolution=0.1)
 # output is..the clustering file

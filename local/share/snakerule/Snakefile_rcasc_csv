@@ -61,7 +61,7 @@ rule step_03_topsd_topexpr:
 #        res.to_csv(output.csv)
 #
 rule all_saver_alive:
-    input: expand("{sample}_saverAlive.csv.gz", sample=SAMPLES), expand("{sample}_saverAlivePC.csv.gz", sample=SAMPLES)
+    input: expand("{sample}_saverAlivePC_G1.csv.gz", sample=SAMPLES)## expand("{sample}_saverAlivePC.csv.gz", sample=SAMPLES)
 
 rule step_03bis_saver_alive:
     input: saver="{sample}_saver.csv.gz", alive="{sample}_dir/filtered_annotated_{sample}.tsv"
@@ -84,8 +84,18 @@ rule step_03bis_saver_alive_pc:
             write.csv(r, file=gzfile('{output.csv}'), row.names=TRUE)"
         """
 
-# TODO same filtering also rows!
-
+rule step_03tris_saver_alive_pc_G1:
+    input: csv="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv", cycle="{sample}_dir/filtered_annotated_{sample}_cellCycle.tsv", step="{sample}_step04bis"
+    output: csv="{sample}_saverAlivePC_{phase}.csv.gz"
+    shell:
+        """
+            Rscript -e "s <- read.csv('{input.csv}', row.names = 1); 
+            a <- read.csv('{input.cycle}', row.names = 1, header=FALSE); 
+            keep <- rownames(a[a[,1]=='{wildcards.phase}',, drop=FALSE])
+            r <- s[, keep]; 
+            write.csv(r, file=gzfile('{output.csv}'), row.names=TRUE)"
+        """
+        
 # upto here
 #real    105m47.706s
 #user    6m22.494s
@@ -103,6 +113,17 @@ rule step_04_seuratboot:
             touch {output.t}
             ln -s {wildcards.sample}_dir/Results/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{wildcards.sample}/*/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{wildcards.sample}_clustering.output.csv {output.c}
         """
+
+rule step_04_seuratcycle:
+    input: all_saver_filtered="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"
+    params: tool=SRC_DIR+'/rCASC_step04bis.R', all_saver_filtered=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"), scratch=SCRATCH
+    output: t="{sample}_step04bis" 
+    shell:  
+        """
+            {params.tool} -v {params.all_saver_filtered} -s {params.scratch}
+            touch {output.t}
+        """
+
 
 
 rule step_05_comet_pb:
@@ -174,7 +195,7 @@ rule violin_UMI:
 ########### Seurat integration, WARNING needs the required saver outputs to be there, un-chained rule.
 def find_saver_allsample(wildcards):
     import glob
-    res = glob.glob(wildcards.sample+'*_saver.csv.gz')
+    res = glob.glob(wildcards.sample+'*_saverAlivePC.csv.gz')
     return res
 
 #wildcard_constraints:
@@ -185,10 +206,10 @@ rule seurat_integration:
     output: cy="{sample}_res{res}_{kind}_clu_cycle.tsv", climage="{sample}_res{res}_{kind}_UMAP.pdf", markers="{sample}_res{res}_{kind}_markers.tsv",
             markersall="{sample}_res{res}_{kind}_markersall.tsv", markersdir=directory("{sample}_res{res}_{kind}_markers"), viodir=directory("{sample}_res{res}_{kind}_violins"), pcs="{sample}_res{res}_{kind}_PC.pdf"
     params: tool=SRC_DIR+'/seurat_integration.R', genes=VIO_GENES, cinput=lambda wildcards, input: ','.join(input), cycle=CYCLE_GENES, base=BASED
-    docker: 'seuratintegration_deg_getopt'
+    #docker: 'seuratintegration_deg_getopt'
     shell:
         """
             rm -rf {output.viodir} {output.markersdir}
             mkdir {output.viodir} {output.markersdir}
-            {params.tool} -i {params.cinput} -r {wildcards.res} -g {params.genes} -k {wildcards.kind} -x {wildcards.sample}_res{wildcards.res}_{wildcards.kind}_ -n 10 -c {params.cycle} -b {params.base}
+            {params.tool} -i {params.cinput} -r {wildcards.res} -g {params.genes} -k {wildcards.kind} -x {wildcards.sample}_res{wildcards.res}_{wildcards.kind}_ -n 7 -c {params.cycle} -b {params.base}
         """

@@ -94,7 +94,7 @@ sdata <- ScaleData(sdata, verbose = FALSE)
 print('scaled')
 
 # Is this step needed if we repeat it after scaling on cell cycle?
-sdata <- RunPCA(sdata, npcs = npc, verbose = FALSE)
+sdata <- RunPCA(sdata, verbose = FALSE)
 
 print('PCA1')
 pdf(output_PC_f)
