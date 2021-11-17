@@ -60,6 +60,9 @@ rule step_03_topsd_topexpr:
 #        res = saverdf[[alivedf.columns.values]]
 #        res.to_csv(output.csv)
 #
+rule all_step03:
+    input: expand("{sample}_saver.csv.gz", sample=SAMPLES)## expand("{sample}_saverAlivePC.csv.gz", sample=SAMPLES)
+
 rule all_saver_alive:
     input: expand("{sample}_saverAlivePC_G1.csv.gz", sample=SAMPLES)## expand("{sample}_saverAlivePC.csv.gz", sample=SAMPLES)
 
@@ -85,7 +88,7 @@ rule step_03bis_saver_alive_pc:
         """
 
 rule step_03tris_saver_alive_pc_G1:
-    input: csv="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv", cycle="{sample}_dir/filtered_annotated_{sample}_cellCycle.tsv", step="{sample}_step04bis"
+    input: csv="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv", cycle="{sample}_dir/filtered_annotated_saver_ribomito_{sample}_cellCycle.csv", step="{sample}_step04bis"
     output: csv="{sample}_saverAlivePC_{phase}.csv.gz"
     shell:
         """
@@ -118,7 +121,7 @@ rule step_04_seuratboot:
 rule step_04_seuratcycle:
     input: all_saver_filtered="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"
     params: tool=SRC_DIR+'/rCASC_step04bis.R', all_saver_filtered=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"), scratch=SCRATCH
-    output: t="{sample}_step04bis" 
+    output: t="{sample}_step04bis", c="{sample}_dir/filtered_annotated_saver_ribomito_{sample}_cellCycle.csv"
     shell:  
         """
             {params.tool} -v {params.all_saver_filtered} -s {params.scratch}
