@@ -18,3 +18,4 @@ SEPARATOR <- ','
 #save.image('pluto.Rdata')
 setwd(dirname(opt$vande))
 seurat_ccycle(group="docker", scratch.folder=SCRATCH, file=opt$vande, separator=SEPARATOR, seed = 157)
+# pcaEval here

@@ -54,7 +54,7 @@ rule seurat_integration_all:
     output: cy="allres{res}_{kind}_clu_cycle.tsv", climage="allres{res}_{kind}_UMAP.pdf", markers="allres{res}_{kind}_markers.tsv",
             markersall="allres{res}_{kind}_markersall.tsv", markersdir=directory("allres{res}_{kind}_markers"), viodir=directory("allres{res}_{kind}_violins"), pcs="allres{res}_{kind}_PC.pdf"
     params: tool=SRC_DIR+'/seurat_integration.R', genes=VIO_GENES, cinput=lambda wildcards, input: ','.join(input), cycle=CYCLE_GENES, base=BASED
-    docker: 'seuratintegration_deg_getopt'
+    #docker: 'seuratintegration_deg_getopt'
     shell:
         """
             rm -rf {output.viodir} {output.markersdir}
@@ -85,7 +85,7 @@ rule seurat_integration_all2:
     output: cy="all2res{res}_{kind}_clu_cycle.tsv", climage="all2res{res}_{kind}_UMAP.pdf", markers="all2res{res}_{kind}_markers.tsv",
             markersall="all2res{res}_{kind}_markersall.tsv", markersdir=directory("all2res{res}_{kind}_markers"), viodir=directory("all2res{res}_{kind}_violins"), pcs="all2res{res}_{kind}_PC.pdf"
     params: tool=SRC_DIR+'/seurat_integration.R', genes=VIO_GENES, cinput=lambda wildcards, input: ','.join(input), cycle=CYCLE_GENES, base=BASED
-    docker: 'seuratintegration_deg_getopt'
+    #docker: 'seuratintegration_deg_getopt'
     shell:
         """
             rm -rf {output.viodir} {output.markersdir}

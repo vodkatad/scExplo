@@ -109,24 +109,44 @@ rule step_03tris_saver_alive_pc_G1:
 # long steps that I am not sure why uses all available cores (or a hardcoded fixed N that I missed somehow?)
 # i.e. permAtTime?
 rule step_04_seuratboot:
-    input: vande="{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv"
-    params: tool=SRC_DIR+'/rCASC_step04.R', vande=get_absolute_all("{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv"), scratch=SCRATCH
-    output: t="{sample}_step04_{pc}", c='{sample}_seurat_clusters_{pc}.csv', 
+    input: vande="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"
+    params: tool=SRC_DIR+'/rCASC_step04.R', vande=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"), scratch=SCRATCH
+    output: t="{sample}_step04_{pc}", c='{sample}_seurat_clusters_{pc}.csv', c2="{sample}_dir/clustering_{pc}.csv"
     shell:  
         """
             {params.tool} -v {params.vande} -s {params.scratch} -p {wildcards.pc}
             touch {output.t}
-            ln -s {wildcards.sample}_dir/Results/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{wildcards.sample}/*/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{wildcards.sample}_clustering.output.csv {output.c}
+            ln -s {wildcards.sample}_dir/Results/filtered_annotated_saver_ribomito_{wildcards.sample}/*/filtered_annotated_saver_ribomito_{wildcards.sample}_clustering.output.csv {output.c}
+            cp {wildcards.sample}_dir/Results/filtered_annotated_saver_ribomito_{wildcards.sample}/*/filtered_annotated_saver_ribomito_{wildcards.sample}_clustering.output.csv {output.c2}
         """
 
+#this changes the date of -rwxrwxrwx 1 egrassi trcanmed 281749434 Nov 19 12:42 CRC0327_NT_1_dir/filtered_annotated_saver_ribomito_CRC0327_NT_1.csv
+# WHY WHY WHY
+
+# this rewrites the ccycle done in step03 using saver imputed data vs only filtered_annotated
 rule step_04_seuratcycle:
     input: all_saver_filtered="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"
     params: tool=SRC_DIR+'/rCASC_step04bis.R', all_saver_filtered=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"), scratch=SCRATCH
-    output: t="{sample}_step04bis" 
+    output: t="{sample}_step04bis", c="{sample}_dir/filtered_annotated_saver_ribomito_{sample}_cellCycle.csv"
     shell:  
         """
             {params.tool} -v {params.all_saver_filtered} -s {params.scratch}
             touch {output.t}
+        """
+
+#### shading of genes on UMAP
+rule gene_shading:
+    input: step="{sample}_step04_{pc}", genes=PRJ_ROOT+'/local/share/data/genes_{genes}.txt', data="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"
+    params: tool=SRC_DIR+'/rCASC_genevis.R', clustering=get_absolute_all("{sample}_dir/clustering_{pc}.csv"), scratch=SCRATCH,  
+            tool2=SRC_DIR+'/geneVisualization.R', expr=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"),
+            g=get_absolute_all('{genes}_genesshading_{sample}_PC{pc}.tmp'), plot="{genes}_genesshading_{sample}_PC{pc}"
+    output: t="{genes}_genesshading_{sample}_PC{pc}"#, plot="{genes}_genesshading_{sample}_PC{pc}.pdf", cpm="{sample}_dir/filtered_annotated_saver_ribomito_{sample}_log_pc1_cpm.csv"
+    shell:
+        """
+            tr "," "\\t" < {input.data} | tr -d '"' | sed 1d | cut -f 1 | tr ":" "\\t" | filter_1col 2 {input.genes} | tr "\\t" ":" > {output.t}.tmp
+            {params.tool} -c {params.clustering} -s {params.scratch} -g {params.g} -p {params.plot} -t {params.tool2} -e {params.expr}
+            touch {output.t}
+            rm {output.t}.tmp
         """
 
 rule step_05_comet_pb:
@@ -181,7 +201,7 @@ rule violin_UMI:
 ########### Seurat integration, WARNING needs the required saver outputs to be there, un-chained rule.
 def find_saver_allsample(wildcards):
     import glob
-    res = glob.glob(wildcards.sample+'*_saver.csv.gz')
+    res = glob.glob(wildcards.sample+'*_saverAlivePC.csv.gz')
     return res
 
 
@@ -197,10 +217,10 @@ rule seurat_integration:
     output: cy="{sample}_res{res}_{kind}_clu_cycle.tsv", climage="{sample}_res{res}_{kind}_UMAP.pdf", markers="{sample}_res{res}_{kind}_markers.tsv",
             markersall="{sample}_res{res}_{kind}_markersall.tsv", markersdir=directory("{sample}_res{res}_{kind}_markers"), viodir=directory("{sample}_res{res}_{kind}_violins"), pcs="{sample}_res{res}_{kind}_PC.pdf"
     params: tool=SRC_DIR+'/seurat_integration.R', genes=VIO_GENES, cinput=lambda wildcards, input: ','.join(input), cycle=CYCLE_GENES, base=BASED
-    docker: 'seuratintegration_deg_getopt'
+    #docker: 'seuratintegration_deg_getopt'
     shell:
         """
             rm -rf {output.viodir} {output.markersdir}
             mkdir {output.viodir} {output.markersdir}
-            {params.tool} -i {params.cinput} -r {wildcards.res} -g {params.genes} -k {wildcards.kind} -x {wildcards.sample}_res{wildcards.res}_{wildcards.kind}_ -n 10 -c {params.cycle} -b {params.base}
+            {params.tool} -i {params.cinput} -r {wildcards.res} -g {params.genes} -k {wildcards.kind} -x {wildcards.sample}_res{wildcards.res}_{wildcards.kind}_ -n 7 -c {params.cycle} -b {params.base}
         """
