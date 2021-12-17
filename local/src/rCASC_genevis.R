@@ -24,11 +24,13 @@ SEPARATOR <- ','
 setwd(dirname(opt$clustering))
 
 expr <- read.table(opt$expr, sep=SEPARATOR, header=TRUE, row.names=1)
-tot <- sum(expr)
-cpm_expr <- (expr * 10**6)/tot
-cpm_expr <- log(cpm_expr+1)
+col_sum <- apply(expr, 2, sum)
+tmp1 <- t(expr)/col_sum
+tmp1 <- t(tmp1)
+tmp1 <- tmp1 * 1000000
+cpm_expr <- log2(tmp1+1)
 
 fn_cpm <- substr(opt$expr, 1, nchar(opt$expr)-4)
-fn_cpm <- paste0(fn_cpm, '_log_pc1_cpm.csv')
+fn_cpm <- paste0(fn_cpm, '_log2_pc1_cpm.csv')
 write.csv(cpm_expr, file=fn_cpm, row.names=TRUE)
 geneVisualization(group="docker", scratch.folder=SCRATCH, file=fn_cpm,  clustering.output=opt$clustering, geneList=opt$genes, separator=SEPARATOR, finalName=opt$pdf)

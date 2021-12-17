@@ -127,7 +127,7 @@ rule step_04_seuratboot:
 rule step_04_seuratcycle:
     input: all_saver_filtered="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"
     params: tool=SRC_DIR+'/rCASC_step04bis.R', all_saver_filtered=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"), scratch=SCRATCH
-    output: t="{sample}_step04bis", c="{sample}_dir/filtered_annotated_saver_ribomito_{sample}_cellCycle.csv"
+    output: t="{sample}_step04bis", c="{sample}_dir/filtered_annotated_saver_ribomito_{sample}_cellCycle.csv", pc="{sample}_dir/filtered_annotated_saver_ribomito_{sample}/PCE_bowPlot.csv"
     shell:  
         """
             {params.tool} -v {params.all_saver_filtered} -s {params.scratch}
@@ -148,6 +148,24 @@ rule gene_shading:
             touch {output.t}
             rm {output.t}.tmp
         """
+
+rule gene_shading_G1:
+    input: step="{sample}_step04_{pc}", genes=PRJ_ROOT+'/local/share/data/genes_{genes}.txt', data="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv",
+           expr_pc="{sample}_saverAlivePC_G1.csv.gz"
+    params: tool=SRC_DIR+'/rCASC_genevis2.R', clustering=get_absolute_all("{sample}_dir/clustering_{pc}.csv"), scratch=SCRATCH,  
+            tool2=SRC_DIR+'/geneVisualization.R', expr=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"),
+            g=get_absolute_all('{genes}_genesshadingG1_{sample}_PC{pc}.tmp'), plot="{genes}_genesshadingG1_{sample}_PC{pc}"
+    output: t="{genes}_genesshadingG1_{sample}_PC{pc}"#, plot="{genes}_genesshadingG1_{sample}_PC{pc}.pdf", cpm="{sample}_dir/filtered_annotated_saver_ribomito_{sample}_log_pc1_cpm.csv"
+    shell:
+        """
+            tr "," "\\t" < {input.data} | tr -d '"' | sed 1d | cut -f 1 | tr ":" "\\t" | filter_1col 2 {input.genes} | tr "\\t" ":" > {output.t}.tmp
+            {params.tool} -c {params.clustering} -s {params.scratch} -g {params.g} -p {params.plot} -t {params.tool2} -e {params.expr} -E {input.expr_pc}
+            touch {output.t}
+            rm {output.t}.tmp
+        """
+
+rule all_paneth_shades:
+    input: expand("pPaneth_genesshadingG1_{sample}_PC5", sample=SAMPLES)
 
 rule step_05_comet_pb:
     input: vande="{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv", cycle="{sample}_dir/filtered_annotated_{sample}_cellCycle.tsv", step="{sample}_step04_{pc}"

@@ -44,7 +44,7 @@ scannobyGtf(group = "docker", file=INPUT, gtf.name=GTF, biotype="protein_coding"
 # filtered_annotated_CRC0542_CTX72h_1.tsv  annotated_CRC0542_CTX72h_1.tsv CRC0542_CTX72h_1_annotated_genes.pdf  (who uses them then?) filteredStatistics.txt
 # so we want another directory for saver???
 
-#calculating cell cycle
+# calculating cell cycle, here not on inputed data!
 # its input is filtered_annotated_CRC0542_CTX72h_1.tsv
 fa_name <- file.path(dirname(INPUT), paste0('filtered_annotated_', basename(INPUT)))
 print('############################# ccycle')
@@ -52,17 +52,16 @@ seurat_ccycle(group = "docker", scratch.folder=SCRATCH, file=fa_name, separator=
 # this generates filtered_annotated_CRC0542_CTX72h_1_cellCycle.tsv in the fa_name dir - but who uses THIS?
 
 #annotating saver data
-save.image('pippo.Rdata')
 print('############################# scanno2')
 scannobyGtf(group = "docker", file=saver_f, gtf.name=GTF, biotype="protein_coding", mt = FALSE, ribo.proteins = FALSE, umiXgene = 3, riboStart.percentage = 0, riboEnd.percentage = 100, mitoStart.percentage = 0, mitoEnd.percentage = 100, thresholdGenes = 1)
-
-save.image('pippo.Rdata')
+# this generates annotated_saver_{sample}.tsv in dir
 
 print('############################# saver read/writetables')
 raw <- read.table(fa_name, sep=SEPARATOR, header=T, row.names=1)
 
 saver_fa_name <- file.path(dirname(saver_f), paste0('annotated_', basename(saver_f)))
 saver <- read.table(saver_fa_name, sep=SEPARATOR, header=T, row.names=1)
+# we read annotated_saver_{sample}.tsv and filter the cells (keep only those in raw, which comes from the first scannobyGtf, no too high ribo/mito)
 saver_ribomito <- saver[,which(names(saver)%in%names(raw))]
 write.table(saver_ribomito, saver_farm_f, sep=",", col.names=NA)
 
@@ -77,5 +76,6 @@ topx(group = "docker", file=saver_farmva_f, threshold=5000, separator=SEPARATOR,
 
 print('############################# pcaeval')
 seuratPCAEval(group = "docker", scratch.folder=SCRATCH, file=saver_last, separator=",", logTen = 0, seed = 111)
+###seuratPCAEval(group = "docker", scratch.folder=SCRATCH, file=saver_farm_f, separator=",", logTen = 0, seed = 111)
 # this generates 
 #CRC0069_CTX72h_1_dir/Results/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_CRC0069_CTX72h_1/PCE_bowPlot.pdf

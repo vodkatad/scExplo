@@ -1,0 +1,41 @@
+import os
+def find_prj_root(path=os.getcwd()):
+    if os.path.isfile(os.path.join(path,'.PRJ_ROOT')):
+        return path
+    else:
+        if path:
+            return find_prj_root(os.path.dirname(path))
+        else:
+            raise Exception('Can not find the PRJ_ROOT directory')
+
+PRJ_ROOT=find_prj_root()
+BIOINFO_ROOT = os.getenv('BIOINFO_ROOT')
+SNAKE_ROOT=os.getenv('SNAKE_ROOT')
+
+BIN_DIR=PRJ_ROOT+'/local/bin'
+SRC_DIR=PRJ_ROOT+'/local/src'
+
+SAMPLES=[
+"CRC0322_4d_NOEGF",
+"CRC0322_4d_EGF",
+"CRC0322_8d_NOEGF",
+"CRC0322_8d_EGF",
+"CRC0322_3d_CTX",
+"CRC0322_12d_NOEGF",
+"CRC0322_12d_EGF",
+"CRC0322_7d_CTX"
+]
+
+NSAMPLES=len(SAMPLES)
+
+CSV_DIR='/mnt/cold1/snaketree/prj/scRNA/dataset/IRCC_timecourse_dec21'
+BASED='/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_timecourse'
+
+ALL_CSV=expand(CSV_DIR+'/{sample}.tsv', sample=SAMPLES)
+CORES=10
+
+RCASC_GTF="/mnt/cold1/calogero/reanalysis_on_AIsc/comparing_CRC0322/CRC0322_NT_1_bis_clx/Homo_sapiens.GRCh38.101.gtf"
+SCRATCH="/tmp"
+
+VIO_GENES='/mnt/cold1/snaketree/prj/scRNA/local/share/data/Ire_cetuxi_first_and_reseq/genes_ensg.tsv'
+CYCLE_GENES='/mnt/cold1/snaketree/prj/scRNA/local/share/data/Ire_cetuxi_first_and_reseq/regev_lab_cell_cycle_genes_onlyensg.txt'
