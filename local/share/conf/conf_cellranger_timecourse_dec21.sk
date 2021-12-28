@@ -9,19 +9,18 @@ TRANSCRIPTOME=PRJ_ROOT+"local/share/data/refdata-cellranger-GRCh38-1.2.0"
 MEM=90
 CORES=8
 CELLRANGER=PRJ_ROOT+"local/src/cellranger-3.1.0/cellranger"
-#FASTQ_DIR='./HMYG5BGXH/outs/fastq_path/'
-FASTQ_DIR=''
+FASTQ_DIR='./HL7L3DRXY/outs/fastq_path/'
 SEQ_DIR='/mnt/cold1/upload/scRNA_Candiolo_12_2021/ll/211209_A00959_0109_BHL7L3DRXY'
 
 SAMPLES=[
-"PDO_livermet_CRC0323_4d_NOEGF",
-"PDO_livermet_CRC0322_4d_EGF",
-"PDO_livermet_CRC0323_8d_NOEGF",
-"PDO_livermet_CRC0322_8d_EGF",
-"PDO_livermet_CRC0323_3d_CTX",
-"PDO_livermet_CRC0323_12d_NOEGF",
-"PDO_livermet_CRC0322_12d_EGF",
-"PDO_livermet_CRC0323_7d_CTX"
+"PDO_livermet_CRC0323_4d_NOEGF_3_NN",
+"PDO_livermet_CRC0322_4d_EGF_3_NN",
+"PDO_livermet_CRC0323_8d_NOEGF_3_NN",
+"PDO_livermet_CRC0322_8d_EGF_3_NN",
+"PDO_livermet_CRC0323_3d_CTX_3_NN",
+"PDO_livermet_CRC0323_12d_NOEGF_3_NN",
+"PDO_livermet_CRC0322_12d_EGF_3_NN",
+"PDO_livermet_CRC0323_7d_CTX_3_NN"
 ]
 
 OSAMPLES=[

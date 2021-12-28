@@ -34,7 +34,7 @@ BASED='/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_timecourse'
 ALL_CSV=expand(CSV_DIR+'/{sample}.tsv', sample=SAMPLES)
 CORES=10
 
-RCASC_GTF="/mnt/cold1/calogero/reanalysis_on_AIsc/comparing_CRC0322/CRC0322_NT_1_bis_clx/Homo_sapiens.GRCh38.101.gtf"
+RCASC_GTF=PRJ_ROOT+"/local/share/data/Homo_sapiens.GRCh38.101.gtf"
 SCRATCH="/tmp"
 
 VIO_GENES='/mnt/cold1/snaketree/prj/scRNA/local/share/data/Ire_cetuxi_first_and_reseq/genes_ensg.tsv'
