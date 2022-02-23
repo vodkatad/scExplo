@@ -292,40 +292,40 @@ rule go:
 
 ### cellranger 2csv
 #(base) [outs]egrassi@hactarlogin$ ../../../../local/src/cellranger-3.1.0/cellranger mat2csv filtered_feature_bc_matrix.h5 test.csv
-rule all_tsv:
-    input: expand("{sample}.tsv", sample=SAMPLES[0:])
+rule all_csv:
+    input: expand("{sample}.csv", sample=SAMPLES)
 
 
 rule tocsv:
-    params: tool=CELLRANGER, out=lambda wildcards: samples_map[wildcards.sample]+".tsv"
+    params: tool=CELLRANGER, out=lambda wildcards: samples_map[wildcards.sample]+".csv"
     input: "{sample}/outs/filtered_feature_bc_matrix.h5"
-    output: "{sample}.tsv"
+    output: "{sample}.csv"
     shell: 
         """
         {params.tool} mat2csv {input} {output}
         cp {output} {params.out}
         """
 
-rule all_csv: 
-    input: expand("{sample}_cellranger.csv", sample=OSAMPLES)
+#rule all_csv: 
+#    input: expand("{sample}_cellranger.csv", sample=OSAMPLES)
 
-def find_csv_ln(wildcards):
-    import os
-    i = OSAMPLES.index(wildcards.sample)
-    w = SAMPLES[i] + ".tsv"
-    print(w)
-    if os.path.isfile(w):
-        return w
-    else:
-        raise ValueError("Check you SAMPLES_ORIG and SAMPLES in conf.sk!")
+#def find_csv_ln(wildcards):
+#    import os
+#    i = OSAMPLES.index(wildcards.sample)
+#    w = SAMPLES[i] + ".tsv"
+#    print(w)
+#    if os.path.isfile(w):
+#        return w
+#    else:
+#        raise ValueError("Check you SAMPLES_ORIG and SAMPLES in conf.sk!")
             
-rule csvln:
-    input: find_csv_ln
-    output: "{sample}_cellranger.csv"
-    shell:
-        """
-            ln -s {input} {output}
-        """
+#rule csvln:
+#    input: find_csv_ln
+#    output: "{sample}_cellranger.csv"
+#    shell:
+#        """
+#            ln -s {input} {output}
+#        """
     
 # FQ removed is needed to avoid failures when the original fq have been moved to make space
 def find_ln(wildcards):

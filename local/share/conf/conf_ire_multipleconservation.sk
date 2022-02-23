@@ -9,7 +9,8 @@ TRANSCRIPTOME=PRJ_ROOT+"local/share/data/refdata-cellranger-GRCh38-1.2.0"
 MEM=90
 CORES=24
 CELLRANGER=PRJ_ROOT+"local/src/cellranger-3.1.0/cellranger"
-FASTQ_DIR=PRJ_ROOT+"local/share/data/todo"
+FASTQ_DIR=PRJ_ROOT+"local/share/data/sc_Ire_multipleconservation/raw/raw/"
+
 SAMPLES=['IRC-BL-g001','IRC-BL-g003','IRC-BL-g005','IRC-BL-g006','IRC-BL-g007','IRC-BL-g008']
 OSAMPLES=['CRC0327_NT72h_DMSO','CRC0327_NT72h_Atelerix','CRC0327_NT72h_Methanol','CRC0327_CTX72h_Methanol','CRC0327_NT72h_Vivophix','CRC0327_CTX72h_Vivophix']
 NSAMPLES=len(SAMPLES)
@@ -22,44 +23,44 @@ GSEA_XLS=PRJ_ROOT+"/local/src/gsea_genes_signature.R"
 
 SEURAT_PARAMS=PRJ_ROOT+"local/share/data/seurat_params.txt"
 
-ruleorder: fake_done > cellrangercounts
+#ruleorder: fake_done > cellrangercounts
 
-rule fake_done:
-    input: dir=directory(PRJ_ROOT+"local/share/data/sc_Ire_multipleconservation/IRC-BL/filtered_files/{sample}-filtered-feature-bc-matrix/"), metrics=PRJ_ROOT+"local/share/data/sc_Ire_multipleconservation/IRC-BL/metrics/{sample}-metrics.csv"
-    output: "{sample}.done"
-    shell:
-        """
-            touch {output}
-            mkdir -p {wildcards.sample}/outs/filtered_feature_bc_matrix/
-            ln -s {input.metrics} {wildcards.sample}/outs/metrics_summary.csv
-            ln -s {input.dir}/barcodes.tsv.gz {wildcards.sample}/outs/filtered_feature_bc_matrix/barcodes.tsv.gz 
-            ln -s {input.dir}/features.tsv.gz {wildcards.sample}/outs/filtered_feature_bc_matrix/features.tsv.gz 
-            ln -s {input.dir}/matrix.mtx.gz {wildcards.sample}/outs/filtered_feature_bc_matrix/matrix.mtx.gz 
-        """
+#rule fake_done:
+#    input: dir=directory(PRJ_ROOT+"local/share/data/sc_Ire_multipleconservation/IRC-BL/filtered_files/{sample}-filtered-feature-bc-matrix/"), metrics=PRJ_ROOT+"local/share/data/sc_Ire_multipleconservation/IRC-BL/metrics/{sample}-metrics.csv"
+#    output: "{sample}.done"
+#    shell:
+#        """
+#            touch {output}
+#            mkdir -p {wildcards.sample}/outs/filtered_feature_bc_matrix/
+#            ln -s {input.metrics} {wildcards.sample}/outs/metrics_summary.csv
+#            ln -s {input.dir}/barcodes.tsv.gz {wildcards.sample}/outs/filtered_feature_bc_matrix/barcodes.tsv.gz 
+#            ln -s {input.dir}/features.tsv.gz {wildcards.sample}/outs/filtered_feature_bc_matrix/features.tsv.gz 
+#            ln -s {input.dir}/matrix.mtx.gz {wildcards.sample}/outs/filtered_feature_bc_matrix/matrix.mtx.gz 
+#        """
 
-ruleorder: basic_numbers_2 > basic_numbers
-rule basic_numbers_2:
-    input: expand("{sample}/outs/metrics_summary.csv", sample=SAMPLES)
-    output: csv="numbers.csv", plot="numbers.png"
-    params: samplesnames=OSAMPLES
-    run:
-        import pandas as pd
-        res = pd.DataFrame()
-        j = 0
-        for i in input:
-            #csv = pd.read_csv(i, usecols=['Estimated Number of Cells','Mean Reads per Cell','Median Genes per Cell'], dtype={'Estimated Number of Cells': str,'Mean Reads per Cell':str,'Median Genes per Cell':str})
-            csv = pd.read_csv(i, usecols=['Estimated Number of Cells','Mean Reads per Cell','Median Genes per Cell', 'Number of Reads','Valid Barcodes','Sequencing Saturation', 'Reads Mapped Confidently to Exonic Regions','Median UMI Counts per Cell'], dtype={'Estimated Number of Cells': str,'Mean Reads per Cell':str,'Median Genes per Cell':str, 'Number of Reads':str,'Valid Barcodes':str,'Sequencing Saturation':str, 'Reads Mapped Confidently to Exonic Regions':str,'Median UMI Counts per Cell': str})
-            csv['sample'] = params.samplesnames[j]
-            #res = pd.concat([res, csv[['Estimated Number of Cells','Mean Reads per Cell','Median Genes per Cell','sample']] ])
-            res = pd.concat([res, csv])
-            j += 1
-        res.to_csv(output.csv, sep="\t", index=False)
-        import seaborn as sns
-        sns.set(style="white")
-        res['treat'] = pd.Series(res['sample'].str.split("_", expand=True)[1]) 
-        res['conservation'] = pd.Series(res['sample'].str.split("_", expand=True)[2])
-        res['cells'] = pd.Series(res['Estimated Number of Cells'].str.replace(',','')).astype(int)
-        res['genes'] = pd.Series(res['Median Genes per Cell'].str.replace(',', '')).astype(int)
-        sns_plot = sns.relplot(x="cells", y="genes", hue="conservation", style="treat", data=res)
-        sns_plot.savefig(output.plot)
+#ruleorder: basic_numbers_2 > basic_numbers
+#rule basic_numbers_2:
+#    input: expand("{sample}/outs/metrics_summary.csv", sample=SAMPLES)
+#    output: csv="numbers.csv", plot="numbers.png"
+#    params: samplesnames=OSAMPLES
+#    run:
+#        import pandas as pd
+#        res = pd.DataFrame()
+#        j = 0
+#        for i in input:
+#            #csv = pd.read_csv(i, usecols=['Estimated Number of Cells','Mean Reads per Cell','Median Genes per Cell'], dtype={'Estimated Number of Cells': str,'Mean Reads per Cell':str,'Median Genes per Cell':str})
+#            csv = pd.read_csv(i, usecols=['Estimated Number of Cells','Mean Reads per Cell','Median Genes per Cell', 'Number of Reads','Valid Barcodes','Sequencing Saturation', 'Reads Mapped Confidently to Exonic Regions','Median UMI Counts per Cell'], dtype={'Estimated Number of Cells': str,'Mean Reads per Cell':str,'Median Genes per Cell':str, 'Number of Reads':str,'Valid Barcodes':str,'Sequencing Saturation':str, 'Reads Mapped Confidently to Exonic Regions':str,'Median UMI Counts per Cell': str})
+#            csv['sample'] = params.samplesnames[j]
+#            #res = pd.concat([res, csv[['Estimated Number of Cells','Mean Reads per Cell','Median Genes per Cell','sample']] ])
+#            res = pd.concat([res, csv])
+#            j += 1
+#        res.to_csv(output.csv, sep="\t", index=False)
+#        import seaborn as sns
+#        sns.set(style="white")
+#        res['treat'] = pd.Series(res['sample'].str.split("_", expand=True)[1]) 
+#        res['conservation'] = pd.Series(res['sample'].str.split("_", expand=True)[2])
+#        res['cells'] = pd.Series(res['Estimated Number of Cells'].str.replace(',','')).astype(int)
+#        res['genes'] = pd.Series(res['Median Genes per Cell'].str.replace(',', '')).astype(int)
+#        sns_plot = sns.relplot(x="cells", y="genes", hue="conservation", style="treat", data=res)
+#        sns_plot.savefig(output.plot)
 
