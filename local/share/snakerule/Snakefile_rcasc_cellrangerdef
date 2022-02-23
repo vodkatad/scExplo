@@ -177,6 +177,15 @@ rule gene_shading_G1:
 rule all_paneth_shades:
     input: expand("pPaneth_genesshadingG1_{sample}_PC5", sample=SAMPLES)
 
+rule all_norkin_shades:
+    input: expand("norkin_genesshadingG1_{sample}_PC5", sample=SAMPLES)
+
+rule allall_paneth_shades:
+    input: expand("pPaneth_genesshading_{sample}_PC5", sample=SAMPLES)
+
+rule allall_norkin_shades:
+    input: expand("norkin_genesshading_{sample}_PC5", sample=SAMPLES)
+
 rule step_05_comet_pb:
     input: vande="{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv", cycle="{sample}_dir/filtered_annotated_{sample}_cellCycle.tsv", step="{sample}_step04_{pc}"
     params: tool=SRC_DIR+'/rCASC_step05.R', vande=get_absolute_all("{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv"), scratch=SCRATCH,
