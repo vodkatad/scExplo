@@ -19,11 +19,11 @@ rule directories:
         """
 
 rule all_rcasc_steps:
-    input: expand("{sample}_cc.tsv", sample=SAMPLES)
+    input: expand("{sample}_saver.csv.gz", sample=SAMPLES)
 
 # move in dir?
 rule step_01_saver:
-    input: CSV_DIR+'/{sample}.tsv'
+    input: CSV_DIR+'/{sample}.csv'
     output: "{sample}_saver.csv.gz"
     params: tool=SRC_DIR+'/rCASC_step01.R', cores=CORES
     shell:  
@@ -53,8 +53,8 @@ rule step_02_cc_ribomito:
 # other output:
 # {sample}_dir/Results/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}/PCE_bowPlot.pdf
 rule step_03_topsd_topexpr:
-    input: counts='{sample}_dir/{sample}.tsv', gtf='{sample}_dir/gtf.gtf', saver="{sample}_saver.csv.gz"
-    output: cc="{sample}_dir/filtered_annotated_{sample}_cellCycle.tsv", vande="{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv"
+    input: counts='{sample}_dir/{sample}.csv', gtf='{sample}_dir/gtf.gtf', saver="{sample}_saver.csv.gz"
+    output: cc="{sample}_dir/filtered_annotated_{sample}_cellCycle.csv", vande="{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv"
     params: tool=SRC_DIR+'/rCASC_step03'+SPEC+'.R', scratch=SCRATCH, rcounts=get_absolute, rgtf="gtf.gtf", saver=get_absolute_all("{sample}_dir/saver_{sample}.tsv"),
             saverfarm=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"),
             saverfarmva=get_absolute_all("{sample}_dir/filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv"),
@@ -70,7 +70,7 @@ rule step_03_topsd_topexpr:
 #user    6m22.494s
 #sys     0m57.360s
 rule all_filtered:
-    input: expand("{sample}_dir/filtered_annotated_{sample}_cellCycle.tsv", sample=SAMPLES)
+    input: expand("{sample}_dir/filtered_annotated_{sample}_cellCycle.csv", sample=SAMPLES)
 
 rule all_saver_alive:
     input: expand("{sample}_saverAlivePC_G1.csv.gz", sample=SAMPLES)
@@ -90,7 +90,7 @@ rule step_03tris_saver_alive_pc_G1:
 # i.e. permAtTime?
 rule step_04_seuratboot:
     input: vande="{sample}_dirmito_{sample}.csv"
-    params: tool=SRC_DIR+'/rCASC_step04.R', vande=get_absGolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"), scratch=SCRATCH
+    params: tool=SRC_DIR+'/rCASC_step04.R', vande=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"), scratch=SCRATCH
     output: t="{sample}_step04_{pc}", c='{sample}_seurat_clusters_{pc}.csv', c2="{sample}_dir/clustering_{pc}.csv"
     shell:  
         """
