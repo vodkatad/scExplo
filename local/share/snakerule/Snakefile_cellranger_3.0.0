@@ -50,7 +50,7 @@ rule basic_numbers:
         res.to_csv(output.csv, sep="\t", index=False)
         import seaborn as sns
         sns.set(style="white")
-        res['treat'] = pd.Series(res['sample'].str.split("_", expand=True)[1]) # ehm
+        res['treat'] = pd.Series(res['sample'].str.split("_", expand=True)[1]) # ehm this was hardcoded as basal for some tweaks, mind you!
         res['case'] = pd.Series(res['sample'].str.split("_", expand=True)[0])
         res['cells'] = pd.Series(res['Estimated Number of Cells'].str.replace(',','')).astype(int)
         res['genes'] = pd.Series(res['Median Genes per Cell'].str.replace(',', '')).astype(int)
@@ -98,6 +98,8 @@ rule seurat_checkcluster:
     params: osamples=OSAMPLES, outdir="{sample}_seurat"
     script: SRC_DIR+"seurat_check_v3.R"
 
+rule all_scycle:
+    input: expand("{sample}_seurat/prelim.Rdata", sample=SAMPLES)
 
 rule seurat_cycle:
     input: data="{sample}_seurat/prelim.Rdata", cc=PRJ_ROOT+"local/share/data/regev_lab_cell_cycle_genes.txt"
@@ -306,6 +308,7 @@ rule tocsv:
         cp {output} {params.out}
         """
 
+<<<<<<< Updated upstream
 #rule all_csv: 
 #    input: expand("{sample}_cellranger.csv", sample=OSAMPLES)
 
@@ -327,6 +330,21 @@ rule tocsv:
 #            ln -s {input} {output}
 #        """
     
+=======
+rule all_csv_raw:
+    input: expand("{sample}_raw.csv", sample=SAMPLES[0:])
+
+
+rule tocsv_raw:
+    params: tool=CELLRANGER, out=lambda wildcards: samples_map[wildcards.sample]+".tsv"
+    input: "{sample}/outs/raw_feature_bc_matrix.h5"
+    output: "{sample}_raw.csv"
+    shell: 
+        """
+        {params.tool} mat2csv {input} {output}
+        cp {output} {params.out}
+        """
+>>>>>>> Stashed changes
 # FQ removed is needed to avoid failures when the original fq have been moved to make space
 def find_ln(wildcards):
     import os
