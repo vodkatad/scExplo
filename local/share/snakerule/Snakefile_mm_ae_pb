@@ -1,0 +1,34 @@
+include: "conf.sk"
+
+checkpoint all_rnk:
+    input: xlsx=TABELLONE
+    output: dir=directory('ranks')
+    script: SRC_DIR+'/ranks_from_all_de.R'
+
+
+def all_rnk(wildcards):
+    res = []
+    rnk_d = checkpoints.all_rnk.get(**wildcards).output.dir
+    import os
+    import glob
+    #for filename in os.listdir(rnk_d):
+    for filename in glob.glob(os.path.join(rnk_d, '*')):
+        filename = os.path.basename(filename)
+        bn = os.path.splitext(filename)[0]
+        res.append(bn + '.results_'+wildcards.enrich_cat+'.tsv')
+    return res
+
+rule all_gsea:
+    input: all_rnk
+    output: touch("{enrich_cat}.done")
+
+rule all_gsea_all:
+    input: "H.done", "C2.done"    
+
+rule gsea:
+    input: gene_res_freq = "ranks/{sample}.rnk"
+    output: GSEA_r = "{sample}.results_{enrich_cat}.tsv", GSEA_ridgeplot = "{sample}.ridgeplot_{enrich_cat}.pdf"
+    script: SRC_DIR+'/GSEA_analysis.R'
+
+#    egrassi@godot:/scratch/trcanmed/scExplo/dataset/mixture_models_ae_pb$ for f in *results_H.tsv; do cut  -f 1,4,8 $f | sed 1d | bawk -v F=$f '{{print F, $0}}'; done |  sed 's/\.results_H\.tsv//1' > H.tsv
+#egrassi@godot:/scratch/trcanmed/scExplo/dataset/mixture_models_ae_pb$ for f in *results_C2.tsv; do cut  -f 1,4,8 $f | sed 1d | bawk -v F=$f '{{print F, $0}}'; done |  sed 's/\.results_C2\.tsv//1' > C2.tsv
