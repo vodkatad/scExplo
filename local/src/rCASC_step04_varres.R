@@ -1,0 +1,24 @@
+#!/usr/bin/env Rscript
+library(getopt)
+library(rCASC)
+
+opts <- matrix(c(
+  'help', 'h', 0, 'logical',
+  'vande', 'v', 1, 'character',
+  'scratch', 's', 1, 'character',
+  'res', 'r', 1, 'numeric',
+  'pca', 'p', 1, 'numeric'), ncol=4, byrow=TRUE)
+opt <- getopt(opts)
+
+if (is.null(opt$vande) | !is.null(opt$help) | is.null(opt$pca) | is.null(opt$res)) {
+    cat(getopt(opts, usage=TRUE))
+    stop('-v, -p -s and -o are mandatory')
+}
+
+SCRATCH <- opt$scratch
+SEPARATOR <- ','
+#save.image('pluto.Rdata')
+setwd(dirname(opt$vande))
+# 143
+seuratBootstrap(group="docker", scratch.folder=SCRATCH, file=opt$vande, nPerm=40, permAtTime=10, percent=10, separator=SEPARATOR, pcaDimensions=opt$pca, seed = 157, resolution=opt$res)
+# output is..the clustering file
