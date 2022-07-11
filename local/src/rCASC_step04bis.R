@@ -5,13 +5,16 @@ library(rCASC)
 opts <- matrix(c(
   'help', 'h', 0, 'logical',
   'vande', 'v', 1, 'character',
-  'scratch', 's', 1, 'character'), ncol=4, byrow=TRUE)
+  'scratch', 's', 1, 'character', 
+  'source', 'c', 1, 'character'), ncol=4, byrow=TRUE)
 opt <- getopt(opts)
 
-if (is.null(opt$vande) | is.null(opt$scratch) | !is.null(opt$help)) {
+if (is.null(opt$vande) | is.null(opt$scratch) | !is.null(opt$help) | is.null(opt$source)) {
     cat(getopt(opts, usage=TRUE))
     stop('-v and -s are mandatory')
 }
+
+source(opt$source)
 
 SCRATCH <- opt$scratch
 SEPARATOR <- ','

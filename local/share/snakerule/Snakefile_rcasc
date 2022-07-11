@@ -111,15 +111,20 @@ rule step_04_seuratboot_varres:
 	"""
 #this changes the date of -rwxrwxrwx 1 egrassi trcanmed 281749434 Nov 19 12:42 CRC0327_NT_1_dir/filtered_annotated_saver_ribomito_CRC0327_NT_1.csv
 # WHY WHY WHY
+rule all_varres:
+    input: expand("{sample}_step04_res0.2_5", sample=SAMPLES)
+	
+ruleorder: step_04_seuratboot_varres > step_04_seuratboot
 
 # this rewrites the ccycle done in step03 using saver imputed data vs only filtered_annotated
 rule step_04_seuratcycle:
     input: all_saver_filtered="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"
-    params: tool=SRC_DIR+'/rCASC_step04bis.R', all_saver_filtered=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"), scratch=SCRATCH
-    output: t="{sample}_step04bis", c="{sample}_dir/filtered_annotated_saver_ribomito_{sample}_cellCycle.csv", pc="{sample}_dir/filtered_annotated_saver_ribomito_{sample}/PCE_bowPlot.csv"
+    params: tool=SRC_DIR+'/rCASC_step04bis.R', all_saver_filtered=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"), scratch=SCRATCH, source=SRC_DIR+'/seurat_ccycle_mod.R'
+    output: t="{sample}_step04bis", c="{sample}_dir/filtered_annotated_saver_ribomito_{sample}_cellCycle.csv", # pc="{sample}_dir/filtered_annotated_saver_ribomito_{sample}/PCE_bowPlot.csv",
+	    scaledata="{sample}_dir/filtered_annotated_saver_ribomito_{sample}_cellCycleScaleData.csv"
     shell:  
         """
-            {params.tool} -v {params.all_saver_filtered} -s {params.scratch}
+            {params.tool} -v {params.all_saver_filtered} -s {params.scratch} -c {params.source}
             touch {output.t}
         """
 
