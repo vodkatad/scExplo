@@ -128,6 +128,17 @@ rule step_04_seuratcycle:
             touch {output.t}
         """
 
+
+rule step_04_seurat_varres_cyclecorr:
+    input: vande="{sample}_dir/filtered_annotated_saver_ribomito_{sample}_cellCycleScaleData.csv"
+    params: tool=SRC_DIR+'/rCASC_step04_varres.R', vande=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}_cellCycleScaleData.csv"), scratch=SCRATCH
+    output: t="{sample}_step04cc_res{res}_{pc}"#, c='{sample}_seurat_clusters_res{res}_{pc}.csv', c2="{sample}_dir/clustering_res{res}_{pc}.csv"
+    shell:  
+        """
+            {params.tool} -v {params.vande} -s {params.scratch} -p {wildcards.pc} -r {wildcards.res}
+            touch {output.t}
+        """
+
 #### shading of genes on UMAP
 rule gene_shading:
     input: step="{sample}_step04_{pc}", genes=PRJ_ROOT+'/local/share/data/genes_{genes}.txt', data="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"
