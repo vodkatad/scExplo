@@ -1,0 +1,27 @@
+import os
+def find_prj_root(path=os.getcwd()):
+    if os.path.isfile(os.path.join(path,'.PRJ_ROOT')):
+        return path
+    else:
+        if path:
+            return find_prj_root(os.path.dirname(path))
+        else:
+            raise Exception('Can not find the PRJ_ROOT directory')
+
+PRJ_ROOT=find_prj_root()
+BIOINFO_ROOT = os.getenv('BIOINFO_ROOT')
+SNAKE_ROOT=os.getenv('SNAKE_ROOT')
+
+BIN_DIR=PRJ_ROOT+'/local/bin'
+SRC_DIR=PRJ_ROOT+'/local/src'
+
+SAMPLES= {
+'CRC0322LMO_NT72h_1_singleron0722': 'PDO_NT_matrix_10X',
+'CRC0322LMO_CTX72h_1_singleron0722': 'PDO_CETUX_matrix_10X',
+'CRC0322LMX_CTX72h_1_singleron0722': 'PDX_CETUX_matrix_10X',
+'CRC0322LMX_NT72h_1_singleron0722': 'PDO_NT_matrix_10X'
+}
+
+BASEDIR=PRJ_ROOT+'/local/share/data/invivo_singleron_07_2022'
+
+SCRATCH="/tmp"
