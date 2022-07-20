@@ -1,27 +1,34 @@
-#' @title GeneVisualization
-#' @description This function executes a ubuntu docker that performs geneVisualization
+#' @title Seurat cell cycle
+#' @description This function executes a ubuntu docker that performs seurat cell cycle
 #' @param group, a character string. Two options: sudo or docker, depending to which group the user belongs
 #' @param scratch.folder, a character string indicating the path of the scratch folder
-#' @param file, a character string indicating the path of the count matrix
-#' @param clustering.output, a character string indicating the path of the clustering.output matrix
-#' @param geneList, a character string indicating the path of the geneList matrix (no header, no row names)
+#' @param file, a character string indicating the path of the first matrix 
 #' @param separator, separator used in count file, e.g. '\\t', ','
-#' @param finalName, name used for plot.
+#' @param seed, integer file necessary for reproducibility
+
 #' @author Luca Alessandri, alessandri [dot] luca1991 [at] gmail [dot] com, University of Torino
-#'
-#' @return plot
+#' @return file containing the cluster association in the datasets merged by seurat
 #' @examples
 #' \dontrun{
-#'dir.create("scratch")
-#'geneVisualization(group=c("sudo"), scratch.folder=paste(getwd(),"/scratch",sep=""), file=paste(getwd(),"/setA.csv",sep=""),clustering.output=paste(getwd(),"/setA_clustering.output.csv",sep=""),geneList=paste(getwd(),"/geneList.csv",sep=""),separator=",",finalName="Lista1"){
+#' library(rCASC)
+#' source("seurat_cCycle.R")
+#' path=getwd()
+#' scratch=paste(path,"/scratch",sep="")
+#' dir.create(scratch)
+#' file1=paste(path,"/setA.csv",sep="")
+#'seurat_ccycle(group="docker", scratch.folder=scratch, file= file1, separator=",",seed=1111)
+#'}
 #' @export
-geneVisualization <- function(group=c("sudo","docker"), scratch.folder, file,clustering.output,geneList,separator,finalName){
+#' 
+seurat_ccycle <- function(group=c("sudo","docker"), scratch.folder, file ,separator ,seed){
 
-  data.folder1=dirname(file)
-positions1=length(strsplit(basename(file),"\\.")[[1]])
-matrixNameC1=strsplit(basename(file),"\\.")[[1]]
+  file1 = file
+  separator1 = separator
+  data.folder1=dirname(file1)
+positions1=length(strsplit(basename(file1),"\\.")[[1]])
+matrixNameC1=strsplit(basename(file1),"\\.")[[1]]
 matrixName1=paste(matrixNameC1[seq(1,positions1-1)],collapse="")
-format1=strsplit(basename(basename(file)),"\\.")[[1]][positions1]
+format1=strsplit(basename(basename(file1)),"\\.")[[1]][positions1]
 
 data.folder=data.folder1
   #running time 1
@@ -63,16 +70,14 @@ data.folder=data.folder1
   dir.create(file.path(scrat_tmp.folder))
   #preprocess matrix and copying files
 
-if(separator=="\t"){
-separator="tab"
+if(separator1=="\t"){
+separator1="tab"
 }
 
-system(paste("cp ",file," ",scrat_tmp.folder,"/",sep=""))
-system(paste("cp ",clustering.output," ",scrat_tmp.folder,"/",sep=""))
-system(paste("cp ",geneList," ",scrat_tmp.folder,"/",sep=""))
+system(paste("cp ",data.folder1,"/",matrixName1,".",format1," ",scrat_tmp.folder,"/",sep=""))
 
   #executing the docker job
-    params <- paste("--cidfile ",data.folder1,"/dockerID -v ",scrat_tmp.folder,":/scratch -v ", data.folder1, ":/data -d repbioinfo/genevisualization Rscript /home/main.R ",basename(file)," ",separator," ",basename(clustering.output)," ",basename(geneList)," ",finalName,sep="")
+    params <- paste("--cidfile ",data.folder1,"/dockerID -v ",scrat_tmp.folder,":/scratch -v ", data.folder1, ":/data -d seurat_ccycle_scaledata Rscript /home/main.R ",matrixName1," ",format1," ",separator1," ",seed,sep="")
 
 resultRun <- runDocker(group=group, params=params)
 
@@ -118,4 +123,5 @@ resultRun <- runDocker(group=group, params=params)
   system("rm  -fR tempFolderID")
   system(paste("cp ",paste(path.package(package="rCASC"),"containers/containers.txt",sep="/")," ",data.folder, sep=""))
   setwd(home)
-}
+}  
+
