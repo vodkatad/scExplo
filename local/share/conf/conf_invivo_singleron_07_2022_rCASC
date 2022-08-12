@@ -1,0 +1,36 @@
+import os
+def find_prj_root(path=os.getcwd()):
+    if os.path.isfile(os.path.join(path,'.PRJ_ROOT')):
+        return path
+    else:
+        if path:
+            return find_prj_root(os.path.dirname(path))
+        else:
+            raise Exception('Can not find the PRJ_ROOT directory')
+
+PRJ_ROOT=find_prj_root()
+BIOINFO_ROOT = os.getenv('BIOINFO_ROOT')
+SNAKE_ROOT=os.getenv('SNAKE_ROOT')
+
+BIN_DIR=PRJ_ROOT+'/local/bin'
+SRC_DIR=PRJ_ROOT+'/local/src'
+
+SAMPLES=["CRC0322LMO_NT72h_1_singleron0722","CRC0322LMO_CTX72h_1_singleron0722","CRC0322LMX_CTX1w_1_singleron0722","CRC0322LMX_NT1w_1_singleron0722"]
+NSAMPLES=len(SAMPLES)
+
+CSV_DIR=PRJ_ROOT+'/dataset/invivo_singleron_07_2022_mtx_to_csv'
+
+ALL_CSV=expand(CSV_DIR+'/{sample}.csv', sample=SAMPLES)
+CORES=10
+
+RCASC_GTF=PRJ_ROOT+"/local/share/data/Homo_sapiens.GRCh38.101.gtf"
+SCRATCH="/tmp"
+
+VIO_GENES='/mnt/cold1/snaketree/prj/scRNA/local/share/data/Ire_cetuxi_first_and_reseq/genes_ensg.tsv'
+CYCLE_GENES='/mnt/cold1/snaketree/prj/scRNA/local/share/data/Ire_cetuxi_first_and_reseq/regev_lab_cell_cycle_genes_onlyensg.txt'
+BASED='/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_IRCC_tecrep/'
+
+
+rule all_seurat_integration:
+    input: expand("{sample}_res{res}_G1_clu_cycle.tsv", res=[0.01, 0.05, 0.1, 0.2, 0.5], sample=["CRC0327"])
+
