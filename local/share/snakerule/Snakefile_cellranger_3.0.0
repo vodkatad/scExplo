@@ -375,6 +375,13 @@ rule seurat_markers:
             umapcy="{sample}_{res}.umap_cy.pdf"
     script: SEURAT_MARKERS
 
+
+rule seurat_markers_nocc:
+    input: data="{sample}_Seurat_prelim.Rdata", cc=PRJ_ROOT+"local/share/data/regev_lab_cell_cycle_genes.txt"
+    output: markers="{sample}_{res}.clustersnocc_markers.tsv", heatmap="{sample}_{res}.heatnocc.pdf", umapcl="{sample}_{res}.umap_clnocc.pdf",
+            umapcy="{sample}_{res}.umapnocl_cy.pdf", cyclecl="{sample}_{res}.cyclenocl_cluster.tsv"
+    script: SEURAT_MARKERS_NOCC
+
 # TODO clone rule to get % mito and decide if we need to re-run or not
 
 # paneth:
