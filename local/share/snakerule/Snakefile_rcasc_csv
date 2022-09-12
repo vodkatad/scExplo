@@ -149,7 +149,8 @@ rule step_04_seuratcycle:
     input: all_saver_filtered="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"
     params: tool=SRC_DIR+'/rCASC_step04bis.R', all_saver_filtered=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"), scratch=SCRATCH, source=SRC_DIR+'/seurat_ccycle_mod.R'
     output: t="{sample}_step04bis", c="{sample}_dir/filtered_annotated_saver_ribomito_{sample}_cellCycle.csv",
-	    scaledata="{sample}_dir/filtered_annotated_saver_ribomito_{sample}_cellCycleScaleData.csv"
+	    scaledata="{sample}_dir/filtered_annotated_saver_ribomito_{sample}_cellCycleScaleData.csv",
+	    variableFeat="{sample}_dir/filtered_annotated_saver_ribomito_{sample}_variableFeatures.rds"
     shell:  
         """
             {params.tool} -v {params.all_saver_filtered} -s {params.scratch} -c {params.source}
@@ -165,6 +166,15 @@ rule step_04_seurat_varres_cyclecorr:
             {params.tool} -v {params.vande} -s {params.scratch} -p {wildcards.pc} -r {wildcards.res}
             touch {output.t}
 	"""
+
+rule find_most_recent_clustering_output: 
+	input: "{sample}_step04cc_res{res}_{pc}"
+	output: "{sample}_step04cc_res{res}_{pc}.clustering_output.txt"
+	run:
+		import glob
+		found = glob.glob(wildcards.sample+ '_dir/Results/' + wildcars.sample+ '_filtered_annotated_saver*/*/*clustering.output.csv')
+		# find more recent file in found
+		# copy to output
 
 #### shading of genes on UMAP
 rule gene_shading:
