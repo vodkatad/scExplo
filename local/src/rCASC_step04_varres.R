@@ -7,23 +7,29 @@ opts <- matrix(c(
   'vande', 'v', 1, 'character',
   'scratch', 's', 1, 'character',
   'res', 'r', 1, 'numeric',
+  'mod_rcasc', 'm', 1, 'character',
+  'normalized', 'n', 0, 'logical',
+  'variableFeat', 'f', 0, 'character'
   'pca', 'p', 1, 'numeric'), ncol=4, byrow=TRUE)
 opt <- getopt(opts)
 
-if (is.null(opt$vande) | !is.null(opt$help) | is.null(opt$pca) | is.null(opt$res)) {
+if (is.null(opt$vande) | !is.null(opt$help) | is.null(opt$pca) | is.null(opt$res) | is.null(opt$mod_rcasc)) {
     cat(getopt(opts, usage=TRUE))
-    stop('-v, -p -s and -o are mandatory')
+    stop('-v, -s, -r, -m and -p are mandatory')
 }
+
+if (opt$normalized & is.null(opt$variableFeat)) {
+  stop('If working with normalized/scaled data I need also the variableFeatures given by Seurat!')
+}
+print('Opt?')
+print(opt$normalized)
+
+source(opt$mod_rcasc)
 
 SCRATCH <- opt$scratch
 SEPARATOR <- ','
-#save.image('pluto.Rdata')
 setwd(dirname(opt$vande))
 # seed has been 157 for all res 0.2, set to 173 for cellcyclecorr
 # 143
-if (grepl('cellCycleScaleData.csv$', opt$vande)) {
-	seuratBootstrap(group="docker", scratch.folder=SCRATCH, file=opt$vande, nPerm=40, permAtTime=10, percent=10, separator=SEPARATOR, pcaDimensions=opt$pca, seed = 173, resolution=opt$res, logTen=1)
-} else {
-	seuratBootstrap(group="docker", scratch.folder=SCRATCH, file=opt$vande, nPerm=40, permAtTime=10, percent=10, separator=SEPARATOR, pcaDimensions=opt$pca, seed = 173, resolution=opt$res, logTen=0)
-}
+seuratBootstrap(group="docker", scratch.folder=SCRATCH, file=opt$vande, nPerm=40, permAtTime=10, percent=10, separator=SEPARATOR, pcaDimensions=opt$pca, seed = 173, resolution=opt$res, logTen=0, isNormalized=opt$normalized, variableFeatures=opt$varFeat)
 # output is..the clustering file
