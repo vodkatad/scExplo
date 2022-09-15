@@ -126,20 +126,6 @@ rule step_04_seuratboot:
             cp {wildcards.sample}_dir/Results/filtered_annotated_saver_ribomito_{wildcards.sample}/*/filtered_annotated_saver_ribomito_{wildcards.sample}_clustering.output.csv {output.c2}
         """
 
-# We want to be able to use SeuratBootstrap both with counts and with scaledData after cell cycle normalization
-def variableFeatures_input(wildcards, input):
-    import os
-    basename = os.path.basename(input)
-    basedir = os.path.dirname(input)
-    split_fn = basename.split('_')
-    # Logic not needed cause we have two rules for cell cycle correction and standard seurat clustering
-    #if "cellCycleScaleData.csv" == split_fn[-1]: 
-    split_fn[-1] = 'variableFeatures.rds'
-    pathRDS = '_'.join(split_fn)
-    res = str(os.path.join(basedir, pathRDS))
-    print(res)
-    return "-f " + res
-
 # Warning: rCASC if this rule runs when some other clustering results for the same samples are found (more than 1 directory in _dir/Results/sample_name, with different
 # cluster numbers) permAnalysisSeurat is not called and _score.csv _scoreSum.csv and *Stability_Plot.pdf are not produced.
 rule step_04_seuratboot_varres:
@@ -149,8 +135,8 @@ rule step_04_seuratboot_varres:
     output: t="{sample}_step04_res{res}_{pc}", c='{sample}_seurat_clusters_res{res}_{pc}.csv', 
     shell:  
         """
-            {params.tool} -v {params.vande} -s {params.scratch} -p {wildcards.pc} -r {wildcards.res} -n FALSE -m {params.mod_rCASC}
-            cp {wildcards.sample}_dir/Results/filtered_annotated_saver_ribomito_{wildcards.sample}/{wildcards.sample}_clustering.output_{wildcards.res}.csv {output.c}
+            {params.tool} -v {params.vande} -s {params.scratch} -p {wildcards.pc} -r {wildcards.res} -m {params.mod_rCASC}
+            cp {wildcards.sample}_dir/Results/filtered_annotated_saver_ribomito_{wildcards.sample}/filtered_annotated_saver_ribomito_{wildcards.sample}_clustering.output_{wildcards.res}.csv {output.c}
             touch {output.t}
 	"""
 
@@ -162,18 +148,31 @@ rule all_varres:
 ruleorder: step_04_seuratboot_varres > step_04_seuratboot
 # WHY WHY WHY
 
-# this rewrites the ccycle done in step03 using saver imputed data vs only filtered_annotated
 rule step_04_seuratcycle:
     input: all_saver_filtered="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"
     params: tool=SRC_DIR+'/rCASC_step04bis.R', all_saver_filtered=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"), scratch=SCRATCH, source=SRC_DIR+'/seurat_ccycle_mod.R'
     output: t="{sample}_step04bis", c="{sample}_dir/filtered_annotated_saver_ribomito_{sample}_cellCycle.csv",
 	    scaledata="{sample}_dir/filtered_annotated_saver_ribomito_{sample}_cellCycleScaleData.csv",
-	    variableFeat="{sample}_dir/filtered_annotated_saver_ribomito_{sample}_variableFeatures.rds"
+	    variableFeat="{sample}_dir/filtered_annotated_saver_ribomito_{sample}_variableFeatures.txt"
     shell:  
         """
             {params.tool} -v {params.all_saver_filtered} -s {params.scratch} -c {params.source}
             touch {output.t}
         """
+
+# We want to be able to use SeuratBootstrap both with counts and with scaledData after cell cycle normalization
+def variableFeatures_input(wildcards, input):
+    import os
+    abs_vand_path = get_absolute_all(str(input.vande))
+    basename = os.path.basename(abs_vand_path)
+    basedir = os.path.dirname(abs_vand_path)
+    split_fn = basename.split('_')
+    # Logic not needed cause we have two rules for cell cycle correction and standard seurat clustering
+    #if "cellCycleScaleData.csv" == split_fn[-1]: 
+    split_fn[-1] = 'variableFeatures.txt'
+    pathtxt = '_'.join(split_fn)
+    res = str(os.path.join(basedir, pathtxt))
+    return "-f " + res
 
 # Warning: rCASC if this rule runs when some other clustering results for the same samples are found (more than 1 directory in _dir/Results/sample_name, with different
 # cluster numbers) permAnalysisSeurat is not called and _score.csv _scoreSum.csv and *Stability_Plot.pdf are not produced.
@@ -184,7 +183,8 @@ rule step_04_seurat_varres_cyclecorr:
     output: t="{sample}_step04cc_res{res}_{pc}", c='{sample}_seurat_clusters_cc_res{res}_{pc}.csv' #, c2="{sample}_dir/clustering_res{res}_{pc}.csv"
     shell:  
         """
-            {params.tool} -v {params.vande} -s {params.scratch} -p {wildcards.pc} -r {wildcards.res} -n TRUE {params.varFeat} -m {params.mod_rCASC}
+            {params.tool} -v {params.vande} -s {params.scratch} -p {wildcards.pc} -r {wildcards.res} -n {params.varFeat} -m {params.mod_rCASC}
+            cp {wildcards.sample}_dir/Results/filtered_annotated_saver_ribomito_{wildcards.sample}_cellCycleScaleData/filtered_annotated_saver_ribomito_{wildcards.sample}_clustering.output_{wildcards.res}.csv {output.c}
             touch {output.t}
 	"""
 

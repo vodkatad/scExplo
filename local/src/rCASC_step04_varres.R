@@ -9,7 +9,7 @@ opts <- matrix(c(
   'res', 'r', 1, 'numeric',
   'mod_rcasc', 'm', 1, 'character',
   'normalized', 'n', 0, 'logical',
-  'variableFeat', 'f', 0, 'character'
+  'variableFeat', 'f', 1, 'character',
   'pca', 'p', 1, 'numeric'), ncol=4, byrow=TRUE)
 opt <- getopt(opts)
 
@@ -18,11 +18,12 @@ if (is.null(opt$vande) | !is.null(opt$help) | is.null(opt$pca) | is.null(opt$res
     stop('-v, -s, -r, -m and -p are mandatory')
 }
 
-if (opt$normalized & is.null(opt$variableFeat)) {
-  stop('If working with normalized/scaled data I need also the variableFeatures given by Seurat!')
+if (is.null(opt$normalized)) {
+  opt$normalized <- FALSE
 }
-print('Opt?')
-print(opt$normalized)
+if (opt$normalized & is.null(opt$variableFeat)) {
+  stop('If working with normalized/scaled data (-n) I need also the variableFeatures given by Seurat (-f smt.rds)!')
+}
 
 source(opt$mod_rcasc)
 
@@ -31,5 +32,5 @@ SEPARATOR <- ','
 setwd(dirname(opt$vande))
 # seed has been 157 for all res 0.2, set to 173 for cellcyclecorr
 # 143
-seuratBootstrap(group="docker", scratch.folder=SCRATCH, file=opt$vande, nPerm=40, permAtTime=10, percent=10, separator=SEPARATOR, pcaDimensions=opt$pca, seed = 173, resolution=opt$res, logTen=0, isNormalized=opt$normalized, variableFeatures=opt$varFeat)
+seuratBootstrap(group="docker", scratch.folder=SCRATCH, file=opt$vande, nPerm=2, permAtTime=2, percent=10, separator=SEPARATOR, pcaDimensions=opt$pca, seed = 173, resolution=opt$res, logTen=0, isNormalized=opt$normalized, variableFeatures=opt$variableFeat)
 # output is..the clustering file

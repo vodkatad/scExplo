@@ -118,13 +118,13 @@ tsneF=function(countMatrix,nCluster,perplexity){
     return(cbind(CellName=colnames(countMatrix),Belonging_Cluster=cluster_result$cluster,xChoord=ts$Y[,1],yChoord=ts$Y[,2]))
 }
 
-clustering=function(matrixName,nPerm,permAtTime,percent,nCluster,logTen,format,separator,pcaDimensions,resolution, isNormalized, variableGenesRDS)
+clustering=function(matrixName,nPerm,permAtTime,percent,nCluster,logTen,format,separator,pcaDimensions,resolution, isNormalized, variableGenesFile)
 {
     if(separator=="tab"){separator2="\t"}else{separator2=separator} #BUG CORRECTION TAB PROBLEM 
-
+    print(0)
 
     if(sparse=="FALSE"){
-        countMatrix=read.table(paste("./../",matrixName,".",format,sep=""),sep=separator2,header=TRUE,row.name=1)
+        countMatrix=read.table(paste("./../",matrixName,".",format,sep=""),sep=separator2,header=TRUE,row.names=1)
         if(logTen==1){countMatrix=10^(countMatrix)}
     }else{
         countMatrix <- Read10X(data.dir = "./")
@@ -133,14 +133,19 @@ clustering=function(matrixName,nPerm,permAtTime,percent,nCluster,logTen,format,s
         }
     }
 
+    print(1)
     if (isNormalized) {
-        fakecounts <- as.data.frame(matrix(nrow=nrow(countMatrix), ncol=ncol(countMatrix)))
+        print(2)
+        rows <- nrow(countMatrix)
+        cols <- ncol(countMatrix)
+        fakecounts <- as.data.frame(matrix(rep(1, rows*cols), nrow=rows, ncol=cols))
         rownames(fakecounts) <- rownames(countMatrix)
         colnames(fakecounts) <- colnames(countMatrix)
         pbmc <- CreateSeuratObject(fakecounts, project = "InjectionProject", assay = "RNA")
-        pbmc <- SetAssayData(object = pbmc, slot="scale.data", normcounts)
-        variableGenes <- readRDS(variableGenesRDS)
-    } else {
+        pbmc <- SetAssayData(object = pbmc, slot="scale.data", new.data=countMatrix, assay.type="RNA")
+        variableGenes <- read.table(paste0("./../",variableGenesFile), sep="\t", header=TRUE, stringsAsFactors=FALSE)[,1]
+    } else {   
+        print(3)     
         pbmc <- CreateSeuratObject(countMatrix)
         mito.genes <- grep(pattern = "^MT-", x = rownames(x = pbmc@data), value = TRUE)
         percent.mito <- Matrix::colSums(pbmc@raw.data[mito.genes, ])/Matrix::colSums(pbmc@raw.data)
@@ -155,12 +160,10 @@ clustering=function(matrixName,nPerm,permAtTime,percent,nCluster,logTen,format,s
         pbmc <- ScaleData(object = pbmc, vars.to.regress = c("nUMI", "percent.mito"))
         variableGenes <- pbmc@var.genes
     }
+    print(4)
     pbmc <- RunPCA(object = pbmc, pc.genes = variableGenes, do.print = FALSE, pcs.print = 1:5, 
                    genes.print = 5)
         
-    pbmc <- ProjectPCA(object = pbmc, do.print = FALSE)
-    pbmc <- JackStraw(object = pbmc, num.replicate = 100, display.progress = FALSE,num.pc=pcaDimensions)
-
     DimElbowPlot2=function (object, reduction.type = "pca", dims.plot = 20, xlab = "", 
         ylab = "", title = "") 
     {
@@ -187,36 +190,48 @@ clustering=function(matrixName,nPerm,permAtTime,percent,nCluster,logTen,format,s
         return(DimElbowPlot2(object = object, reduction.type = "pca", 
             dims.plot = num.pc))
     }
+    print(5)
     sdPC=PCElbowPlot2(pbmc)[,2]
     #pdf("PCE_bowPlot.pdf")
     #PCElbowPlot(object = pbmc)
     #dev.off()
-
+    print(6)
     if(pcaDimensions==0){
     pcaDimensions=which.max(abs(diff(sdPC)-mean(diff(sdPC))))
     if(pcaDimensions==1){pcaDimensions=2}
     }
-
+    print(7)
     pbmc <- FindClusters(object = pbmc, reduction.type = "pca", dims.use =seq(1,pcaDimensions), 
         resolution = resolution, print.output = 0, save.SNN = TRUE)
-        
-    pbmc <- RunTSNE(object = pbmc, dims.use =seq(1,pcaDimensions), do.fast = TRUE,check_duplicates = FALSE)
-    #TSNEPlot(object = pbmc)
+    print(8)
     mainVector=as.numeric(pbmc@ident) 
-    Coordinates=pbmc@dr$tsne@cell.embeddings
-
     nCluster=max(mainVector)
+    print(9)
+    save.image('tette.Rdata')
+    if (isNormalized) {
+        # TSNE givesn an error on rebuild object with injected scaledata only
+        #Error in FastMatMult(m1 = data.use, m2 = cell.embeddings) : Not a matrix.
+        #Calls: clustering -> ProjectPCA -> ProjectDim -> FastMatMult -> .Call
+        clustering.output= cbind(colnames(countMatrix),mainVector)
+        colnames(clustering.output)=c("cellName","Belonging_Cluster")
+    } else {
+        pbmc <- ProjectPCA(object = pbmc, do.print = FALSE)
+        pbmc <- JackStraw(object = pbmc, num.replicate = 100, display.progress = FALSE,num.pc=pcaDimensions)
+        pbmc <- RunTSNE(object = pbmc, dims.use =seq(1,pcaDimensions), do.fast = TRUE,check_duplicates = FALSE)
+        #TSNEPlot(object = pbmc)
+        Coordinates=pbmc@dr$tsne@cell.embeddings
+        clustering.output= cbind(rownames(Coordinates),mainVector,Coordinates[,1],Coordinates[,2])
+        clustering.output=silhouette(length(unique(mainVector)),clustering.output)
+        colnames(clustering.output)=c("cellName","Belonging_Cluster","xChoord","yChoord","extraScore","intraScore","neighbor","silhouetteValue")
+    }
     dir.create(paste("./",nCluster,sep=""))
     dir.create(paste("./",nCluster,"/Permutation",sep=""))
     setwd(paste("./",nCluster,sep=""))
 
-    clustering.output= cbind(rownames(Coordinates),mainVector,Coordinates[,1],Coordinates[,2])
-    clustering.output=silhouette(length(unique(mainVector)),clustering.output)
-    colnames(clustering.output)=c("cellName","Belonging_Cluster","xChoord","yChoord","extraScore","intraScore","neighbor","silhouetteValue")
     original_cl_filename <- paste(matrixName,"_clustering.output.",format,sep="")
     withres_cl_filename <- file.path('..', paste(matrixName,"_clustering.output_", resolution, ".",format,sep=""))
-    write.table(clustering.output,original_cl_filename,sep=separator2, row.names = F)
-    write.table(clustering.output,withres_cl_filename,sep=separator2, row.names = F)
+    write.table(clustering.output,original_cl_filename,sep=separator2, row.names = FALSE)
+    write.table(clustering.output,withres_cl_filename,sep=separator2, row.names = FALSE)
 
     cycles=nPerm/permAtTime
     cat(getwd())

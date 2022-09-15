@@ -49,14 +49,15 @@ pcaDimensions=as.numeric(argv$pcaDimensions)
 set.seed(seed)
 sparse=argv$sparse
 resolution=as.numeric(argv$resolution)
-isNormalized=as.logic(argv$isNormalized)
+isNormalized=argv$isNormalized
 varFeat=argv$variableFeatures
 
 dir.create(paste("./../scratch/",matrixName,sep=""))
  
 setwd(paste("./../scratch/",matrixName,"/",sep=""))
-nCluster=clustering(matrixName,nPerm,permAtTime,percent,nCluster=0,logTen,format,separator,pcaDimensions,resolution,isNormalized,varFeat)
-
+varFeat_rebuild <- gsub('_cellCycleScaleData', '_variableFeatures.txt', matrixName, fixed=TRUE)
+nCluster=clustering(matrixName,nPerm,permAtTime,percent,nCluster=0,logTen,format,separator,pcaDimensions,resolution,isNormalized,varFeat_rebuild)
+Sys.sleep(400)
 setwd("./../../../home")
 setwd(paste("./../scratch/",matrixName,"/",sep=""))
 silhouettePlot(matrixName,nCluster,format,separator)
