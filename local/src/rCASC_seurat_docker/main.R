@@ -57,10 +57,9 @@ dir.create(paste("./../scratch/",matrixName,sep=""))
 setwd(paste("./../scratch/",matrixName,"/",sep=""))
 varFeat_rebuild <- gsub('_cellCycleScaleData', '_variableFeatures.txt', matrixName, fixed=TRUE)
 nCluster=clustering(matrixName,nPerm,permAtTime,percent,nCluster=0,logTen,format,separator,pcaDimensions,resolution,isNormalized,varFeat_rebuild)
-Sys.sleep(400)
-setwd("./../../../home")
-setwd(paste("./../scratch/",matrixName,"/",sep=""))
-silhouettePlot(matrixName,nCluster,format,separator)
+#setwd("./../../../home")
+#setwd(paste("./../scratch/",matrixName,"/",sep=""))
+#silhouettePlot(matrixName,nCluster,format,separator)
 
   
 #dir.create("./../../data/Results")

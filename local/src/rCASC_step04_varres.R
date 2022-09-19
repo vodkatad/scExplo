@@ -32,5 +32,5 @@ SEPARATOR <- ','
 setwd(dirname(opt$vande))
 # seed has been 157 for all res 0.2, set to 173 for cellcyclecorr
 # 143
-seuratBootstrap(group="docker", scratch.folder=SCRATCH, file=opt$vande, nPerm=2, permAtTime=2, percent=10, separator=SEPARATOR, pcaDimensions=opt$pca, seed = 173, resolution=opt$res, logTen=0, isNormalized=opt$normalized, variableFeatures=opt$variableFeat)
+seuratBootstrap(group="docker", scratch.folder=SCRATCH, file=opt$vande, nPerm=1, permAtTime=1, percent=10, separator=SEPARATOR, pcaDimensions=opt$pca, seed = 173, resolution=opt$res, logTen=0, isNormalized=opt$normalized, variableFeatures=opt$variableFeat)
 # output is..the clustering file

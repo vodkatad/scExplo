@@ -121,7 +121,6 @@ tsneF=function(countMatrix,nCluster,perplexity){
 clustering=function(matrixName,nPerm,permAtTime,percent,nCluster,logTen,format,separator,pcaDimensions,resolution, isNormalized, variableGenesFile)
 {
     if(separator=="tab"){separator2="\t"}else{separator2=separator} #BUG CORRECTION TAB PROBLEM 
-    print(0)
 
     if(sparse=="FALSE"){
         countMatrix=read.table(paste("./../",matrixName,".",format,sep=""),sep=separator2,header=TRUE,row.names=1)
@@ -133,9 +132,7 @@ clustering=function(matrixName,nPerm,permAtTime,percent,nCluster,logTen,format,s
         }
     }
 
-    print(1)
     if (isNormalized) {
-        print(2)
         rows <- nrow(countMatrix)
         cols <- ncol(countMatrix)
         fakecounts <- as.data.frame(matrix(rep(1, rows*cols), nrow=rows, ncol=cols))
@@ -145,7 +142,6 @@ clustering=function(matrixName,nPerm,permAtTime,percent,nCluster,logTen,format,s
         pbmc <- SetAssayData(object = pbmc, slot="scale.data", new.data=countMatrix, assay.type="RNA")
         variableGenes <- read.table(paste0("./../",variableGenesFile), sep="\t", header=TRUE, stringsAsFactors=FALSE)[,1]
     } else {   
-        print(3)     
         pbmc <- CreateSeuratObject(countMatrix)
         mito.genes <- grep(pattern = "^MT-", x = rownames(x = pbmc@data), value = TRUE)
         percent.mito <- Matrix::colSums(pbmc@raw.data[mito.genes, ])/Matrix::colSums(pbmc@raw.data)
@@ -160,7 +156,6 @@ clustering=function(matrixName,nPerm,permAtTime,percent,nCluster,logTen,format,s
         pbmc <- ScaleData(object = pbmc, vars.to.regress = c("nUMI", "percent.mito"))
         variableGenes <- pbmc@var.genes
     }
-    print(4)
     pbmc <- RunPCA(object = pbmc, pc.genes = variableGenes, do.print = FALSE, pcs.print = 1:5, 
                    genes.print = 5)
         
@@ -190,24 +185,18 @@ clustering=function(matrixName,nPerm,permAtTime,percent,nCluster,logTen,format,s
         return(DimElbowPlot2(object = object, reduction.type = "pca", 
             dims.plot = num.pc))
     }
-    print(5)
     sdPC=PCElbowPlot2(pbmc)[,2]
     #pdf("PCE_bowPlot.pdf")
     #PCElbowPlot(object = pbmc)
     #dev.off()
-    print(6)
     if(pcaDimensions==0){
     pcaDimensions=which.max(abs(diff(sdPC)-mean(diff(sdPC))))
     if(pcaDimensions==1){pcaDimensions=2}
     }
-    print(7)
     pbmc <- FindClusters(object = pbmc, reduction.type = "pca", dims.use =seq(1,pcaDimensions), 
         resolution = resolution, print.output = 0, save.SNN = TRUE)
-    print(8)
     mainVector=as.numeric(pbmc@ident) 
     nCluster=max(mainVector)
-    print(9)
-    save.image('tette.Rdata')
     if (isNormalized) {
         # TSNE givesn an error on rebuild object with injected scaledata only
         #Error in FastMatMult(m1 = data.use, m2 = cell.embeddings) : Not a matrix.
@@ -235,41 +224,41 @@ clustering=function(matrixName,nPerm,permAtTime,percent,nCluster,logTen,format,s
 
     cycles=nPerm/permAtTime
     cat(getwd())
-    for(i in 1:cycles){
-        system(paste("for X in $(seq ",permAtTime,")
-    do
-    nohup Rscript ./../../../home/permutation.R ",percent," ",matrixName," ",format," ",separator," ",logTen," ",pcaDimensions," ",resolution," ",sparse," $(($X +",(i-1)*permAtTime," )) & 
+    #for(i in 1:cycles){
+    #    system(paste("for X in $(seq ",permAtTime,")
+    #do
+    #nohup Rscript ./../../../home/permutation.R ",percent," ",matrixName," ",format," ",separator," ",logTen," ",pcaDimensions," ",resolution," ",sparse," $(($X +",(i-1)*permAtTime," )) & 
 
-    done"))
-    d=1
-    while(length(list.files("./Permutation",pattern=paste("*.",format,sep="")))!=i*permAtTime*2){
-    if(d==1){cat(paste("Cluster number ",nCluster," ",((permAtTime*i))/nPerm*100," % complete \n"))}
-    d=2
-    }
+#    done"))
+#    d=1
+#    while(length(list.files("./Permutation",pattern=paste("*.",format,sep="")))!=i*permAtTime*2){
+#    if(d==1){cat(paste("Cluster number ",nCluster," ",((permAtTime*i))/nPerm*100," % complete \n"))}
+#    d=2
+#    }
 
     system("echo 3 > /proc/sys/vm/drop_caches")
     system("sync")
     gc()
-}
+#}
 
 
 #write.table(as.matrix(sapply(list.files("./Permutation/",pattern="cluster*"),FUN=function(x){a=read.table(paste("./Permutation/",x,sep=""),header=TRUE,col.names=1,sep=separator2)[[1]]}),col.names=1),paste(matrixName,"_",nCluster,"_clusterP.",format,sep=""),sep=separator2,row.names=FALSE, quote=FALSE)
 #write.table(as.matrix(sapply(list.files("./Permutation/",pattern="killC*"),FUN=function(x){a=read.table(paste("./Permutation/",x,sep=""),header=TRUE,col.names=1,sep=separator2)[[1]]}),col.names=1),paste(matrixName,"_",nCluster,"_killedCell.",format,sep=""),sep=separator2,row.names=FALSE, quote=FALSE)
 
-cluster_p=sapply(list.files("./Permutation/",pattern="cluster*"),FUN=function(x){a=read.table(paste("./Permutation/",x,sep=""),header=TRUE,col.names=1,sep=separator2)[[1]]})
-killedC=sapply(list.files("./Permutation/",pattern="killC*"),FUN=function(x){a=read.table(paste("./Permutation/",x,sep=""),header=TRUE,col.names=1,sep=separator2)[[1]]})
+#cluster_p=sapply(list.files("./Permutation/",pattern="cluster*"),FUN=function(x){a=read.table(paste("./Permutation/",x,sep=""),header=TRUE,col.names=1,sep=separator2)[[1]]})
+#killedC=sapply(list.files("./Permutation/",pattern="killC*"),FUN=function(x){a=read.table(paste("./Permutation/",x,sep=""),header=TRUE,col.names=1,sep=separator2)[[1]]})
 
-write.table(as.matrix(cluster_p,col.names=1),paste(matrixName,"_",nCluster,"_clusterP.",format,sep=""),sep=separator2,row.names=FALSE, quote=FALSE)
-write.table(as.matrix(killedC,col.names=1),paste(matrixName,"_",nCluster,"_killedCell.",format,sep=""),sep=separator2,row.names=FALSE, quote=FALSE)
+#write.table(as.matrix(cluster_p,col.names=1),paste(matrixName,"_",nCluster,"_clusterP.",format,sep=""),sep=separator2,row.names=FALSE, quote=FALSE)
+#write.table(as.matrix(killedC,col.names=1),paste(matrixName,"_",nCluster,"_killedCell.",format,sep=""),sep=separator2,row.names=FALSE, quote=FALSE)
 
 
-pdf("hist.pdf")
-clusters=apply(cluster_p,2,FUN=function(x){max(x)})
-hist(clusters,xlab="nCluster",breaks=length(unique(cluster_p)))
-dev.off()
+#pdf("hist.pdf")
+#clusters=apply(cluster_p,2,FUN=function(x){max(x)})
+#hist(clusters,xlab="nCluster",breaks=length(unique(cluster_p)))
+#dev.off()
 
-write.table(sort(unique(clusters)),paste("./../rangeVector.",format,sep=""),sep=separator2,row.names=FALSE,col.names=FALSE)
-system("rm -r Permutation")
+#write.table(sort(unique(clusters)),paste("./../rangeVector.",format,sep=""),sep=separator2,row.names=FALSE,col.names=FALSE)
+#system("rm -r Permutation")
 return(length(unique(mainVector)))
 
 }
