@@ -4,6 +4,22 @@ include: "conf.sk"
 rule all_dir:
     input: expand("{sample}_dir/{sample}.csv", sample=SAMPLES)
 
+
+rule all_counts:
+    input: expand("{sample}_dir/{sample}.tsv", sample=SAMPLES_FOR_COUNT)
+    output: "all_counts_dir/all_counts.csv"
+    run:
+        import pandas as pd
+        res = pd.read_csv(input[0], sep=",", index_col=0).T
+        res['sample'] = [input[0]] * len(res)
+        i = 1
+        for f in input[1:]:
+            res_i = pd.read_csv(f, sep=",", index_col=0).T
+            res_i['sample'] = [input[i]] * len(res_i)
+            i = i + 1
+            res = res.append(res_i, ignore_index=False)
+        res.T.to_csv(output[0], sep= ",")
+
 ## rule to make a dir for each sample with the starting tsv and the needed gtf
 # need to copy instead on ln because rCASC copies to another dir that is then mounted 
 # in the docker as a volume.

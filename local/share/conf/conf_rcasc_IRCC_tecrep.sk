@@ -16,6 +16,7 @@ BIN_DIR=PRJ_ROOT+'/local/bin'
 SRC_DIR=PRJ_ROOT+'/local/src'
 
 SAMPLES=["CRC0327_NT_t1","CRC0327_NT_t2"]
+SAMPLES_FOR_COUNT=SAMPLES
 NSAMPLES=len(SAMPLES)
 
 CSV_DIR='/mnt/cold1/snaketree/prj/scRNA/dataset/IRCC_tecrep'
