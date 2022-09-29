@@ -4,3 +4,4 @@ local/share/data/*
 local/src/cellranger-*/*
 local/src/*tar.gz
 local/src/crcorganoids
+local/src/CeleScope/*

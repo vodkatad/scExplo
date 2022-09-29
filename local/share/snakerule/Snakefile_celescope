@@ -1,0 +1,31 @@
+include: "conf.sk"
+
+rule create_map:
+    output: 'mapfile.tsv'
+    params: fdir=FQ_DIR, ncells=NCELLS
+    run:
+        for k in SAMPLES.keys():
+            with open(output[0], 'w') as o:
+                o.write(k + "\t" + params.fdir + "\t" + SAMPLES[k] + "\t" + str(params.ncells) +"\n")
+
+rule create_run:
+    input: mapf='mapfile.tsv'
+    output: directory('shell')
+    params: cores=CORES, ref=REF_DIR
+    shell: 
+        """
+        multi_rna\
+	    --mapfile {input.mapf}\
+	    --genomeDir {params.ref}\
+	    --thread {params.cores}\
+	    --mod shell\
+        --rm_files
+       """
+
+rule cele_sample:
+   input: "shell/{sample}.sh"
+   output: touch("{sample}.done")
+   shell: "sh {input}"
+
+rule all_cele_samples:
+    input: expand("shell/{sample}.sh", sample=SAMPLES.values())

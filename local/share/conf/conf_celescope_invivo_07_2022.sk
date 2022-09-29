@@ -1,0 +1,24 @@
+import os
+def find_prj_root(path=os.getcwd()):
+    if os.path.isfile(os.path.join(path,'.PRJ_ROOT')):
+        return path
+    else:
+        if path:
+            return find_prj_root(os.path.dirname(path))
+        else:
+            raise Exception('Can not find the PRJ_ROOT directory')
+
+PRJ_ROOT=find_prj_root()
+BIOINFO_ROOT = os.getenv('BIOINFO_ROOT')
+SNAKE_ROOT=os.getenv('SNAKE_ROOT')
+
+BIN_DIR=PRJ_ROOT+'/local/bin'
+SRC_DIR=PRJ_ROOT+'/local/src'
+
+REF_DIR=PRJ_ROOT+'/dataset/celescope_references'
+
+CORES=4
+
+FQ_DIR=PRJ_ROOT+'/local/share/data/invivo_singleron_07_2022/raw'
+SAMPLES={'UID_220039_RNA' : 'CRC0322LMO_NT72h_1_singleron0722'}
+NCELLS=20000
