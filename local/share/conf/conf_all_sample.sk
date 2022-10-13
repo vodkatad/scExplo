@@ -1,0 +1,82 @@
+import os
+def find_prj_root(path=os.getcwd()):
+    if os.path.isfile(os.path.join(path,'.PRJ_ROOT')):
+        return path
+    else:
+        if path:
+            return find_prj_root(os.path.dirname(path))
+        else:
+            raise Exception('Can not find the PRJ_ROOT directory')
+
+PRJ_ROOT=find_prj_root()
+BIOINFO_ROOT = os.getenv('BIOINFO_ROOT')
+SNAKE_ROOT=os.getenv('SNAKE_ROOT')
+
+BIN_DIR=PRJ_ROOT+'/local/bin'
+SRC_DIR=PRJ_ROOT+'/local/src'
+
+SAMPLES=["all_samples"]
+#SAMPLES_FOR_COUNTS=["all_samples",CRC0322_cetux_1","CRC0327_NT_1", "CRC0327_cetux_1_4000", "CRC0322_NT_1_3000", "CRC0322_cetux_1", "CRC0327_NT_2", "CRC0327_cetux_2"]
+#SAMPLES=["CRC0322_NT_1_3000","CRC0327_cetux_1_4000","CRC0327_cetux_2"]
+#SAMPLES=["CRC0322_NT_1_bis", "CRC1502_NT_1","CRC0322_NT_1_3000","CRC0327_cetux_1_4000", "CRC0322_cetux_1"]
+NSAMPLES=len(SAMPLES)
+#ALL_SAMPLE_NAME=["all_samples","CRC0322_cetux_1","CRC0327_NT_1", "CRC0327_cetux_1_4000", "CRC0322_NT_1_3000", "CRC0322_cetux_1", "CRC0327_NT_2", "CRC0327_cetux_2", "CRC1502_NT_1", "CRC1502_cetux_1"]
+SAMPLES_TO_MERGE=['/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_Ire_cetuxi/CRC0322_cetux_1_dir/CRC0322_cetux_1.tsv',
+'/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_Ire_cetuxi/CRC0322_NT_1_3000_dir/CRC0322_NT_1_3000.tsv',
+'/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_Ire_cetuxi/CRC0327_cetux_2_dir/CRC0327_cetux_2.tsv',
+'/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_Ire_cetuxi/CRC0327_NT_1_dir/CRC0327_NT_1.tsv',
+'/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_Ire_cetuxi/CRC0327_NT_2_dir/CRC0327_NT_2.tsv',
+'/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_Ire_cetuxi/CRC1502_cetux_1_dir/CRC1502_cetux_1.tsv',
+'/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_Ire_cetuxi/CRC1502_NT_1_dir/CRC1502_NT_1.tsv',
+'/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_Ire_cetuxi/CRC0327_cetux_1_4000_dir/CRC0327_cetux_1_4000.tsv',
+'/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_longer/CRC0069_CTX72h_1_dir/CRC0069_CTX72h_1.tsv',
+'/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_longer/CRC0069_NT72h_1_dir/CRC0069_NT72h_1.tsv',
+]
+
+#questo non serve ?
+CSV_DIR='/mnt/cold1/snaketree/prj/scRNA/local/share/data/Ire_cetuxi_first_and_reseq'
+
+ALL_CSV=expand(CSV_DIR+'/{sample}.tsv', sample=SAMPLES)
+CORES=10
+
+#RCASC_GTF="/mnt/cold1/calogero/reanalysis_on_AIsc/comparing_CRC0322/CRC0322_NT_1_bis_clx/Homo_sapiens.GRCh38.101.gtf"
+RCASC_GTF="/mnt/cold1/calogero/reanalysis_on_AIsc/old/comparing_CRC0322/CRC0322_NT_1_bis_clx/Homo_sapiens.GRCh38.101.gtf"
+SCRATCH="/tmp"
+
+VIO_GENES='/mnt/cold1/snaketree/prj/scRNA/local/share/data/Ire_cetuxi_first_and_reseq/genes_ensg.tsv'
+CYCLE_GENES='/mnt/cold1/snaketree/prj/scRNA/local/share/data/Ire_cetuxi_first_and_reseq/regev_lab_cell_cycle_genes_onlyensg.txt'
+BASED='/mnt/cold1/snaketree/prj/scRNA/dataset/all_samples/'
+
+
+rule all_seurat_integration:
+    input: expand("CRC0322_res{res}_G1_clu_cycle.tsv", res=[0.01, 0.05, 0.1, 0.2, 0.5])
+
+rule all_seurat_integration_CRC0327:
+    input: expand("CRC0327_res{res}_G1_clu_cycle.tsv", res=[0.01, 0.05, 0.1, 0.2, 0.5])
+
+
+# modded script to skip top sd top expr
+rCASC_step03=SRC_DIR+'/rCASC_step03_notopsdexpr.R'
+
+########### Seurat integration, WARNING needs the required saver outputs to be there, un-chained rule.
+def find_saver_twosample(wildcards):
+    import glob
+    res = glob.glob(wildcards.s1+'*_saverAlivePC.csv.gz') + glob.glob(wildcards.s2+'*_saverAlivePC.csv.gz')
+    return res
+
+ruleorder: seurat_integration_two > seurat_integration
+
+rule seurat_integration_two:
+    input: find_saver_twosample # 
+    output: cy="{s1}-{s2}_res{res}_{kind}_clu_cycle.tsv", climage="{s1}-{s2}_res{res}_{kind}_UMAP.pdf", markers="{s1}-{s2}_res{res}_{kind}_markers.tsv",
+            markersall="{s1}-{s2}_res{res}_{kind}_markersall.tsv", markersdir=directory("{s1}-{s2}_res{res}_{kind}_markers"), viodir=directory("{s1}-{s2}_res{res}_{kind}_violins"), pcs="{s1}-{s2}_res{res}_{kind}_PC.pdf"
+    params: tool=SRC_DIR+'/seurat_integration.R', genes=VIO_GENES, cinput=lambda wildcards, input: ','.join(input), cycle=CYCLE_GENES, base=BASED
+    #docker: 'seuratintegration_deg_getopt'
+    shell:
+        """
+            rm -rf {output.viodir} {output.markersdir}
+            mkdir {output.viodir} {output.markersdir}
+            {params.tool} -i {params.cinput} -r {wildcards.res} -g {params.genes} -k {wildcards.kind} -x {wildcards.s1}-{wildcards.s2}_res{wildcards.res}_{wildcards.kind}_ -n 7 -c {params.cycle} -b {params.base}
+        """
+
+

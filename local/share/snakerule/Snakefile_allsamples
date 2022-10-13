@@ -1,0 +1,347 @@
+include: "conf.sk"
+
+rule all_dir:
+    input: expand("{sample}_dir/{sample}.tsv", sample=SAMPLES)
+
+""" rule all_counts:
+    input: sample=SAMPLES_TO_MERGE
+    output: "all_samples_dir/all_samples.tsv","all_samples_dir/all_counts_map.csv"
+    run:
+        import pandas as pd
+        res = pd.read_csv(input[0], sep=",", index_col=0, header=0)
+        mappa=pd.DataFrame()
+        mappa['cell_id']=res.columns
+        mappa['sample'] = [input[0]] * len(res.columns)
+
+        i = 1
+        for f in input[1:]:
+            print('================')
+            print(f)
+            print('================')
+            res_i = pd.read_csv(f, sep=",", index_col=0, header=0)
+            sample_name=[input[i]] * len(res_i.columns)
+            res = res.join(res_i,rsuffix='_'+str(i))
+            cell_name=res.columns[-len(res_i.columns):]
+            map_i=pd.DataFrame()
+            map_i['cell_id']=cell_name
+            map_i['sample']=sample_name
+            mappa=pd.concat([mappa,map_i],axis=0,ignore_index=True)
+            i = i + 1
+        print('saving files...')
+        res.to_csv(output[0], sep= ",")
+        print('all_sample dataset saved')
+        mappa.to_csv(output[1],sep=',')
+ """
+
+rule all_rcasc_steps:
+    input: expand("{sample}_cc_10.tsv", sample=SAMPLES)
+
+# move in dir?
+#input: CSV_DIR+'/{sample}.csv'
+# Note: this was linked to CSV_DIR where csv had the right name for the original samples
+rule step_01_saver:
+    input: "{sample}_dir/{sample}.tsv"
+    output: "{sample}_saver.csv.gz"
+    params: tool=SRC_DIR+'/rCASC_step01.R', cores=CORES
+    shell:  
+        """
+            {params.tool} -c {input} -s {output} -p {params.cores}
+        """
+
+def get_absolute(wildcards, input):
+    return os.path.join(os.getcwd(), input.counts)
+
+def get_absolute_all(rpath):
+    return os.path.join(os.getcwd(), rpath)
+
+# rCASC needs absolute paths as input, but not for the gtf, it should be in the directory of -c 
+# that will be copied to scratch before setting scratch as a volume for the docker.
+# TODO add yes somehow to answer the rm question
+rule step_02_cc_ribomito:
+    input: counts='{sample}_dir/{sample}.tsv', gtf='{sample}_dir/gtf.gtf'
+    output: "{sample}_dir/{sample}_ribo_mito_raw.pdf"
+    params: tool=SRC_DIR+'/rCASC_step02.R', scratch=SCRATCH, rcounts=get_absolute, rgtf="gtf.gtf"
+    shell:  
+        """
+            echo 'y' | {params.tool} -c {params.rcounts} -g {params.rgtf} -o {output} -s {params.scratch}
+        """
+
+# gtf is looked for in counts dir, that needs to be an absolute path.
+# other output:
+# {sample}_dir/Results/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}/PCE_bowPlot.pdf
+#if 'rCASC_step03' in locals():
+
+rule step_03_topsd_topexpr:
+    input: counts='{sample}_dir/{sample}.tsv', gtf='{sample}_dir/gtf.gtf', saver="{sample}_saver.csv.gz"
+    output: cc="{sample}_dir/filtered_annotated_{sample}_cellCycle.tsv", 
+            saverfarm="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv" #vande="{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv",
+    params: tool=SRC_DIR+'/rCASC_step03.R', scratch=SCRATCH, rcounts=get_absolute, rgtf="gtf.gtf", saver=get_absolute_all("{sample}_dir/saver_{sample}.tsv"),
+            saverfarm=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"),
+            saverfarmva=get_absolute_all("{sample}_dir/filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv"),
+            saverfa=get_absolute_all("{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv")
+    shell:
+        """
+            gunzip -c {input.saver} > {wildcards.sample}_dir/saver_{wildcards.sample}.tsv
+            {params.tool} -c {params.rcounts} -g {params.rgtf} -s {params.scratch} -a {params.saver} -f {params.saverfa} -r {params.saverfarm} -v {params.saverfarmva}
+        """
+        # 
+# all imputed data from now on:
+# saver_{sample}.tsv -> all cells, all genes
+# annotated_saver_{sample}.tsv -> only PC genes, all cells
+# filtered_annotated_saver_ribomito -> only PC genes, only no highribo mito cells
+# filtered_variance_filtered_annotated... -> filtering genes with high variance (top 10k)
+# filtered_expression_filtered_variance_filtered_annotated -> filtering top 5000 expressed genes
+# cell cycle here is calculated on not saver inputed data (but filtered for ribomito high cells)
+
+#rule step_03bis_saver_alive:
+#    input: saver="{sample}_saver.csv.gz", alive="{sample}_dir/filtered_annotated_{sample}.tsv"
+#    output: csv="{sample}_saverAlive.csv.gz"
+#    run:
+#        import pandas as pd    
+#        saverdf = pd.read_csv(input.saver, compression='gzip')
+#        alivedf = pd.read_csv(input.alive)
+#        res = saverdf[[alivedf.columns.values]]
+#        res.to_csv(output.csv)
+#
+rule all_step03:
+    input: expand("{sample}_saver.csv.gz", sample=SAMPLES)## expand("{sample}_saverAlivePC.csv.gz", sample=SAMPLES)
+
+rule all_saver_alive:
+    input: expand("{sample}_saverAlivePC_G1.csv.gz", sample=SAMPLES)## expand("{sample}_saverAlivePC.csv.gz", sample=SAMPLES)
+
+rule step_03bis_saver_alive:
+    input: saver="{sample}_saver.csv.gz", alive="{sample}_dir/filtered_annotated_{sample}.tsv"
+    output: csv="{sample}_saverAlive.csv.gz"
+    shell:
+        """
+            Rscript -e "s=read.csv(gzfile('{input.saver}'), row.names = 1); a=read.csv('{input.alive}', row.names = 1); r=s[, colnames(a)]; write.csv(r, file=gzfile('{output.csv}'), row.names=TRUE)"
+        """
+
+
+rule step_03bis_saver_alive_pc:
+    input: saver="{sample}_saver.csv.gz", alive="{sample}_dir/filtered_annotated_{sample}.tsv"
+    output: csv="{sample}_saverAlivePC.csv.gz"
+    shell:
+        """
+            Rscript -e "s <- read.csv(gzfile('{input.saver}'), row.names = 1); 
+            a <- read.csv('{input.alive}', row.names = 1); 
+            ensg <- sapply(strsplit(rownames(a), ':'), function(x) x[1])
+            r <- s[ensg, colnames(a)]; 
+            write.csv(r, file=gzfile('{output.csv}'), row.names=TRUE)"
+        """
+
+rule step_03tris_saver_alive_pc_G1:
+    input: csv="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv", cycle="{sample}_dir/filtered_annotated_saver_ribomito_{sample}_cellCycle.csv", step="{sample}_step04bis"
+    output: csv="{sample}_saverAlivePC_{phase}.csv.gz"
+    shell:
+        """
+            Rscript -e "s <- read.csv('{input.csv}', row.names = 1); 
+            a <- read.csv('{input.cycle}', row.names = 1, header=FALSE); 
+            keep <- rownames(a[a[,1]=='{wildcards.phase}',, drop=FALSE])
+            r <- s[, keep]; 
+            write.csv(r, file=gzfile('{output.csv}'), row.names=TRUE)"
+        """
+        
+# upto here
+#real    105m47.706s
+#user    6m22.494s
+#sys     0m57.360s
+
+# long steps that I am not sure why uses all available cores (or a hardcoded fixed N that I missed somehow?)
+# i.e. permAtTime?
+rule step_04_seuratboot:
+    input: vande="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"
+    params: tool=SRC_DIR+'/rCASC_step04.R', vande=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"), scratch=SCRATCH
+    output: t="{sample}_step04_{pc}" #, c='{sample}_seurat_clusters_{pc}.csv', c2="{sample}_dir/clustering_{pc}.csv"
+    shell:  
+        """
+            {params.tool} -v {params.vande} -s {params.scratch} -p {wildcards.pc}
+            touch {output.t}
+        """
+#ln -s {wildcards.sample}_dir/Results/filtered_annotated_saver_ribomito_{wildcards.sample}/*/filtered_annotated_saver_ribomito_{wildcards.sample}_clustering.output.csv {output.c}
+#cp {wildcards.sample}_dir/Results/filtered_annotated_saver_ribomito_{wildcards.sample}/*/filtered_annotated_saver_ribomito_{wildcards.sample}_clustering.output.csv {output.c2}
+
+# Warning: rCASC if this rule runs when some other clustering results for the same samples are found (more than 1 directory in _dir/Results/sample_name, with different
+# cluster numbers) permAnalysisSeurat is not called and _score.csv _scoreSum.csv and *Stability_Plot.pdf are not produced.
+rule step_04_seuratboot_varres:
+    input: vande="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"
+    params: tool=SRC_DIR+'/rCASC_step04_varres.R', vande=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"), 
+            scratch=SCRATCH, mod_rCASC=SRC_DIR+'/seurat_bootstrap_mod.R'
+    output: t="{sample}_step04_res{res}_{pc}", c='{sample}_seurat_clusters_res{res}_{pc}.csv', 
+    shell:  
+        """
+            echo 'y\\ny\\ny\\ny' | {params.tool} -v {params.vande} -s {params.scratch} -p {wildcards.pc} -r {wildcards.res} -m {params.mod_rCASC}
+            cp {wildcards.sample}_dir/Results/filtered_annotated_saver_ribomito_{wildcards.sample}/filtered_annotated_saver_ribomito_{wildcards.sample}_clustering.output_{wildcards.res}.csv {output.c}
+            touch {output.t}
+	"""
+
+#this changes the date of -rwxrwxrwx 1 egrassi trcanmed 281749434 Nov 19 12:42 CRC0327_NT_1_dir/filtered_annotated_saver_ribomito_CRC0327_NT_1.csv
+	
+rule all_varres:
+    input: expand("{sample}_step04_res0.2_5", sample=SAMPLES)
+	
+ruleorder: step_04_seuratboot_varres > step_04_seuratboot
+# WHY WHY WHY
+
+rule step_04_seuratcycle:
+    input: all_saver_filtered="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"
+    params: tool=SRC_DIR+'/rCASC_step04bis.R', all_saver_filtered=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"), scratch=SCRATCH, source=SRC_DIR+'/seurat_ccycle_mod.R'
+    output: t="{sample}_step04bis", c="{sample}_dir/filtered_annotated_saver_ribomito_{sample}_cellCycle.csv",
+	    scaledata="{sample}_dir/filtered_annotated_saver_ribomito_{sample}_cellCycleScaleData.csv",
+	    variableFeat="{sample}_dir/filtered_annotated_saver_ribomito_{sample}_variableFeatures.txt"
+    shell:  
+        """
+            {params.tool} -v {params.all_saver_filtered} -s {params.scratch} -c {params.source}
+            touch {output.t}
+        """
+
+# We want to be able to use SeuratBootstrap both with counts and with scaledData after cell cycle normalization
+def variableFeatures_input(wildcards, input):
+    import os
+    abs_vand_path = get_absolute_all(str(input.vande))
+    basename = os.path.basename(abs_vand_path)
+    basedir = os.path.dirname(abs_vand_path)
+    split_fn = basename.split('_')
+    # Logic not needed cause we have two rules for cell cycle correction and standard seurat clustering
+    #if "cellCycleScaleData.csv" == split_fn[-1]: 
+    split_fn[-1] = 'variableFeatures.txt'
+    pathtxt = '_'.join(split_fn)
+    res = str(os.path.join(basedir, pathtxt))
+    return "-f " + res
+
+# Warning: rCASC if this rule runs when some other clustering results for the same samples are found (more than 1 directory in _dir/Results/sample_name, with different
+# cluster numbers) permAnalysisSeurat is not called and _score.csv _scoreSum.csv and *Stability_Plot.pdf are not produced.
+rule step_04_seurat_varres_cyclecorr:
+    input: vande="{sample}_dir/filtered_annotated_saver_ribomito_{sample}_cellCycleScaleData.csv"
+    params: tool=SRC_DIR+'/rCASC_step04_varres.R', vande=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}_cellCycleScaleData.csv"), 
+            scratch=SCRATCH, varFeat=variableFeatures_input, mod_rCASC=SRC_DIR+'/seurat_bootstrap_mod.R'
+    output: t="{sample}_step04cc_res{res}_{pc}", c='{sample}_seurat_clusters_cc_res{res}_{pc}.csv' #, c2="{sample}_dir/clustering_res{res}_{pc}.csv"
+    shell:  
+        """
+            {params.tool} -v {params.vande} -s {params.scratch} -p {wildcards.pc} -r {wildcards.res} -n {params.varFeat} -m {params.mod_rCASC}
+            cp {wildcards.sample}_dir/Results/filtered_annotated_saver_ribomito_{wildcards.sample}_cellCycleScaleData/filtered_annotated_saver_ribomito_{wildcards.sample}_cellCycleScaleData_clustering.output_{wildcards.res}.csv {output.c}
+            touch {output.t}
+	"""
+
+#### shading of genes on UMAP
+rule gene_shading:
+    input: step="{sample}_step04_{pc}", genes=PRJ_ROOT+'/local/share/data/genes_{genes}.txt', data="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"
+    params: tool=SRC_DIR+'/rCASC_genevis.R', clustering=get_absolute_all("{sample}_dir/clustering_{pc}.csv"), scratch=SCRATCH,  
+            tool2=SRC_DIR+'/geneVisualization.R', expr=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"),
+            g=get_absolute_all('{genes}_genesshading_{sample}_PC{pc}.tmp'), plot="{genes}_genesshading_{sample}_PC{pc}"
+    output: t="{genes}_genesshading_{sample}_PC{pc}"#, plot="{genes}_genesshading_{sample}_PC{pc}.pdf", cpm="{sample}_dir/filtered_annotated_saver_ribomito_{sample}_log_pc1_cpm.csv"
+    shell:
+        """
+            tr "," "\\t" < {input.data} | tr -d '"' | sed 1d | cut -f 1 | tr ":" "\\t" | filter_1col 2 {input.genes} | tr "\\t" ":" > {output.t}.tmp
+            {params.tool} -c {params.clustering} -s {params.scratch} -g {params.g} -p {params.plot} -t {params.tool2} -e {params.expr}
+            touch {output.t}
+            rm {output.t}.tmp
+        """
+
+rule gene_shading_G1:
+    input: step="{sample}_step04_{pc}", genes=PRJ_ROOT+'/local/share/data/genes_{genes}.txt', data="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv",
+           expr_pc="{sample}_saverAlivePC_G1.csv.gz"
+    params: tool=SRC_DIR+'/rCASC_genevis2.R', clustering=get_absolute_all("{sample}_dir/clustering_{pc}.csv"), scratch=SCRATCH,  
+            tool2=SRC_DIR+'/geneVisualization.R', expr=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"),
+            g=get_absolute_all('{genes}_genesshadingG1_{sample}_PC{pc}.tmp'), plot="{genes}_genesshadingG1_{sample}_PC{pc}"
+    output: t="{genes}_genesshadingG1_{sample}_PC{pc}"#, plot="{genes}_genesshadingG1_{sample}_PC{pc}.pdf", cpm="{sample}_dir/filtered_annotated_saver_ribomito_{sample}_log_pc1_cpm.csv"
+    shell:
+        """
+            tr "," "\\t" < {input.data} | tr -d '"' | sed 1d | cut -f 1 | tr ":" "\\t" | filter_1col 2 {input.genes} | tr "\\t" ":" > {output.t}.tmp
+            {params.tool} -c {params.clustering} -s {params.scratch} -g {params.g} -p {params.plot} -t {params.tool2} -e {params.expr} -E {input.expr_pc}
+            touch {output.t}
+            rm {output.t}.tmp
+        """
+
+#rule all_paneth_shades:
+#    input: expand("pPaneth_genesshadingG1_{sample}_PC5", sample=SAMPLES)
+rule all_shades:
+    input: expand("DUSP1_genesshadingG1_{sample}_PC5", sample=SAMPLES)
+
+rule step_05_comet_pb:
+    input: vande="{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv", cycle="{sample}_dir/filtered_annotated_{sample}_cellCycle.tsv", step="{sample}_step04_{pc}"
+    params: tool=SRC_DIR+'/rCASC_step05.R', vande=get_absolute_all("{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv"), scratch=SCRATCH,
+            find_clu=SRC_DIR+'/find_clu.py'
+    output: "{sample}_cc_{pc}.tsv"
+    shell:  
+        """
+            CLU=$({params.find_clu} {wildcards.sample})
+            echo -en "y\\ny\\ny\\n" | {params.tool} -v {params.vande} -s {params.scratch} -t {output} -o $CLU -n {wildcards.sample} -y {input.cycle}
+        """
+
+rule step_05bis_cycle:
+    input: cycle="{sample}_dir/filtered_annotated_{sample}_cellCycle.tsv", step="{sample}_step04_{pc}"
+    params: tool=SRC_DIR+'/rCASC_step05bis.R',
+            find_clu=SRC_DIR+'/find_clu.py'
+    output: "{sample}_cyclecluster_{pc}.tsv"
+    shell:  
+        """
+            CLU=$({params.find_clu} {wildcards.sample})
+            {params.tool} -t {output} -o $CLU -y {input.cycle}
+        """
+
+# other outputs of step05:
+# -rw-r--r-- 1 egrassi trcanmed     780591 Jun  9 07:18 filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_CRC0069_CTX72h_1_bulkColumn.csv
+# -rw-r--r-- 1 egrassi trcanmed     712553 Jun  9 07:18 filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_CRC0069_CTX72h_1_bulklog2.csv
+# -rw-r--r-- 1 egrassi trcanmed     762163 Jun  9 07:18 filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_CRC0069_CTX72h_1_bulkRow.csv
+# -rwxrwxr-x 1 egrassi trcanmed     361645 Jun  9 07:21 filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_CRC0069_CTX72h_1_clustering.output.csv
+# -rwxrwxrwx 1 root    root       84972451 Jun  9 07:21 filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_CRC0069_CTX72h_1.csv
+# CRC0069_CTX72h_1_dir/Results/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_CRC0069_CTX72h_1/7/output
+
+# The real long step is ae_pseudobulk 
+#real    1268m51.369s
+#user    5m39.218s
+#sys     7m18.356s
+
+
+# rule step_06 integration -> perhaps in different directory TODO
+
+
+## rule to make a dir for each sample with the starting tsv and the needed gtf
+# need to copy instead on ln because rCASC copies to another dir that is then mounted 
+# in the docker as a volume.
+rule directories:
+    input: counts=CSV_DIR+'/{sample}.csv', gtf=RCASC_GTF
+    output: counts="{sample}_dir/{sample}.tsv", gtf="{sample}_dir/gtf.gtf"
+    params: dir="{sample}_dir"
+    shell:  
+        """
+            mkdir -p {params.dir}
+            cp {input.counts} {output.counts}
+            cp {input.gtf} {output.gtf}
+        """
+    
+# This rule will think that se is able to run even if the clustering output is not there, but will fail whend find_clu.py will
+# see that there is not clustering done yet. TODO add a dynamic dependency (dynamic w.r.t. the number of found clusters).   
+rule violin_UMI:
+    input: vande="{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv", data="{sample}_dir/{sample}.tsv"
+    params: tool=SRC_DIR+'/violin_seen_UMI.R',
+            find_clu=SRC_DIR+'/find_clu.py'
+    output: "{sample}_UMIviolin_{thr}.tsv"
+    shell:  
+        """
+            CLU=$({params.find_clu} {wildcards.sample})
+            {params.tool} -t {wildcards.thr} -v {input.vande} -d {input.data} -o {output} -c $CLU 
+        """
+
+########### Seurat integration, WARNING needs the required saver outputs to be there, un-chained rule.
+def find_saver_allsample(wildcards):
+    import glob
+    res = glob.glob(wildcards.sample+'*_saverAlivePC.csv.gz')
+    return res
+
+#wildcard_constraints:
+#	sample="CRC\d+"
+
+rule seurat_integration:
+    input: find_saver_allsample # '{sample}_seurat_saver.csv.gz'
+    output: cy="{sample}_res{res}_{kind}_clu_cycle.tsv", climage="{sample}_res{res}_{kind}_UMAP.pdf", markers="{sample}_res{res}_{kind}_markers.tsv",
+            markersall="{sample}_res{res}_{kind}_markersall.tsv", markersdir=directory("{sample}_res{res}_{kind}_markers"), viodir=directory("{sample}_res{res}_{kind}_violins"), pcs="{sample}_res{res}_{kind}_PC.pdf"
+    params: tool=SRC_DIR+'/seurat_integration.R', genes=VIO_GENES, cinput=lambda wildcards, input: ','.join(input), cycle=CYCLE_GENES, base=BASED
+    #docker: 'seuratintegration_deg_getopt'
+    shell:
+        """
+            rm -rf {output.viodir} {output.markersdir}
+            mkdir {output.viodir} {output.markersdir}
+            {params.tool} -i {params.cinput} -r {wildcards.res} -g {params.genes} -k {wildcards.kind} -x {wildcards.sample}_res{wildcards.res}_{wildcards.kind}_ -n 7 -c {params.cycle} -b {params.base}
+        """
