@@ -161,6 +161,16 @@ rule all_varres:
 
 ruleorder: step_04_seuratboot_varres > step_04_seuratboot
 	
+
+rule paneth_color_plot:
+    input: step="{sample}_step04_{pc}", tsne="{sample}_dir/clustering_{pc}.csv", raf=lambda wildcards: BASE_DIR_RAF+SAMPLES_MAP_RAF[wildcards.sample]+"/log2cpmfisher.csv"
+    output: plot="panethplot/{sample}_{pval}_pc{pc}.pdf"
+    params: outdir="panethplot"
+    script: SRC_DIR+'/paneth_stupid_plotter.R'
+        
+rule all_paneth_color_plots:
+    input: expand("panethplot/{sample}_0.01_pc5.pdf", sample=SAMPLES[1:])
+
 #### shading of genes on UMAP
 rule gene_shading:
     input: step="{sample}_step04_{pc}", genes=PRJ_ROOT+'/local/share/data/genes_{genes}.txt', data="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"
@@ -192,13 +202,13 @@ rule gene_shading_G1:
         """
 
 rule all_paneth_shades:
-    input: expand("pPaneth_genesshadingG1_{sample}_PC5", sample=SAMPLES)
+    input: expand("ETS1_genesshadingG1_{sample}_PC5", sample=SAMPLES)
 
 rule all_norkin_shades:
     input: expand("norkin_genesshadingG1_{sample}_PC5", sample=SAMPLES)
 
 rule allall_paneth_shades:
-    input: expand("pPaneth_genesshading_{sample}_PC5", sample=SAMPLES)
+    input: expand("ETS1_genesshading_{sample}_PC5", sample=SAMPLES)
 
 rule allall_norkin_shades:
     input: expand("norkin_genesshading_{sample}_PC5", sample=SAMPLES)

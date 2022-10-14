@@ -15,7 +15,21 @@ SNAKE_ROOT=os.getenv('SNAKE_ROOT')
 BIN_DIR=PRJ_ROOT+'/local/bin'
 SRC_DIR=PRJ_ROOT+'/local/src'
 
-SAMPLES=["CRC0322_cetux_1_nopaneth","CRC0322_cetux_1","CRC0327_NT_1", "CRC0327_cetux_1_4000", "CRC0322_NT_1_3000", "CRC0322_cetux_1", "CRC0327_NT_2", "CRC0327_cetux_2", "CRC1502_NT_1", "CRC1502_cetux_1"]
+SAMPLES=["CRC0322_cetux_1_nopaneth","CRC0322_cetux_1","CRC0327_NT_1", "CRC0327_cetux_1_4000", "CRC0322_NT_1_3000", "CRC0322_cetux_1", "CRC0327_NT_2", "CRC0327_cetux_2","CRC1502_NT_1", "CRC1502_cetux_1"]
+
+BASE_DIR_RAF='/mnt/cold1/calogero/reanalysis_on_AIsc/paneth_only/all/log2cpmfisher/'
+SAMPLES_MAP_RAF= {
+   "CRC0322_cetux_1": 'crc322ctx', # who are ctx1 and nt1?
+   "CRC0327_NT_1": 'crc327nt1', 
+   "CRC0327_cetux_1_4000": 'crc327ctx1', #controllare 1 e 2 di tutti i 327 una volta che ho fisher 
+   "CRC0322_NT_1_3000": 'crc322nt',
+   "CRC0327_NT_2": 'crc327nt2',
+   "CRC0327_cetux_2": 'crc327ctx2', 
+   "CRC1502_NT_1": 'crc1502nt', 
+   "CRC1502_cetux_1": 'crc1502ctx' 
+
+}
+
 SAMPLES_FOR_COUNTS=["CRC0322_cetux_1","CRC0327_NT_1", "CRC0327_cetux_1_4000", "CRC0322_NT_1_3000", "CRC0322_cetux_1", "CRC0327_NT_2", "CRC0327_cetux_2"]
 #SAMPLES=["CRC0322_NT_1_3000","CRC0327_cetux_1_4000","CRC0327_cetux_2"]
 #SAMPLES=["CRC0322_NT_1_bis", "CRC1502_NT_1","CRC0322_NT_1_3000","CRC0327_cetux_1_4000", "CRC0322_cetux_1"]

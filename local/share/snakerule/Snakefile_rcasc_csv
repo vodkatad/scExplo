@@ -3,42 +3,6 @@ include: "conf.sk"
 rule all_dir:
     input: expand("{sample}_dir/{sample}.tsv", sample=SAMPLES)
 
-rule all_counts:
-    input: expand("{sample}_dir/{sample}.tsv", sample=SAMPLES_FOR_COUNT)
-    output: "all_counts_dir/all_counts.tsv"
-    run:
-        import pandas as pd
-        res = pd.read_csv(input[0], sep=",", index_col=0, header=0).T
-        res['sample'] = [input[0]] * len(res)
-        i = 1
-        for f in input[1:]:
-            res_i = pd.read_csv(f, sep=",", index_col=0, header=0).T
-            res_i['sample'] = [input[i] * len(res_i)]
-            i = i + 1
-            res = res.append(res_i, ignore_index=True)
-        res.T.to_csv(output[0], sep= ",")
-
-
-rule all_rcasc_steps:
-    input: expand("{sample}_cc_10.tsv", sample=SAMPLES)
-
-# move in dir?
-#input: CSV_DIR+'/{sample}.csv'
-# Note: this was linked to CSV_DIR where csv had the right name for the original samples
-rule step_01_saver:
-    input: "{sample}_dir/{sample}.tsv"
-    output: "{sample}_saver.csv.gz"
-    params: tool=SRC_DIR+'/rCASC_step01.R', cores=CORES
-    shell:  
-        """
-            {params.tool} -c {input} -s {output} -p {params.cores}
-        """
-
-def get_absolute(wildcards, input):
-    return os.path.join(os.getcwd(), input.counts)
-
-def get_absolute_all(rpath):
-
 rule all_rcasc_steps:
     input: expand("{sample}_cc_10.tsv", sample=SAMPLES)
 
@@ -242,6 +206,15 @@ rule gene_shading:
             rm {output.t}.tmp
         """
 
+rule paneth_color_plot:
+    input: step="{sample}_step04_{pc}", tsne="{sample}_dir/clustering_{pc}.csv", raf=lambda wildcards: BASE_DIR_RAF+SAMPLES_MAP_RAF[wildcards.sample]+"_log2cpmfisher.csv"
+    output: plot="panethplot/{sample}_{pval}_pc{pc}.pdf"
+    params: outdir="panethplot"
+    script: SRC_DIR+'/paneth_stupid_plotter.R'
+        
+rule all_paneth_color_plots:
+    input: expand("panethplot/{sample}_0.01_pc5.pdf", sample=SAMPLES[1:])
+
 rule gene_shading_G1:
     input: step="{sample}_step04_{pc}", genes=PRJ_ROOT+'/local/share/data/genes_{genes}.txt', data="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv",
            expr_pc="{sample}_saverAlivePC_G1.csv.gz"
@@ -257,10 +230,10 @@ rule gene_shading_G1:
             rm {output.t}.tmp
         """
 
-#rule all_paneth_shades:
-#    input: expand("pPaneth_genesshadingG1_{sample}_PC5", sample=SAMPLES)
-rule all_shades:
-    input: expand("DUSP1_genesshadingG1_{sample}_PC5", sample=SAMPLES)
+rule all_paneth_shades:
+    input: expand("ETS1_genesshading_{sample}_PC5", sample=SAMPLES)
+#rule all_shades:
+#    input: expand("DUSP1_genesshadingG1_{sample}_PC5", sample=SAMPLES)
 
 rule step_05_comet_pb:
     input: vande="{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv", cycle="{sample}_dir/filtered_annotated_{sample}_cellCycle.tsv", step="{sample}_step04_{pc}"
