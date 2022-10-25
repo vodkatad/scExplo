@@ -77,4 +77,15 @@ rule seurat_integration_two:
             {params.tool} -i {params.cinput} -r {wildcards.res} -g {params.genes} -k {wildcards.kind} -x {wildcards.s1}-{wildcards.s2}_res{wildcards.res}_{wildcards.kind}_ -n 7 -c {params.cycle} -b {params.base}
         """
 
+rule seurat_integration_nomarkers:
+    input: find_saver_twosample # 
+    output: cy="{s1}-{s2}_res{res}_{kind}_clu_cycle_int2.tsv", pcs="{s1}-{s2}_res{res}_{kind}_PC_int2.pdf", norm="{s1}-{s2}_res{res}_{kind}_scaled_int2.tsv.gz"
+    params: tool=SRC_DIR+'/seurat_integration_nomarkers.R', genes=VIO_GENES, cinput=lambda wildcards, input: ','.join(input), cycle=CYCLE_GENES, base=BASED
+    docker: 'seuratintegration_deg_getopt'
+    shell:
+        """
+            {params.tool} -i {params.cinput} -r {wildcards.res} -k {wildcards.kind} -x {wildcards.s1}-{wildcards.s2}_res{wildcards.res}_{wildcards.kind}_ -n 20 -c {params.cycle} -b {params.base}
+        """
+
+
 
