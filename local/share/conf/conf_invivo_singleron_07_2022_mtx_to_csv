@@ -17,6 +17,7 @@ SRC_DIR=PRJ_ROOT+'/local/src'
 
 SAMPLES= {
 'CRC0322LMO_NT72h_1_singleron0722': 'PDO_NT_matrix_10X',
+'CRC0322LMO_NT72h_1_singleron0722_us': 'PDO_NT_matrix_10X_us',
 'CRC0322LMO_CTX72h_1_singleron0722': 'PDO_CETUX_matrix_10X',
 'CRC0322LMX_CTX1w_1_singleron0722': 'PDX_CETUX_matrix_10X',
 'CRC0322LMX_NT1w_1_singleron0722': 'PDX_NT_matrix_10X'

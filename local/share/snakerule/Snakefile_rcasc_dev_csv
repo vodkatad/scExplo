@@ -130,15 +130,33 @@ rule step_04_seuratcycle:
         """
 
 
+# We want to be able to use SeuratBootstrap both with counts and with scaledData after cell cycle normalization
+def variableFeatures_input(wildcards, input):
+    import os
+    abs_vand_path = get_absolute_all(str(input.vande))
+    basename = os.path.basename(abs_vand_path)
+    basedir = os.path.dirname(abs_vand_path)
+    split_fn = basename.split('_')
+    # Logic not needed cause we have two rules for cell cycle correction and standard seurat clustering
+    #if "cellCycleScaleData.csv" == split_fn[-1]: 
+    split_fn[-1] = 'variableFeatures.txt'
+    pathtxt = '_'.join(split_fn)
+    res = str(os.path.join(basedir, pathtxt))
+    return "-f " + res
+
+# Warning: rCASC if this rule runs when some other clustering results for the same samples are found (more than 1 directory in _dir/Results/sample_name, with different
+# cluster numbers) permAnalysisSeurat is not called and _score.csv _scoreSum.csv and *Stability_Plot.pdf are not produced.
 rule step_04_seurat_varres_cyclecorr:
     input: vande="{sample}_dir/filtered_annotated_saver_ribomito_{sample}_cellCycleScaleData.csv"
-    params: tool=SRC_DIR+'/rCASC_step04_varres.R', vande=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}_cellCycleScaleData.csv"), scratch=SCRATCH
-    output: t="{sample}_step04cc_res{res}_{pc}"#, c='{sample}_seurat_clusters_res{res}_{pc}.csv', c2="{sample}_dir/clustering_res{res}_{pc}.csv"
+    params: tool=SRC_DIR+'/rCASC_step04_varres.R', vande=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}_cellCycleScaleData.csv"), 
+            scratch=SCRATCH, varFeat=variableFeatures_input, mod_rCASC=SRC_DIR+'/seurat_bootstrap_mod.R'
+    output: t="{sample}_step04cc_res{res}_{pc}", c='{sample}_seurat_clusters_cc_res{res}_{pc}.csv' #, c2="{sample}_dir/clustering_res{res}_{pc}.csv"
     shell:  
         """
-            {params.tool} -v {params.vande} -s {params.scratch} -p {wildcards.pc} -r {wildcards.res}
+            {params.tool} -v {params.vande} -s {params.scratch} -p {wildcards.pc} -r {wildcards.res} -n {params.varFeat} -m {params.mod_rCASC}
+            cp {wildcards.sample}_dir/Results/filtered_annotated_saver_ribomito_{wildcards.sample}_cellCycleScaleData/filtered_annotated_saver_ribomito_{wildcards.sample}_cellCycleScaleData_clustering.output_{wildcards.res}.csv {output.c}
             touch {output.t}
-        """
+	"""
 
 #### shading of genes on UMAP
 rule gene_shading:
@@ -150,7 +168,7 @@ rule gene_shading:
     shell:
         """
             tr "," "\\t" < {input.data} | tr -d '"' | sed 1d | cut -f 1 | tr ":" "\\t" | filter_1col 2 {input.genes} | tr "\\t" ":" > {output.t}.tmp
-            {params.tool} -c {params.clustering} -s {params.scratch} -g {params.g} -p {params.plot} -t {params.tool2} -e {params.expr}
+            echo 'y\\n' | {params.tool} -c {params.clustering} -s {params.scratch} -g {params.g} -p {params.plot} -t {params.tool2} -e {params.expr}
             touch {output.t}
             rm {output.t}.tmp
         """
@@ -171,7 +189,7 @@ rule gene_shading_G1:
         """
 
 rule all_paneth_shades:
-    input: expand("pPaneth_genesshading_{sample}_PC5", sample=SAMPLES)
+    input: expand("fantastici5_genesshading_{sample}_PC5", sample=SAMPLES)
 
 rule step_05_comet_pb:
     input: vande="{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv", cycle="{sample}_dir/filtered_annotated_{sample}_cellCycle.tsv", step="{sample}_step04_{pc}"
@@ -248,3 +266,11 @@ rule seurat_integration:
             mkdir {output.viodir} {output.markersdir}
             {params.tool} -i {params.cinput} -r {wildcards.res} -g {params.genes} -k {wildcards.kind} -x {wildcards.sample}_res{wildcards.res}_{wildcards.kind}_ -n 7 -c {params.cycle} -b {params.base}
         """
+rule paneth_color_plot:
+    input: step="{sample}_step04_{pc}", tsne="{sample}_dir/clustering_{pc}.csv", raf=lambda wildcards: BASE_DIR_RAF+SAMPLES_MAP_RAF[wildcards.sample]+"_log2cpmfisher.csv"
+    output: plot="panethplot/{sample}_{pval}_pc{pc}.pdf"
+    params: outdir="panethplot"
+    script: SRC_DIR+'/paneth_stupid_plotter.R'
+        
+rule all_paneth_color_plots:
+    input: expand("panethplot/{sample}_0.01_pc5.pdf", sample=SAMPLES[1:])
