@@ -110,12 +110,12 @@ plot_p <- function(name, list) {
   print(table(pvals$padj_np < 0.01 & pvals$padj_p > 0.05))
   print(cor.test(log10(pvals$padj_np+1e-100), log10(pvals$padj_p+1e-100)))
   
-  print(plot(log10(pvals$np+1e-100), log10(pvals$p + 1e-100)))
+  #print(plot(log10(pvals$np+1e-100), log10(pvals$p + 1e-100)))
   pvals$isPaneth_np <- ifelse(pvals$padj_np < 0.01, 'yes', 'no')
 
-  #print(ggplot(data=pvals, aes(x=padj_p, fill=isPaneth_np))+geom_histogram(position='dodge')+
-  #  scale_x_log10()+theme_bw()+theme(text=element_text(size=15))+geom_vline(xintercept=0.05)+
-  #  ggtitle(name))
+  print(ggplot(data=pvals, aes(x=padj_p, fill=isPaneth_np))+geom_histogram(position='dodge')+
+    scale_x_log10()+theme_bw()+theme(text=element_text(size=15))+geom_vline(xintercept=0.05)+
+    ggtitle(name))
 }
 
 gg <- sapply(names(data), plot_p, data)
