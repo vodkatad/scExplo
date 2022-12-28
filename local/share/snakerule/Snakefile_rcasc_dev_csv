@@ -115,7 +115,7 @@ rule step_04_seuratboot_varres:
 rule all_varres:
     input: expand("{sample}_step04_res0.2_5", sample=SAMPLES)
 	
-ruleorder: step_04_seuratboot_varres > step_04_seuratboot
+ruleorder: step_04_seurat_varres_cyclecorr > step_04_seuratboot_varres > step_04_seuratboot
 
 # this rewrites the ccycle done in step03 using saver imputed data vs only filtered_annotated
 rule step_04_seuratcycle:
@@ -157,6 +157,11 @@ rule step_04_seurat_varres_cyclecorr:
             cp {wildcards.sample}_dir/Results/filtered_annotated_saver_ribomito_{wildcards.sample}_cellCycleScaleData/filtered_annotated_saver_ribomito_{wildcards.sample}_cellCycleScaleData_clustering.output_{wildcards.res}.csv {output.c}
             touch {output.t}
 	"""
+
+rule all_clusters:
+    input: expand('{sample}_seurat_clusters_cc_res{{res}}_{{pc}}.csv', sample=SAMPLES)
+    output: "all_seu_clusters_cc_res{res}_{pc}.done"  
+    shell: "touch {output}"  
 
 #### shading of genes on UMAP
 rule gene_shading:
