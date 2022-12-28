@@ -120,7 +120,7 @@ rule step_03tris_saver_alive_pc_G1:
 rule step_04_seuratboot:
     input: vande="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"
     params: tool=SRC_DIR+'/rCASC_step04.R', vande=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"), scratch=SCRATCH
-    output: t="{sample}_step04_{pc}" #, c='{sample}_seurat_clusters_{pc}.csv', c2="{sample}_dir/clustering_{pc}.csv"
+    output: t="{sample}_step04_{pc,\d+}" #, c='{sample}_seurat_clusters_{pc}.csv', c2="{sample}_dir/clustering_{pc}.csv"
     shell:  
         """
             {params.tool} -v {params.vande} -s {params.scratch} -p {wildcards.pc}
@@ -135,7 +135,7 @@ rule step_04_seuratboot_varres:
     input: vande="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"
     params: tool=SRC_DIR+'/rCASC_step04_varres.R', vande=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"), 
             scratch=SCRATCH, mod_rCASC=SRC_DIR+'/seurat_bootstrap_mod.R'
-    output: t="{sample}_step04_res{res}_{pc}", c='{sample}_seurat_clusters_res{res}_{pc}.csv', 
+    output: t="{sample}_step04_res{res}_{pc,\d+}", c='{sample}_seurat_clusters_res{res}_{pc,\d+}.csv', 
     shell:  
         """
             echo 'y\\ny\\ny\\ny' | {params.tool} -v {params.vande} -s {params.scratch} -p {wildcards.pc} -r {wildcards.res} -m {params.mod_rCASC}
@@ -187,6 +187,7 @@ rule step_04_seurat_varres_cyclecorr:
     shell:  
         """
             {params.tool} -v {params.vande} -s {params.scratch} -p {wildcards.pc} -r {wildcards.res} -n {params.varFeat} -m {params.mod_rCASC}
+            echo 'y\\y\\y\\y'
             cp {wildcards.sample}_dir/Results/filtered_annotated_saver_ribomito_{wildcards.sample}_cellCycleScaleData/filtered_annotated_saver_ribomito_{wildcards.sample}_cellCycleScaleData_clustering.output_{wildcards.res}.csv {output.c}
             touch {output.t}
 	"""
@@ -201,6 +202,7 @@ rule gene_shading:
     shell:
         """
             tr "," "\\t" < {input.data} | tr -d '"' | sed 1d | cut -f 1 | tr ":" "\\t" | filter_1col 2 {input.genes} | tr "\\t" ":" > {output.t}.tmp
+            echo 'y\\n'|
             {params.tool} -c {params.clustering} -s {params.scratch} -g {params.g} -p {params.plot} -t {params.tool2} -e {params.expr}
             touch {output.t}
             rm {output.t}.tmp
@@ -231,7 +233,8 @@ rule gene_shading_G1:
         """
 
 rule all_paneth_shades:
-    input: expand("ETS1_genesshading_{sample}_PC5", sample=SAMPLES)
+    input: expand("fantastici5_genesshading_{sample}_PC5", sample=SAMPLES)
+
 #rule all_shades:
 #    input: expand("DUSP1_genesshadingG1_{sample}_PC5", sample=SAMPLES)
 

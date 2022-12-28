@@ -17,6 +17,9 @@ merged_data <- merge(paneth_pvals, tsne_coords, by="cellName")
 # TODO where is the lost single cell? add check here and ask Raf
 
 merged_data$ispaneth <- ifelse(merged_data$V1 < pval_thr, 'Paneth', 'Not Paneth')
+table2 <- table(merged_data$ispaneth)
+print(snakemake@wildcards[['sample']])
+print(prop.table(table2))
 
 p <- ggplot(merged_data, aes(x=xChoord, y=yChoord, color=ispaneth)) +
         geom_point() +theme(axis.text.x=element_blank(), #remove x axis labels

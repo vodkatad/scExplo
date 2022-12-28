@@ -33,9 +33,9 @@ if (!kind %in% KINDS) {
   stop('-k can only be all, G1 or correct')
 }
 
-output_clucy_f <- paste0(prefix, 'clu_cycle.tsv')
-output_PC_f <- paste0(prefix, 'PC.pdf')
-output_scaled_f <- paste0(prefix, 'scaled.tsv.gz')
+output_clucy_f <- paste0(prefix, 'clu_cycle_int2.tsv')
+output_PC_f <- paste0(prefix, 'PC_int2.pdf')
+output_scaled_f <- paste0(prefix, 'scaled_int2.tsv.gz')
 
 cdir <- getwd()
 
@@ -121,7 +121,7 @@ sdata <- FindClusters(sdata, resolution = resolution)
 #DimPlot(sdata, reduction = "umap")
 #graphics.off()
 
-
+save.image('test_seu.Rdata')
 print('clustered')
 df <- data.frame(row.names=names(sdata$orig.ident), sample=sdata$sample, cluster=sdata$seurat_clusters, cycle=sdata$Phase)
 write.table(df, file=output_clucy_f, sep="\t", quote=F)
@@ -130,8 +130,9 @@ DefaultAssay(sdata) <- "RNA"
 
 # https://www.biostars.org/p/9478172/
 norm_data <- GetAssayData(object = sdata, slot = "data")
-write.table(norm_data, file=gzfile('norm.tsv.gz'), sep="\t", quote=F)
+write.table(norm_data, file=gzfile(output_scaled_f), sep="\t", quote=F)
 if (any(Assays(sdata) == 'scale_data')) {
   scaled_data <- GetAssayData(object = sdata, slot = "scale_data")
   write.table(scaled_data, file=gzfile(output_scaled_f), sep="\t", quote=F)
 }
+ 

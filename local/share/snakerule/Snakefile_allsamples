@@ -161,10 +161,13 @@ rule step_04_seuratboot:
 #ln -s {wildcards.sample}_dir/Results/filtered_annotated_saver_ribomito_{wildcards.sample}/*/filtered_annotated_saver_ribomito_{wildcards.sample}_clustering.output.csv {output.c}
 #cp {wildcards.sample}_dir/Results/filtered_annotated_saver_ribomito_{wildcards.sample}/*/filtered_annotated_saver_ribomito_{wildcards.sample}_clustering.output.csv {output.c2}
 
+#convert tsv to csv
+
+
 # Warning: rCASC if this rule runs when some other clustering results for the same samples are found (more than 1 directory in _dir/Results/sample_name, with different
 # cluster numbers) permAnalysisSeurat is not called and _score.csv _scoreSum.csv and *Stability_Plot.pdf are not produced.
 rule step_04_seuratboot_varres:
-    input: vande="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"
+    input: vande="{sample}_dir/filtered_annotated_{sample}.tsv"
     params: tool=SRC_DIR+'/rCASC_step04_varres.R', vande=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"), 
             scratch=SCRATCH, mod_rCASC=SRC_DIR+'/seurat_bootstrap_mod.R'
     output: t="{sample}_step04_res{res}_{pc}", c='{sample}_seurat_clusters_res{res}_{pc}.csv', 
@@ -267,6 +270,16 @@ rule step_05_comet_pb:
         """
             CLU=$({params.find_clu} {wildcards.sample})
             echo -en "y\\ny\\ny\\n" | {params.tool} -v {params.vande} -s {params.scratch} -t {output} -o $CLU -n {wildcards.sample} -y {input.cycle}
+        """
+
+rule step_05_comet_filt_annot_cc:
+    #input: vande="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv", step="{sample}_step04cc_res{res}_{pc}",
+    #        clusters="{sample}_seurat_clusters_cc_res{res}_{pc}.csv"
+    params: tool=SRC_DIR+'/rCASC_step05_onlycomet.R', vande=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"), scratch=SCRATCH,
+    output: "{sample}_comet_cc_res{res}_{pc}.tsv"
+    shell:  
+        """
+            echo -en "y\\ny\\ny\\n" | {params.tool} -v {params.vande} -s {params.scratch} -t {output} -o {input.clusters} -n {wildcards.sample} -y {input.cycle}
         """
 
 rule step_05bis_cycle:
