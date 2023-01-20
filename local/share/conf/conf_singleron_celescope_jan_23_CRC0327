@@ -1,0 +1,28 @@
+import os
+def find_prj_root(path=os.getcwd()):
+    if os.path.isfile(os.path.join(path,'.PRJ_ROOT')):
+        return path
+    else:
+        if path:
+            return find_prj_root(os.path.dirname(path))
+        else:
+            raise Exception('Can not find the PRJ_ROOT directory')
+
+PRJ_ROOT=find_prj_root()
+BIOINFO_ROOT = os.getenv('BIOINFO_ROOT')
+SNAKE_ROOT=os.getenv('SNAKE_ROOT')
+
+BIN_DIR=PRJ_ROOT+'/local/bin'
+SRC_DIR=PRJ_ROOT+'/local/src'
+
+REF_DIR=PRJ_ROOT+'/dataset/celescope_references'
+
+CORES=4
+
+FQ_DIR=PRJ_ROOT+'/local/share/data/singleron_jan_23/EN00001238_hdd1/'
+SAMPLES={"CRC0327_A_CETUX": "CRC0327LMX_CTX1w_1_sg",
+         "CRC0327_A_NT": "CRC0327LMX_NT1w_1_sg", 
+         "CRC0327_B_CETUX": "CRC0327LMX_CTX1w_2_sg", 
+         "CRC0327_B_NT": "CRC0327LMX_NT1w_2_sg"}
+
+NCELLS=20000

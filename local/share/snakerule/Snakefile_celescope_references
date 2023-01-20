@@ -1,29 +1,25 @@
-rule all: 
-    input: "Homo_sapiens.GRCh38.92.filtered.gtf"
+include: './conf.sk'
 
-# gnegnegne version
-#output: fasta='Homo_sapiens.{version}.dna.primary_assembly.fa.gz', 
 rule download:
-    output: gtf='Homo_sapiens.{version}.{gversion}.gtf.gz'
+    output: gtf=SPECIE1+'.{version}.{gversion}.gtf.gz'
+    params: specie1=SPECIE1, specie2=SPECIE2
     shell: 
        """
-            wget ftp://ftp.ensembl.org/pub/release-{wildcards.gversion}/fasta/homo_sapiens/dna/Homo_sapiens.{wildcards.version}.dna.primary_assembly.fa.gz
-            wget ftp://ftp.ensembl.org/pub/release-{wildcards.gversion}/gtf/homo_sapiens/Homo_sapiens.{wildcards.version}.{wildcards.gversion}.gtf.gz
+            wget ftp://ftp.ensembl.org/pub/release-{wildcards.gversion}/fasta/{params.specie2}/dna/{params.specie1}.{wildcards.version}.dna.primary_assembly.fa.gz
+            wget ftp://ftp.ensembl.org/pub/release-{wildcards.gversion}/gtf/{params.specie2}/{params.specie1}.{wildcards.version}.{wildcards.gversion}.gtf.gz
        """
 
-# VERSION=GRCh38
-# GVERSION=99
 rule build_ref:
-    input: fasta='Homo_sapiens.{version}.dna.primary_assembly.fa.gz', gtf='Homo_sapiens.{version}.{gversion}.gtf.gz'
-    output: gtf='Homo_sapiens.{version}.{gversion}.filtered.gtf'
-    params: ref_name='Homo_sapiens_ensembl_{gversion}_filtered'
+    input:  gtf=SPECIE1+'.{version}.{gversion}.gtf.gz'
+    output: gtf=SPECIE1+'.{version}.{gversion}.filtered.gtf'
+    params: ref_name=SPECIE1+'_ensembl_{gversion}_filtered', fasta=SPECIE1+'.{version}.dna.primary_assembly.fa.gz'
     shell: 
         """
             GTF=$(echo {input.gtf} | sed 's/\.gz//1')
-            REF=$(echo {input.fasta} | sed 's/\.gz//1')
+            REF=$(echo {params.fasta} | sed 's/\.gz//1')
             gunzip -c {input.gtf} > $GTF
-            gunzip -c {input.fasta} > $REF
-            echo "||||  DID YOU ACTIVATE CONDA? conda activate celescope; If not ctrl-c now!"
+            gunzip -c {params.fasta} > $REF
+            echo "||||  DID YOU ACTIVATE CONDA? conda activate celescope2; If not ctrl-c now!"
             celescope utils mkgtf $GTF {output.gtf}
             celescope rna mkref \
             --genome_name {params.ref_name} \

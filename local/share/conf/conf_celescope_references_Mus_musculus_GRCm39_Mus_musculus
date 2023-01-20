@@ -1,0 +1,7 @@
+SPECIE1='Mus_musculus'
+SPECIE2='mus_musculus'
+VERSION='GRCm39'
+RELEASE='108'
+
+rule all: 
+    input: SPECIE1+'.'+VERSION+'.'+RELEASE+'.filtered.gtf'

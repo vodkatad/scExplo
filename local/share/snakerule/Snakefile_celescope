@@ -4,8 +4,8 @@ rule create_map:
     output: 'mapfile.tsv'
     params: fdir=FQ_DIR, ncells=NCELLS
     run:
-        for k in SAMPLES.keys():
-            with open(output[0], 'w') as o:
+        with open(output[0], 'w') as o:
+            for k in SAMPLES.keys():
                 o.write(k + "\t" + params.fdir + "\t" + SAMPLES[k] + "\t" + str(params.ncells) +"\n")
 
 rule create_run:
@@ -28,4 +28,16 @@ rule cele_sample:
    shell: "sh {input}"
 
 rule all_cele_samples:
-    input: expand("shell/{sample}.sh", sample=SAMPLES.values())
+    input: expand("{sample}.done", sample=SAMPLES.values())
+
+rule clean:
+    shell:
+        """
+         rm -f */*/*_count_detail.txt
+         rm -f  */*/*fq
+         rm -f */*/*counts.txt
+         rm -f */*/*bam
+         rm -rf */06.analysis
+         rm -rf */03.STAR
+         rm -rf */03.featureCounts
+        """
