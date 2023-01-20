@@ -4,8 +4,8 @@ rule create_map:
     output: 'mapfile.tsv'
     params: fdir=FQ_DIR, ncells=NCELLS
     run:
-        for k in SAMPLES.keys():
-            with open(output[0], 'w') as o:
+        with open(output[0], 'w') as o:
+            for k in SAMPLES.keys():
                 o.write(k + "\t" + params.fdir + "\t" + SAMPLES[k] + "\t" + str(params.ncells) +"\n")
 
 rule create_run:
