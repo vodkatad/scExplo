@@ -117,6 +117,9 @@ rule all_varres:
 	
 ruleorder: step_04_seurat_varres_cyclecorr > step_04_seuratboot_varres > step_04_seuratboot
 
+rule all_4:
+    input: expand("{sample}_step04bis", sample=SAMPLES)
+
 # this rewrites the ccycle done in step03 using saver imputed data vs only filtered_annotated
 rule step_04_seuratcycle:
     input: all_saver_filtered="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"

@@ -15,7 +15,7 @@ SNAKE_ROOT=os.getenv('SNAKE_ROOT')
 BIN_DIR=PRJ_ROOT+'/local/bin'
 SRC_DIR=PRJ_ROOT+'/local/src'
 
-SAMPLES=["CRC0322LMO_NT72h_1_singleron0722","CRC0322LMO_CTX72h_1_singleron0722","CRC0322LMX_CTX1w_1_singleron0722","CRC0322LMX_NT1w_1_singleron0722", "CRC0322LMO_NT72h_1_signleron0722_us"]
+SAMPLES=["CRC0322LMO_NT72h_1_singleron0722","CRC0322LMO_CTX72h_1_singleron0722","CRC0322LMX_CTX1w_1_singleron0722","CRC0322LMX_NT1w_1_singleron0722"]#, "CRC0322LMO_NT72h_1_signleron0722_us"]
 NSAMPLES=len(SAMPLES)
 
 BASE_DIR_RAF='/mnt/cold1/calogero/reanalysis_on_AIsc/paneth_only/all/log2cpmfisher/'
