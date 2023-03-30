@@ -1,0 +1,171 @@
+include : "conf.sk"
+import pandas as pd
+import numpy as np
+
+def find_log2(wildcards):
+    return PRJ_ROOT+'/dataset/'+DIC_FOLDER[wildcards.sample]+'/{sample}_dir/filtered_annotated_saver_ribomito_{sample}_log2_pc1_cpm.csv'
+
+def find_choord(wildcards):
+    return PRJ_ROOT+'/dataset/'+DIC_FOLDER[wildcards.sample]+'/{sample}_seurat_clusters_5.csv'
+
+rule calculate_umap:
+    input: data=find_log2
+    output:plot='umap/{sample}/{sample}_gmm_full_umap.pdf'
+    script: SRC_DIR+'/UMAP.R'
+
+rule calculate_kmeans_2_cinque:
+    input:data=find_log2
+    output:out='kmeans/{sample}/{sample}_kmeans_2comp_cinque.csv'
+    script:SRC_DIR+'/kmeans_2cinque.R'
+
+rule all_kmeans_2_cinque:
+    input: expand("kmeans/{sample}/{sample}_kmeans_2comp_cinque.csv", sample=SAMPLES,)  
+
+rule calculate_kmeans_2:
+    input:data=find_log2, tsne=find_choord 
+    output:out='kmeans/{sample}/{sample}_kmeans_2comp.csv',tsne_out='kmeans/{sample}/{sample}_kmeans2_tsne.pdf'
+    script:SRC_DIR+'/kmeans_2.R'
+
+rule all_kmeans_2:
+    input: expand("kmeans/{sample}/{sample}_kmeans_2comp.csv", sample=SAMPLES,)
+#select gene in tsne_wnt.R
+rule calculate_tsne_WNT:
+    input:data=find_log2, tsne=find_choord
+    output:tsne_out='kmeans/{sample}/{sample}_tsne.pdf'
+    script:SRC_DIR+'/tsne_wnt.R'
+
+rule all_tsne_cinque_wnt:
+    input: expand("kmeans/{sample}/{sample}_tsne.pdf", sample=SAMPLES) 
+
+rule find_marker_wilcoxon:
+    conda:"sofia_env.yaml" # ideally also yaml should be put in local/share/envs or similar
+    #container: 'docker://egrassi/godot_scanpy:latest'
+    input: data=find_log2, cluster='kmeans/{sample}/{sample}_kmeans_2comp.csv'
+    output:marker_paneth='kmeans/{sample}/{sample}_Paneth_markers.tsv',plot='figures/rank_genes_groups_isPaneth_{sample}.pdf',marker_nonpaneth='kmeans/{sample}/{sample}_nPaneth_markers.tsv'
+    script: 
+        SRC_DIR+'/find_markers.py'
+
+
+def find_cluster_2samples(wildcards):
+    lista=[PRJ_ROOT+'/dataset/KMeans/kmeans/{sample1}/{sample1}_kmeans_2comp.csv',
+            PRJ_ROOT+'/dataset/KMeans/kmeans/{sample2}/{sample2}_kmeans_2comp.csv']
+    return lista
+def find_cc_2samples(wildcards):
+    lista=[PRJ_ROOT+'/dataset/'+DIC_FOLDER[wildcards.sample1]+'/{sample1}_dir'+'/filtered_annotated_saver_ribomito_{sample1}_cellCycle.csv',
+            PRJ_ROOT+'/dataset/'+DIC_FOLDER[wildcards.sample2]+'/{sample2}_dir'+'/filtered_annotated_saver_ribomito_{sample2}_cellCycle.csv']
+    return lista  
+rule plot_percentage_paneth_cc_2samples:
+    input: clust=find_cluster_2samples,cc=find_cc_2samples
+    output:'kmeans/{sample1}_vs_{sample2}_plot_percentage_cc.pdf'
+    script:SRC_DIR+'/plot_percentage_paneth_cc.R'
+def find_cluster_3samples(wildcards):
+    lista=[PRJ_ROOT+'/dataset/KMeans/kmeans/{sample1}/{sample1}_kmeans_2comp.csv',
+            PRJ_ROOT+'/dataset/KMeans/kmeans/{sample2}/{sample2}_kmeans_2comp.csv',
+            PRJ_ROOT+'/dataset/KMeans/kmeans/{sample3}/{sample3}_kmeans_2comp.csv']
+    return lista
+
+def find_cc_3samples(wildcards):
+    lista=[PRJ_ROOT+'/dataset/'+DIC_FOLDER[wildcards.sample1]+'/{sample1}_dir'+'/filtered_annotated_saver_ribomito_{sample1}_cellCycle.csv',
+            PRJ_ROOT+'/dataset/'+DIC_FOLDER[wildcards.sample2]+'/{sample2}_dir'+'/filtered_annotated_saver_ribomito_{sample2}_cellCycle.csv',
+            PRJ_ROOT+'/dataset/'+DIC_FOLDER[wildcards.sample3]+'/{sample3}_dir'+'/filtered_annotated_saver_ribomito_{sample3}_cellCycle.csv']
+    return lista  
+rule plot_percentage_paneth_cc_3samples:
+    input: clust=find_cluster_3samples,cc=find_cc_3samples
+    output:'kmeans/{sample1}_vs_{sample2}_vs_{sample3}_plot_percentage_cc.pdf'
+    script:SRC_DIR+'/plot_percentage_paneth_cc_3samples.R'
+
+rule gsea_analysis_plot:
+    input: gene_res_freq = "kmeans/{sample}/{sample}_{cluster}_markers.tsv"
+    output: GSEA_r = "gsea/GSEA_results.{msign}.{sample}.{cluster}.tsv", GSEA_ridgeplot = "gsea/gsea_ridgeplot_{msign}.{sample}.{cluster}.pdf"
+    script: SRC_DIR+'/GSEA_analysis.R'
+
+rule all_gsea_plot:
+    input:expand("gsea/GSEA_results.{msign}.{sample}.{cluster}.tsv", sample=SAMPLES,msign=MSIGN,cluster=CLUSTER)
+
+def find_gsea(wildcards):
+    sign=wildcards.msign
+    list_gsea_files=[]
+    for file in os.listdir(os.path.join(PRJ_ROOT,'dataset/KMeans/gsea')):
+        if sign in file and '.Paneth' in file and '.tsv' in file:
+            list_gsea_files.append(os.path.join(PRJ_ROOT,'dataset/KMeans/gsea',file))
+    return list_gsea_files
+#Rule to produce heatmap of significative signature separate for each gsea genes set 
+rule gsea_summary_files:
+    input:list_gsea=find_gsea
+    output:out_data='gsea_summary/data_heatmap_{msign}_th_{intersection}.csv',out_annot='gsea_summary/annot_heatmap_{msign}_th_{intersection}.csv'
+    run:
+        num_min_samples=int(wildcards.intersection)
+        data_upset=pd.DataFrame(columns=['signature','sample'],dtype=object)
+        sample_names=[]
+        for file in input.list_gsea:
+            results=pd.read_csv(file,sep='\t',header=0,index_col=0)
+            best=results[(results['p.adjust']<0.05)]
+            best['ID']=np.where(best['enrichmentScore']>0,best['ID']+'_POS',best['ID']+'_NEG')
+            sample_name=file.split(PRJ_ROOT)[1].split('/')[4].split('.')[2]
+            sample_names.append(sample_name)
+            sample_cluster=[sample_name]*len(best)
+            marker=best['ID'].tolist()
+            data_sample_cluster=pd.DataFrame(marker,columns=['signature'])
+            data_sample_cluster['sample']=sample_cluster
+            data_upset=pd.concat([data_upset,data_sample_cluster],axis=0, ignore_index=True)
+        print(data_upset['sample'].unique())
+        sopravvissuti=[]
+        for signature in data_upset['signature'].unique():
+            if len(data_upset.loc[data_upset['signature']==signature])>(num_min_samples):
+                sopravvissuti.append(signature)
+        print(len(sopravvissuti))
+        sample_names.append('signature')
+        data_heat=pd.DataFrame(columns=sample_names,dtype=object)
+        sign_heat=pd.DataFrame(columns=sample_names,dtype=object)
+        for sign in sopravvissuti:
+            riga={}
+            riga_annot={}
+            riga['signature']=sign
+            for sample in input.list_gsea:
+                
+                sample_name=sample.split(PRJ_ROOT)[1].split('/')[4].split('.')[2]
+                
+                data=pd.read_csv(sample,header=0,sep='\t')
+                data['ID']=np.where(data['enrichmentScore']>0,data['ID']+'_POS',data['ID']+'_NEG')
+
+                try:
+                    en=data[data['ID']==sign]['NES'][0]
+                    s=data[data['ID']==sign]['p.adjust'][0]
+
+                except:
+                    en=np.NAN
+                    s=1
+                
+                
+                riga[sample_name]=en
+                riga_annot[sample_name]=s
+            data_heat=data_heat.append(riga,ignore_index=True)
+            sign_heat=sign_heat.append(riga_annot,ignore_index=True)
+        
+        data_heat.set_index('signature',inplace=True)
+        sign_heat.set_index('signature',inplace=True)
+
+        sign_heat=pd.DataFrame(np.where(sign_heat<0.05,'-','°'),index=data_heat.index,columns=data_heat.columns)
+
+        data_heat.to_csv(output.out_data)
+        sign_heat.to_csv(output.out_annot)
+rule plot_gsea_summary_heatmap:
+    input:data='gsea_summary/data_heatmap_{msign}_th_{intersection}.csv',annot='gsea_summary/annot_heatmap_{msign}_th_{intersection}.csv'
+    output:plot='gsea_summary/heatmap_{msign}_th_{intersection}.pdf'
+    script: SRC_DIR+'/gsea_heatmap.R'
+
+rule all_gsea_summary:
+    input:expand("gsea_summary/heatmap_{msign}_th_{intersection}.pdf",msign=MSIGN,intersection=INTERSECTION)
+
+rule find_cliques:
+    input: data=find_log2,label='kmeans/{sample}/{sample}_kmeans_2comp.csv'
+    output: plot='cliques_{corr}/{sample}/{sample}_cliques.pdf',universe='cliques_{corr}/{sample}/{sample}_universe.tsv',clique='cliques_{corr}/{sample}/{sample}_cliques.tsv'
+    script: SRC_DIR+'/cliques.R'
+rule find_all_cliques:
+    input:expand("cliques_{corr}/{sample}/{sample}_cliques.pdf",sample=SAMPLES_CLIQUE,corr=0.75)
+
+rule go_cliques:
+    input:universe='cliques_{corr}/{sample}/{sample}_universe.tsv',clique='cliques_{corr}/{sample}/{sample}_cliques.tsv'
+    output:out_dir=directory('{sample}_corr{corr}_GO_results'),go_file='{sample}_corr{corr}_GO_results.tsv'
+    script: SRC_DIR+'/GO_analysis.R'
+

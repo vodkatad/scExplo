@@ -1,0 +1,73 @@
+include : "conf.sk"
+import pandas as pd
+
+
+def find_log2(wildcards):
+    return PRJ_ROOT+'/dataset/'+DIC_FOLDER[wildcards.sample]+'/{sample}_dir/filtered_annotated_saver_ribomito_{sample}_log2_pc1_cpm.csv'
+
+
+rule calculate_posterior_and_silh_full:
+    input:find_log2
+    output:out='posterior/{sample}/{sample}_posterior_full.csv',sil='silh/{sample}/{sample}_silh_full.csv.csv',plot='posterior/{sample}/{sample}_gmm_full_summary.csv.pdf'
+    script:SRC_DIR+'/GMM_full.R'
+
+rule all_posterior_full:
+    input: expand("posterior/{sample}/{sample}_posterior_full.csv", sample=SAMPLES)
+
+rule calculate_posterior_and_silh_full_cinque:
+    input:find_log2
+    output:out='posterior_cinque/{sample}/{sample}_posterior_full.csv',sil='silh_cinque/{sample}/{sample}_silh_full.csv',plot='posterior/{sample}/{sample}_gmm_full_summary.pdf'
+    script:SRC_DIR+'/GMM_full_cinque.R'
+
+rule all_posterior_full_cinque:
+    input: expand("posterior_cinque/{sample}/{sample}_posterior_full.csv", sample=SAMPLES)
+
+def find_choord(wildcards):
+    return PRJ_ROOT+'/dataset/'+DIC_FOLDER[wildcards.sample]+'/{sample}_seurat_clusters_5.csv'
+rule tsne_plot_full:
+    input: tsne=find_choord,sil='silh/{sample}/{sample}_silh_full.csv'
+    output: res='silh/{sample}/{sample}_silh_full_tsne.pdf'
+    script:SRC_DIR+'/tsne.R'
+rule all_tsne_full:
+    input: expand("silh/{sample}/{sample}_silh_full_tsne.pdf", sample=SAMPLES)
+
+rule tsne_plot_full_cinque:
+    input: tsne=find_choord,sil='silh_cinque/{sample}/{sample}_silh_full.csv'
+    output: res='silh_cinque/{sample}/{sample}_silh_full_tsne.pdf'
+    script:SRC_DIR+'/tsne.R'
+rule all_tsne_full_cinque:
+    input: expand("silh_cinque/{sample}/{sample}_silh_full_tsne.pdf", sample=SAMPLES)
+rule calculate_umap:
+    input: data=find_log2
+    output:plot='umap/{sample}/{sample}_gmm_full_umap.pdf'
+    script: SRC_DIR+'/UMAP.R'
+rule calculate_posterior_and_silh_full_3comp:
+    input:data=find_log2, tsne=find_choord 
+    output:out='posterior/{sample}/{sample}_posterior_full_3comp.csv',sil='silh/{sample}/{sample}_silh_full_3comp.csv',plot='posterior/{sample}/{sample}_gmm_full_3comp_summary.pdf',tsne_out='silh/{sample}/{sample}_silh_full_3comp_tsne.pdf'
+    script:SRC_DIR+'/GMM_full_3comp.R'
+rule all_full_3comp:
+    input: expand("silh/{sample}/{sample}_silh_full_3comp_tsne.pdf", sample=SAMPLES)
+
+rule calculate_kmeans_3:
+    input:data=find_log2, tsne=find_choord 
+    output:out='kmeans/{sample}/{sample}_kmeans_3comp.csv',tsne_out='kmeans/{sample}/{sample}_kmeans3_tsne.pdf'
+    script:SRC_DIR+'/kmeans_3.R'
+rule all_kmeans_3:
+    input: expand("kmeans/{sample}/{sample}_kmeans_3comp.csv", sample=SAMPLES)   
+
+rule calculate_kmeans_2:
+    input:data=find_log2, tsne=find_choord 
+    output:out='kmeans/{sample}/{sample}_kmeans_2comp.csv',tsne_out='kmeans/{sample}/{sample}_kmeans2_tsne.pdf'
+    script:SRC_DIR+'/kmeans_2.R'
+
+rule all_kmeans_2:
+    input: expand("kmeans/{sample}/{sample}_kmeans_2comp.csv", sample=SAMPLES)  
+
+rule calculate_tsne_cinque_WNT:
+    input:data=find_log2, tsne=find_choord
+    output:tsne_out='kmeans/{sample}/{sample}_WNT_cinque_tsne.pdf'
+    script:SRC_DIR+'/tsne_wnt.R'
+
+rule all_tsne_cinque_wnt:
+    input: expand("kmeans/{sample}/{sample}_WNT_cinque_tsne.pdf", sample=SAMPLES) 
+

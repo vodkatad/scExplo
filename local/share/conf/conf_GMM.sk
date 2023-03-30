@@ -1,0 +1,73 @@
+import os
+import sys
+def find_prj_root(path=os.getcwd()):
+    if os.path.isfile(os.path.join(path,'.PRJ_ROOT')):
+        return path
+    else:
+        if path:
+            return find_prj_root(os.path.dirname(path))
+        else:
+            raise Exception('Can not find the PRJ_ROOT directory')
+
+PRJ_ROOT=find_prj_root()
+
+BIOINFO_ROOT = os.getenv('BIOINFO_ROOT')
+SNAKE_ROOT=os.getenv('SNAKE_ROOT')
+
+BIN_DIR=PRJ_ROOT+'/local/bin'
+SRC_DIR=PRJ_ROOT+'/local/src'
+sys.path.append(SRC_DIR)
+DIC_FOLDER={
+ 'CRC0322_cetux_1':'rCASC_Ire_cetuxi',  
+ 'CRC0322_NT_1_3000':'rCASC_Ire_cetuxi',
+ 'CRC0327_cetux_1_4000':'rCASC_Ire_cetuxi',
+ 'CRC0327_cetux_2':'rCASC_Ire_cetuxi',
+ 'CRC0327_NT_1':'rCASC_Ire_cetuxi',
+ 'CRC0327_NT_2':'rCASC_Ire_cetuxi',
+ 'CRC1502_cetux_1':'rCASC_Ire_cetuxi',
+ 'CRC1502_NT_1':'rCASC_Ire_cetuxi',
+ 'CRC0069_CTX72h_1':'rCASC_longer',
+ 'CRC0069_NT72h_1':'rCASC_longer',
+ 'CRC0542_CTX72h_1':'rCASC_longer',
+ 'CRC0542_NT72h_1':'rCASC_longer',
+ 'CRC0322_3d_CTX':'rCASC_timecourse',
+ 'CRC0322_8d_NOEGF':'rCASC_timecourse',
+ 'CRC0322_8d_EGF':'rCASC_timecourse',
+ 'CRC0322_12d_EGF':'rCASC_timecourse',
+ 'CRC0322_12d_NOEGF':'rCASC_timecourse',
+ 'CRC0322_4d_EGF':'rCASC_timecourse',
+ 'CRC0322_4d_NOEGF':'rCASC_timecourse',
+ 'CRC0322_7d_CTX':'rCASC_timecourse',
+ 'CRC0327_NT_t1':'rCASC_IRCC_tecrep',
+ 'CRC0327_NT_t2':'rCASC_IRCC_tecrep',
+
+ }
+
+SAMPLES=['CRC0327_cetux_2',
+'CRC0322_3d_CTX',
+'CRC0322_NT_1_3000',
+'CRC0327_NT_1',
+'CRC0322_cetux_1',
+'CRC0542_CTX72h_1',
+'CRC0069_NT72h_1',
+'CRC0327_cetux_1_4000',
+'CRC0322_7d_CTX',
+'CRC1502_cetux_1',
+'CRC1502_NT_1',
+'CRC0069_CTX72h_1',
+'CRC0542_NT72h_1',
+'CRC0322_8d_NOEGF',
+'CRC0322_8d_EGF',
+'CRC0322_12d_EGF',
+'CRC0322_12d_NOEGF',
+'CRC0322_4d_NOEGF'
+] 
+#'CRC0327_NT_t1',
+#'CRC0327_NT_t2'
+#'CRC0327_NT_2',
+
+SAMPLES_MALATI=['CRC0327_cetux_1_4000',
+'CRC0322_7d_CTX',
+'CRC1502_cetux_1',
+'CRC1502_NT_1',
+]

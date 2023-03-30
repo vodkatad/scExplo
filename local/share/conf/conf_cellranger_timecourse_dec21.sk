@@ -48,3 +48,6 @@ SEURAT_PARAMS=PRJ_ROOT+"local/share/data/seurat_params.txt"
 SEURAT_MARKERS=SRC_DIR+"seurat_markers_pca.R"
 SEURAT_VIOLIN=SRC_DIR+"seurat_violin.R"
 VIOLIN_GENES='ATOH1,GFI1,SOX9,XBP1,DEFA5,DEFA6,LYZ,SPINK4,DLL1,DLL4'
+
+RCASC_DIR=PRJ_ROOT+'/dataset/rCASC_timecourse' 
+
