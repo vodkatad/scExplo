@@ -1,0 +1,17 @@
+DATA_DIR="../../local/share/data/"
+SRC_DIR="../../local/src/"
+
+rule go:
+	input: clique=DATA_DIR+'Alberto_{sample}.tsv', universe="{sample}_universe.tsv"
+	output:out_dir=directory('{sample}_GO_results'),go_file='{sample}_GO_results.tsv'
+    	script: SRC_DIR+'/GO_analysis_nor.R'
+
+
+rule univ:
+	input: "../rCASC_Ire_cetuxi/{sample}_dir/filtered_annotated_saver_ribomito_{sample}_log2_pc1_cpm.csv"
+	output: "{sample}_universe.tsv"
+	shell: """
+		   echo gene > {output}
+		   sed 1d {input} | tr "," "\\t" | cut -f 1 | tr -d '"' | tr ":" "\\t" | cut -f 2 | sort | uniq >> {output}
+	       """
+
