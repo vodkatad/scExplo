@@ -40,7 +40,7 @@ duplicate<-!duplicated(colnames(dato_t))
 dato_t<-dato_t[,duplicate]
 
 variance<-colVars(as.matrix(dato_t[sapply(dato_t, is.numeric)]))
-keep<-names(variance[variance>0.1])
+keep<-names(variance[variance>0.2])
 dato_<-dato_t[,c(keep)]
 dato_<- merge(dato_, label, by = 'row.names')
 dato_<-as.data.frame(sapply(dato_, as.numeric))
@@ -49,9 +49,11 @@ a<-cor(dato_, method = c("pearson"))
 
 #label clique
 dato_1<-a[,c('postSilh')]
-dato_1<-dato_1[abs(dato_1)>corr_th]
+dato_1<-dato_1[dato_1>corr_th]
 dato_1<-na.omit(dato_1)
+
 adj<-a[c(names(dato_1)),c(names(dato_1))]
+print(colnames(adj))
 adj[adj>=corr_th]<-1
 adj[adj<corr_th]<-0
 graph<-graph_from_adjacency_matrix(adjmatrix = adj)

@@ -98,17 +98,17 @@ rule gsea_summary_files:
         data_upset=pd.DataFrame(columns=['signature','sample'],dtype=object)
         sample_names=[]
         for file in input.list_gsea:
-            results=pd.read_csv(file,sep='\t',header=0,index_col=0)
-            best=results[(results['p.adjust']<0.05)]
-            best['ID']=np.where(best['enrichmentScore']>0,best['ID']+'_POS',best['ID']+'_NEG')
             sample_name=file.split(PRJ_ROOT)[1].split('/')[4].split('.')[2]
-            sample_names.append(sample_name)
-            sample_cluster=[sample_name]*len(best)
-            marker=best['ID'].tolist()
-            data_sample_cluster=pd.DataFrame(marker,columns=['signature'])
-            data_sample_cluster['sample']=sample_cluster
-            data_upset=pd.concat([data_upset,data_sample_cluster],axis=0, ignore_index=True)
-        print(data_upset['sample'].unique())
+            if sample_name in SAMPLES_NO_TIMECOURSE:
+                results=pd.read_csv(file,sep='\t',header=0,index_col=0)
+                best=results[(results['p.adjust']<0.05)]
+                best['ID']=np.where(best['enrichmentScore']>0,best['ID']+'_POS',best['ID']+'_NEG')
+                sample_names.append(sample_name)
+                sample_cluster=[sample_name]*len(best)
+                marker=best['ID'].tolist()
+                data_sample_cluster=pd.DataFrame(marker,columns=['signature'])
+                data_sample_cluster['sample']=sample_cluster
+                data_upset=pd.concat([data_upset,data_sample_cluster],axis=0, ignore_index=True)
         sopravvissuti=[]
         for signature in data_upset['signature'].unique():
             if len(data_upset.loc[data_upset['signature']==signature])>(num_min_samples):
@@ -122,23 +122,23 @@ rule gsea_summary_files:
             riga_annot={}
             riga['signature']=sign
             for sample in input.list_gsea:
-                
                 sample_name=sample.split(PRJ_ROOT)[1].split('/')[4].split('.')[2]
+                if sample_name in SAMPLES_NO_TIMECOURSE:
                 
-                data=pd.read_csv(sample,header=0,sep='\t')
-                data['ID']=np.where(data['enrichmentScore']>0,data['ID']+'_POS',data['ID']+'_NEG')
+                    data=pd.read_csv(sample,header=0,sep='\t')
+                    data['ID']=np.where(data['enrichmentScore']>0,data['ID']+'_POS',data['ID']+'_NEG')
 
-                try:
-                    en=data[data['ID']==sign]['NES'][0]
-                    s=data[data['ID']==sign]['p.adjust'][0]
+                    try:
+                        en=data[data['ID']==sign]['NES'][0]
+                        s=data[data['ID']==sign]['p.adjust'][0]
 
-                except:
-                    en=np.NAN
-                    s=1
-                
-                
-                riga[sample_name]=en
-                riga_annot[sample_name]=s
+                    except:
+                        en=np.NAN
+                        s=1
+                    
+                    
+                    riga[sample_name]=en
+                    riga_annot[sample_name]=s
             data_heat=data_heat.append(riga,ignore_index=True)
             sign_heat=sign_heat.append(riga_annot,ignore_index=True)
         
@@ -162,10 +162,56 @@ rule find_cliques:
     output: plot='cliques_{corr}/{sample}/{sample}_cliques.pdf',universe='cliques_{corr}/{sample}/{sample}_universe.tsv',clique='cliques_{corr}/{sample}/{sample}_cliques.tsv'
     script: SRC_DIR+'/cliques.R'
 rule find_all_cliques:
-    input:expand("cliques_{corr}/{sample}/{sample}_cliques.pdf",sample=SAMPLES_CLIQUE,corr=0.75)
+    input:expand("cliques_{corr}/{sample}/{sample}_cliques.pdf",sample=SAMPLES_CLIQUE,corr=0.7)
 
 rule go_cliques:
     input:universe='cliques_{corr}/{sample}/{sample}_universe.tsv',clique='cliques_{corr}/{sample}/{sample}_cliques.tsv'
     output:out_dir=directory('{sample}_corr{corr}_GO_results'),go_file='{sample}_corr{corr}_GO_results.tsv'
     script: SRC_DIR+'/GO_analysis.R'
+rule all_go_cliques:
+    input:expand("{sample}_corr{corr}_GO_results.tsv", sample=SAMPLES_CLIQUE,corr=0.7)
+
+
+def find_all_log2():
+    samples_dic={}
+    for sample in SAMPLES_NO_TIMECOURSE:
+        samples_dic[sample]=[PRJ_ROOT+'/dataset/'+DIC_FOLDER[sample]+'/'+sample+'_dir/filtered_annotated_saver_ribomito_'+sample+'_log2_pc1_cpm.csv']
+        samples_dic[sample].append(PRJ_ROOT+'/dataset/KMeans/kmeans/'+sample+'/'+sample+'_kmeans_2comp.csv')
+    return samples_dic.values()
+
+rule calculate_lfc_all:
+    input:find_all_log2()
+    output:out='kmeans/kmeans_centorids/all_samples_centroids_LFC.csv'
+    run:
+        def gene_name(stringa):
+            return stringa.split(':')[1]
+        cinque=['ATOH1','DLL1','GFI1','DEFA5','DEFA6']
+        df_centroids=pd.DataFrame(columns=['ATOH1','DLL1','GFI1','DEFA5','DEFA6','sample'],dtype=object)
+        for i in range(0,len(input),2):
+            riga={}
+            data=pd.read_csv(input[i],header=0,index_col=0).T
+            data.columns=data.columns.to_series().apply(gene_name)
+            data=data.loc[:,cinque]
+            cluster=pd.read_csv(input[i+1],header=0,index_col=0).loc[:,'isPaneth']
+            data_=pd.merge(data,cluster,right_index=True,left_index=True)
+            sample_name=input[i].split('ribomito_')[1].split('_log2')[0]
+            print('=======================================')
+            print(sample_name)
+            print(data_.head())
+                    
+            riga_paneth=data_[data_['isPaneth']=='Paneth'].mean(axis=0)
+            riga_nPaneth=data_[data_['isPaneth']=='nPaneth'].mean(axis=0)
+            riga=riga_paneth-riga_nPaneth   
+            riga['sample']= sample_name
+            print(riga)
+            df_centroids=df_centroids.append(riga,ignore_index=True)
+        df_centroids.to_csv(output.out)
+
+#if {sample}_seurat_clusters_5.csv is not available ==> compute tsne choorde and store it with the same name but extra_rcasc
+rule calculate_tsne_chord:
+    input: log=find_log2
+    output: data_out=PRJ_ROOT+'/dataset/singleron_jan_23_CRC0327_rCASC/{sample}_seurat_clusters_5.csv'
+    script: SRC_DIR+'/generate_choords.R'
+
+
 

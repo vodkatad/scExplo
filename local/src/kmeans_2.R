@@ -85,13 +85,13 @@ ggplot(data_merged, aes(x=xChoord, y=yChoord,color=isPaneth)) + geom_point() +la
   title = "K-means2_results")
 #ggplot(data_merged, aes(x=xChoord, y=yChoord,color=preSilh)) + geom_point()
 
-p <- ggplot(data_merged, aes(x=preSilh, y=silhouetteValue)) + 
+p <- ggplot(data_merged, aes(x=preSilh, y=sil_width)) + 
   geom_violin()+labs(
   title = "2_comp_silhouette")
 p<-p + geom_jitter(shape=16, position=position_jitter(0.2))
 p + stat_summary(fun=mean, geom="point", size=8, color="red")+labs(x = "cluster")
 
-d <- ggplot(data_merged, aes(x=isPaneth, y=silhouetteValue)) + 
+d <- ggplot(data_merged, aes(x=isPaneth, y=sil_width)) + 
   geom_violin()+labs(
   title = "2_comp_after silhouette filtering")
 d<-d + geom_jitter(shape=16, position=position_jitter(0.2))
