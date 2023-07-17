@@ -144,3 +144,22 @@ rule gsva:
             {params.tool} -s {input.sign} -o {output} -e {input.expr} -m {wildcards.method}
         """
 
+DIR='../../local/share/data/Alberto_pops'
+rule makeSignRdsAlb:
+    input: DIR+"/genes_pop_{sample}.txt"
+    output: "genes_pop_{sample}.rds"
+    params: tool=BIN_DIR+'/getGseaSignatureFromList'
+    shell:
+        """
+            {params.tool} -g {input} -o {output} -n {wildcards.sample}
+        """
+
+
+rule makeSignCollRdsAlb:
+    input: "genes_pop_322_CTX_paneth.rds", "genes_pop_322_CTX_WNT.rds", "genes_pop_327_2_CTX_WNT.rds", "genes_pop_542_CTX_EE.rds"
+    output: "coll_genes_pop_Alberto.rds"
+    params: tool=BIN_DIR+'/getGseaCollection', allin=lambda wildcards, input: ','.join(input)
+    shell:
+        """
+            {params.tool} -i {params.allin} -o {output} 
+        """
