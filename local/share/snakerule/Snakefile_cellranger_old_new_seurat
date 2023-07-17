@@ -367,3 +367,19 @@ rule go_markers:
 
 rule paneth_markers:
     input: expand("{sample}_0.2.clusters_markers.tsv", sample=OSAMPLES)
+
+
+## raw counts csv
+rule all_csv_raw:
+    input: expand("{sample}_raw.csv", sample=SAMPLES[0:])
+
+
+rule tocsv_raw:
+    params: tool=CELLRANGER, out=lambda wildcards: samples_map[wildcards.sample]+".tsv"
+    input: "{sample}/outs/raw_feature_bc_matrix.h5"
+    output: "{sample}_raw.csv"
+    shell: 
+        """
+        {params.tool} mat2csv {input} {output}
+        cp {output} {params.out}
+        """

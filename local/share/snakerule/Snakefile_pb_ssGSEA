@@ -53,6 +53,11 @@ rule load_signatures:
             {params.tool} -g {input} -o {output} -c {wildcards.sign}
         """
 
+# rule load_signatures_prova:
+#     input: gtm = PRJ_ROOT+'/local/share/data/msigdb/{sign}.v2023.1.Hs.symbols.gmt'
+#     output: rds= '{sign}.rds'
+#     script: SRC_DIR+'/getGseaSignatures_new.R'
+
 
 #SC signatures from Nth' Simon
 rule fromTsvToCsv_quoted:
