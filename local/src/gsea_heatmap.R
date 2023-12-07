@@ -16,6 +16,8 @@ if(nrow(data)==0){
 pdf(snakemake@output[['plot']],width=12,height=12)
 rg <- max(abs(data),na.rm=TRUE);
 #pdf(snakemake@output[['plot']],width=12,height=12)
-pheatmap(data,fontsize_row = 6,fontsize_col = 10,display_numbers = sign,nas_col='black',cluster_rows=FALSE,cluster_cols=FALSE,breaks = seq(-rg, rg, length.out = 100))
+pheatmap(data,fontsize_col =10,nas_col='black',cluster_rows=,cluster_cols=TRUE,breaks = seq(-rg, rg, length.out = 100), show_rownames=TRUE,,display_numbers = sign)
+
+#fontsize_row = 10
 graphics.off()
 }

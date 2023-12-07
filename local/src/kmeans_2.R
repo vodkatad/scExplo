@@ -13,12 +13,21 @@ library(igraph)
 library(patchwork)
 input<-snakemake@input[['data']]
 tsne<-snakemake@input[['tsne']]
+
+
 kmeans_out<-snakemake@output[['out']]
 plot_out<-snakemake@output[['tsne_out']]
 dato<- read.table(file = input,row.names = 1,sep=",",header = TRUE)
 dato_t<- transpose(dato)
 rownames(dato_t) <- colnames(dato)
 colnames(dato_t)<-rownames(dato)
+
+#solo per stronzo LMX_1
+id_cell<-snakemake@input[['cell_id']] 
+dato_cell<-read.table(file = id_cell,row.names = 1,sep=",",header = TRUE)
+dato_t<-dato_t[row.names(dato_cell),]
+print(length(row.names(dato_t)))
+
 
 stringa_split<-function(stringa){
   res<-strsplit(stringa , split = ":")[[1]][2]

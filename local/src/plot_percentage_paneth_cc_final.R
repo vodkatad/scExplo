@@ -19,12 +19,13 @@ nt<-snakemake@input$clust[2]
 output_plot<-snakemake@output[[1]]
 cc_cetux<-snakemake@input$cc[1]
 cc_nt<-snakemake@input$cc[2]
-sample_name<-strsplit(cetux , split = "/")[[1]][10]
 
 dato_cet<- read.table(file = cetux,row.names = 1,sep=",",header = TRUE)
 dato_nt<- read.table(file = nt,row.names = 1,sep=",",header = TRUE)
+print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
 dato_cet$sample_name<- strsplit(cetux , split = "/")[[1]][10]
 dato_nt$sample_name<- strsplit(cetux , split = "/")[[1]][10]
+sample_name<-strsplit(cetux , split = "/")[[1]][10]
 
 
 #dato<-rbind(dato_cet,dato_nt)
@@ -44,31 +45,33 @@ dato_nt<-merge(dato_nt,dato_cc_nt,by='row.names')
 
 dato_cet.summary <- dato_cet %>% group_by(isPaneth,V2) %>% 
   summarise(total_count=n(),.groups = 'drop') %>% 
-  group_by(isPaneth) %>% 
-  mutate(percent =total_count/sum(total_count),
-         pos =1-( cumsum(percent) - 0.5*percent))
+  #group_by(V2) %>% 
+  mutate(percent =total_count/sum(total_count))
+         #pos =0.8-( cumsum(percent) - 0.5*percent))
+
+cet<-ggplot(dato_cet.summary,  aes(x=isPaneth, y=percent, fill=V2)) +
+  geom_bar(stat='identity',  width = .7, colour="black", lwd=0.1) +
+  geom_text(aes(label=ifelse(percent >= 0.02, paste0(sprintf("%.0f", percent*100),"%"),"")), position=position_stack(vjust=0.5),colour="black")  +
+  scale_y_continuous(labels = scales::percent,limits = c(0, 1))+
+  labs(y="", x="",fill="",title =' Cetuximab')
+cet
 
 dato_nt.summary <- dato_nt %>% group_by(isPaneth,V2) %>% 
   summarise(total_count=n(),.groups = 'drop') %>% 
-  group_by(isPaneth) %>% 
-  mutate(percent =total_count/sum(total_count),
-         pos =1-( cumsum(percent) - 0.5*percent))
+  #group_by(isPaneth) %>% 
+  mutate(percent =total_count/sum(total_count))
+         #pos =1-( cumsum(percent) - 0.5*percent))
 
                                                    
-cet<-ggplot(dato_cet.summary,  aes(x=isPaneth, y=percent, fill=V2)) +
-  geom_bar(stat='identity',  width = .7, colour="black", lwd=0.1) +
-  geom_text(aes(label=ifelse(percent >= 0.03, paste0(sprintf("%.0f", percent*100),"%"),""),
-                y=pos), colour="black")  +
-  scale_y_continuous(labels = scales::percent)+
-  labs(y="", x="",fill="",title = 'Cetuximab')
 
 nt<-ggplot(dato_nt.summary,  aes(x=isPaneth, y=percent, fill=V2)) +
   geom_bar(stat='identity',  width = .7, colour="black", lwd=0.1) +
-  geom_text(aes(label=ifelse(percent >= 0.03, paste0(sprintf("%.0f", percent*100),"%"),""),
-                y=pos), colour="black")  +
-  scale_y_continuous(labels = scales::percent)+
-  labs(y="", x="",fill="",title = 'Not Treated')
+  geom_text(aes(label=ifelse(percent >= 0.02, paste0(sprintf("%.0f", percent*100),"%"),"")), position=position_stack(vjust=0.5),colour="black")+
+  scale_y_continuous(labels = scales::percent,limits = c(0, 1))+
+  labs(y="", x="",fill="",title =' Not Treated')
+
 
 c<-ggarrange(nt,cet,ncol=2,common.legend = TRUE, legend = 'right')
 c<-annotate_figure(c, top = text_grob(sample_name, color = "red", face = "bold", size = 14))
+
 ggsave(file=output_plot, plot=c, width=10, height=8)
