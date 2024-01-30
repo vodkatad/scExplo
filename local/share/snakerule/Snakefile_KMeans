@@ -1,9 +1,15 @@
 include : "conf.sk"
+
 import pandas as pd
 import numpy as np
-
+from  scipy.stats import pearsonr
 def find_log2(wildcards):
     return PRJ_ROOT+'/dataset/'+DIC_FOLDER[wildcards.sample]+'/{sample}_dir/filtered_annotated_saver_ribomito_{sample}_log2_pc1_cpm.csv'
+    
+def gene_name(stringa):
+        return stringa.split(':')[1]
+def find_count(wildcards):
+    return PRJ_ROOT+'/dataset/'+DIC_FOLDER[wildcards.sample]+'/{sample}_dir/filtered_annotated_{sample}.tsv'
 
 def find_choord(wildcards):
     return PRJ_ROOT+'/dataset/'+DIC_FOLDER[wildcards.sample]+'/{sample}_seurat_clusters_5.csv'
@@ -12,7 +18,31 @@ rule calculate_umap:
     input: data=find_log2
     output:plot='umap/{sample}/{sample}_gmm_full_umap.pdf'
     script: SRC_DIR+'/UMAP.R'
+def find_post_saver(wildcards):
+    return PRJ_ROOT+'/dataset/'+DIC_FOLDER[wildcards.sample]+'/{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv'
+rule calculate_log2_cpm:
+    input:data=find_post_saver
+    output:out='kmeans/{sample}/filtered_annotated_saver_ribomito_{sample}_log2.csv'
+    run:
+        data=pd.read_csv(input.data,header=0,index_col=0)
+        print(data.head())
+        cpm=(data * 1e6) / data.sum()
+        # get CPM normalized dataframe
+        print('CPM normalize')
+        data=np.log2(cpm+1)
+        print(data.head())
+        data.to_csv(output.out)
+rule all_post_saver:
+    input: expand("kmeans/{sample}/filtered_annotated_saver_ribomito_{sample}_log2.csv", sample=SAMPLES,)
 
+rule calculate_tsne_choord:
+    input: log='kmeans/{sample}/filtered_annotated_saver_ribomito_{sample}_log2.csv'
+    output: data_out='kmeans/{sample}/filtered_annotated_saver_ribomito_{sample}_choord.csv'
+    script: SRC_DIR+'/generate_choords.R'
+rule all_choords:
+    input: expand("kmeans/{sample}/filtered_annotated_saver_ribomito_{sample}_choord.csv", sample=SAMPLES,)
+
+rule prova_cliques:
 rule calculate_kmeans_2_cinque:
     input:data=find_log2
     output:out='kmeans/{sample}/{sample}_kmeans_2comp_cinque.csv'
@@ -21,21 +51,24 @@ rule calculate_kmeans_2_cinque:
 rule all_kmeans_2_cinque:
     input: expand("kmeans/{sample}/{sample}_kmeans_2comp_cinque.csv", sample=SAMPLES,)  
 
+def find_cellcycle(wildcards):
+    return PRJ_ROOT+'/dataset/'+DIC_FOLDER[wildcards.sample]+'/{sample}_dir/filtered_annotated_{sample}_cellCycle.csv'
 rule calculate_kmeans_2:
-    input:data=find_log2, tsne=find_choord 
+    input:data=find_log2, tsne=find_choord ,cell_id=find_cellcycle
     output:out='kmeans/{sample}/{sample}_kmeans_2comp.csv',tsne_out='kmeans/{sample}/{sample}_kmeans2_tsne.pdf'
     script:SRC_DIR+'/kmeans_2.R'
+
 
 rule all_kmeans_2:
     input: expand("kmeans/{sample}/{sample}_kmeans_2comp.csv", sample=SAMPLES,)
 #select gene in tsne_wnt.R
 rule calculate_tsne_WNT:
     input:data=find_log2, tsne=find_choord
-    output:tsne_out='kmeans/{sample}/{sample}_tsne.pdf'
+    output:metagene_out='kmeans/metageni/{sample}_metagene.csv'#tsne_out='kmeans/prova/{sample}_tsne_NEURO.pdf',wnt_out='kmeans/metageni_wnt/{sample}_metagene.csv',
     script:SRC_DIR+'/tsne_wnt.R'
 
 rule all_tsne_cinque_wnt:
-    input: expand("kmeans/{sample}/{sample}_tsne.pdf", sample=SAMPLES) 
+    input: expand("kmeans/metageni/{sample}_metagene.csv", sample=SAMPLES) 
 
 rule find_marker_wilcoxon:
     conda:"sofia_env.yaml" # ideally also yaml should be put in local/share/envs or similar
@@ -56,8 +89,17 @@ def find_cc_2samples(wildcards):
     return lista  
 rule plot_percentage_paneth_cc_2samples:
     input: clust=find_cluster_2samples,cc=find_cc_2samples
-    output:'kmeans/{sample1}_vs_{sample2}_plot_percentage_cc.pdf'
+    output:'paneth_percentage/{sample1}_vs_{sample2}_plot_percentage_cc.pdf'
     script:SRC_DIR+'/plot_percentage_paneth_cc.R'
+rule plot_percentage_paneth_cc_2samples_final:
+    input: clust=find_cluster_2samples,cc=find_cc_2samples
+    output:'paneth_percentage_final/{sample1}_vs_{sample2}_plot_percentage_cc.pdf'
+    script:SRC_DIR+'/plot_percentage_paneth_cc_final.R'
+rule plot_percentage_paneth_cc_2samples_cake:
+    input: clust=find_cluster_2samples,cc=find_cc_2samples
+    output:'paneth_percentage_cake/{sample1}_vs_{sample2}_plot_percentage_cc.svg',log='paneth_percentage_cake_chi/{sample1}_vs_{sample2}_plot_percentage_cc.log'
+    script:SRC_DIR+'/plot_percentage_paneth_cc_cake.R'
+
 def find_cluster_3samples(wildcards):
     lista=[PRJ_ROOT+'/dataset/KMeans/kmeans/{sample1}/{sample1}_kmeans_2comp.csv',
             PRJ_ROOT+'/dataset/KMeans/kmeans/{sample2}/{sample2}_kmeans_2comp.csv',
@@ -79,6 +121,14 @@ rule gsea_analysis_plot:
     output: GSEA_r = "gsea/GSEA_results.{msign}.{sample}.{cluster}.tsv", GSEA_ridgeplot = "gsea/gsea_ridgeplot_{msign}.{sample}.{cluster}.pdf"
     script: SRC_DIR+'/GSEA_analysis.R'
 
+rule gsea_analysis_costumized_:
+    input: gene_res_freq = "kmeans/{sample}/{sample}_{cluster}_markers.tsv"
+    output: GSEA_r = "intestine_merged/GSEA_intestine.{sample}.{cluster}.tsv", GSEA_ridgeplot = "intestine_merged/GSEA_intestine.{sample}.{cluster}.pdf"
+    script: SRC_DIR+'/GSEA_norkin.R'
+
+rule all_gsea_norkin:
+    input:expand("intestine_merged/GSEA_intestine.{sample}.{cluster}.tsv", sample=SAMPLES,cluster=CLUSTER)
+
 rule all_gsea_plot:
     input:expand("gsea/GSEA_results.{msign}.{sample}.{cluster}.tsv", sample=SAMPLES,msign=MSIGN,cluster=CLUSTER)
 
@@ -92,12 +142,13 @@ def find_gsea(wildcards):
 #Rule to produce heatmap of significative signature separate for each gsea genes set 
 rule gsea_summary_files:
     input:list_gsea=find_gsea
-    output:out_data='gsea_summary/data_heatmap_{msign}_th_{intersection}.csv',out_annot='gsea_summary/annot_heatmap_{msign}_th_{intersection}.csv'
+    output:out_data='intestine_merged_summary/data_heatmap_{msign}_th_{intersection}.csv',out_annot='gsea_summary/annot_heatmap_{msign}_th_{intersection}.csv'
     run:
         num_min_samples=int(wildcards.intersection)
         data_upset=pd.DataFrame(columns=['signature','sample'],dtype=object)
         sample_names=[]
-        for file in input.list_gsea:
+        print(input)
+        for file in input:
             sample_name=file.split(PRJ_ROOT)[1].split('/')[4].split('.')[2]
             if sample_name in SAMPLES_NO_TIMECOURSE:
                 results=pd.read_csv(file,sep='\t',header=0,index_col=0)
@@ -133,7 +184,7 @@ rule gsea_summary_files:
                         s=data[data['ID']==sign]['p.adjust'][0]
 
                     except:
-                        en=np.NAN
+                        en=0
                         s=1
                     
                     
@@ -149,6 +200,86 @@ rule gsea_summary_files:
 
         data_heat.to_csv(output.out_data)
         sign_heat.to_csv(output.out_annot)
+
+def find_summary(wildcards):
+    return 'gsea_summary/data_heatmap_{msign}_th_{intersection}.csv'
+
+rule gsea_summary_genes_file:
+    input:list_gsea=find_gsea,signature=find_summary
+    output:intersection='gsea_summary/gene_intersection_{msign}_th_{intersection}_sign_{sign}.csv',universe='gsea_summary/gene_universe_all_{msign}_th_{intersection}_sign_{sign}.csv'
+    run:
+        import venn
+        num_min_samples=int(wildcards.intersection)
+        sign=wildcards.sign
+        signature=wildcards.msign
+        sign_file=PRJ_ROOT+'/local/share/data/gsea_geneset/'+signature.lower()+'.all.v2023.1.Hs.symbols.gmt'
+        print(sign_file)
+        sign_data={}
+        with open(sign_file) as f:
+            lines = [line.rstrip() for line in f]
+            for line in lines:
+                key=line.split('\t')[0]
+                values=line.split('\t')[2:]
+                sign_data[key]=values
+        data_upset=pd.DataFrame(columns=['signature','sample'],dtype=object)
+        sample_names=[]
+        signature=pd.read_csv(input.signature,header=0,index_col=0)
+        print(signature)
+        intersezioni={}
+        universo_dic={}
+        for name in signature.index:
+            i=0
+            if name[-3:]==sign:
+                intersezione=set()
+                universe_post_gsea=set()
+                name_ = name[:-4]
+                print(name_)
+                for file in input.list_gsea:
+                    sample_name=file.split(PRJ_ROOT)[1].split('/')[4].split('.')[2]
+                    if sample_name in SAMPLES_NO_TIMECOURSE:
+                        results=pd.read_csv(file,sep='\t',header=0,index_col=0)
+                        if i==0:
+                            intersezione.update(set(results.loc[name_,'core_enrichment'].split('/')))
+                            i=1+1
+                        else :
+                            intersezione= intersezione.intersection(set(results.loc[name_,'core_enrichment'].split('/')))
+                    #universe_post_gsea.update(set(results.loc[name_,'core_enrichment'].split('/'))) #universo =unine dei geni leading edges
+                    #universe_post_gsea.update(set(sign_data[name_]))  # universo = unione dei geni dei geneset che appaiono in intersezione
+                intersezioni[name]=list(intersezione)
+            #universo_dic[name]=list(universe_post_gsea)
+        #Creo due dataframe con colonne ['signature','gene'] uno per intersezione, uno per universo
+       
+        data=pd.DataFrame(columns=['signature','gene'])
+        universe=pd.DataFrame(columns=['signature','gene'])
+        for key,values in intersezioni.items():
+            for value in values:
+                data=data.append({'signature':key,'gene':value},ignore_index=True)
+        #universo== sottinsieme di C8
+        #for key,values in universo_dic.items():
+            #for value in values:
+                #universe=universe.append({'signature':key,'gene':value},ignore_index=True)
+         #per avere intera C8 o C2 come universo
+
+        for key,values in sign_data.items():
+            for value in values:
+                universe=universe.append({'signature':key,'gene':value},ignore_index=True)
+
+        data.to_csv(output.intersection)
+        universe.to_csv(output.universe)
+        
+rule go_intersection_all:
+    input:intersection='gsea_summary/gene_intersection_{msign}_th_{intersection}_sign_{sign}.csv',universe='gsea_summary/gene_universe_all_{msign}_th_{intersection}_sign_{sign}.csv'
+    output:out_dir=directory('GO_intersection_results__all_{msign}_th_{intersection}_sign_{sign}')
+    script: SRC_DIR+'/GO_analysis_intersection.R'
+
+rule go_intersection:
+    input:intersection='gsea_summary/gene_intersection_{msign}_th_{intersection}.csv',universe='gsea_summary/gene_universe_{msign}_th_{intersection}.csv'
+    output:out_dir=directory('GO_intersection_results_{msign}_th_{intersection}')
+    script: SRC_DIR+'/GO_analysis_intersection.R'
+
+           
+
+#Rule to produce heatmap of significative signature separate for each gsea genes set 
 rule plot_gsea_summary_heatmap:
     input:data='gsea_summary/data_heatmap_{msign}_th_{intersection}.csv',annot='gsea_summary/annot_heatmap_{msign}_th_{intersection}.csv'
     output:plot='gsea_summary/heatmap_{msign}_th_{intersection}.pdf'
@@ -156,14 +287,14 @@ rule plot_gsea_summary_heatmap:
 
 rule all_gsea_summary:
     input:expand("gsea_summary/heatmap_{msign}_th_{intersection}.pdf",msign=MSIGN,intersection=INTERSECTION)
-
+"""
 rule find_cliques:
     input: data=find_log2,label='kmeans/{sample}/{sample}_kmeans_2comp.csv'
     output: plot='cliques_{corr}/{sample}/{sample}_cliques.pdf',universe='cliques_{corr}/{sample}/{sample}_universe.tsv',clique='cliques_{corr}/{sample}/{sample}_cliques.tsv'
     script: SRC_DIR+'/cliques.R'
 rule find_all_cliques:
     input:expand("cliques_{corr}/{sample}/{sample}_cliques.pdf",sample=SAMPLES_CLIQUE,corr=0.7)
-
+"""
 rule go_cliques:
     input:universe='cliques_{corr}/{sample}/{sample}_universe.tsv',clique='cliques_{corr}/{sample}/{sample}_cliques.tsv'
     output:out_dir=directory('{sample}_corr{corr}_GO_results'),go_file='{sample}_corr{corr}_GO_results.tsv'
@@ -180,7 +311,7 @@ def find_all_log2():
     return samples_dic.values()
 
 rule calculate_lfc_all:
-    input:find_all_log2()
+    input:find_all_log2
     output:out='kmeans/kmeans_centorids/all_samples_centroids_LFC.csv'
     run:
         def gene_name(stringa):
@@ -208,10 +339,94 @@ rule calculate_lfc_all:
         df_centroids.to_csv(output.out)
 
 #if {sample}_seurat_clusters_5.csv is not available ==> compute tsne choorde and store it with the same name but extra_rcasc
-rule calculate_tsne_chord:
-    input: log=find_log2
-    output: data_out=PRJ_ROOT+'/dataset/singleron_jan_23_CRC0327_rCASC/{sample}_seurat_clusters_5.csv'
-    script: SRC_DIR+'/generate_choords.R'
+rule _cliques:
+    input: data=find_count,label='kmeans/{sample}/{sample}_kmeans_2comp.csv',data_saver=find_log2
+    output:clique='cliques_{corr}/{sample}/{sample}_cliques_prova.tsv'#universe='cliques_{corr}/{sample}/{sample}_universe_prova.tsv',
+    run:
+        
+        #cinque=['ATOH1','DLL1','GFI1','DEFA5','DEFA6']
+        cinque=['COLCA2', 'ATOH1', 'ANXA13', 'DLL1', 'SMAD9', 'HES6','COL4A4', 'AMIGO2', 'HEPACAM2', 'ODF2L', 'IL13RA1', 'SOX4', 'KLK11', 'FOXA2']
+        def gene_name(stringa):
+            return stringa.split(':')[1]
+        print(input.data)
+        print(input.label)
+        data_count=pd.read_csv(input.data,header=0, index_col=0).T
+        cpm=(data_count * 1e6) / data_count.sum()
+        # get CPM normalized dataframe
+        print('CPM normalize')
+        data_count=np.log2(cpm+1)
+        data_saver=pd.read_csv(input.data_saver,header=0,index_col=0).T
+        label=pd.read_csv(input.label,header=0, index_col=0)['postSilh']
+        data_count.columns=data_count.columns.to_series().apply(gene_name)
+        data_saver.columns=data_saver.columns.to_series().apply(gene_name)
+        to_keep=data_count.columns[data_count.var().round(2)>0.1]
+        data_count=data_count.loc[:,to_keep]
+        data_saver=data_saver.loc[:,to_keep]
+        print(len(data_count.columns))
+        geni_trusted=[]
+        for gene in data_saver.columns:
+            corr=np.corrcoef(data_saver.loc[:,gene],data_count.loc[:,gene])
+            if corr[0,1]>0.6 or corr[0,1]<-0.6: #if corr[0,1]>0.6 or corr[0,1]<-0.6:
+                geni_trusted.append(gene)
+        cinque_trusted=[]
+        #universe=pd.DataFrame(columns=['gene'])
+        #for gene in geni_trusted:
+            #universe=universe.append({'gene':gene},ignore_index=True)
+        for gene in cinque:
+            if gene in geni_trusted:
+                cinque_trusted.append(gene)
+        #cinque_trusted.append('postSilh')
+        print(cinque_trusted)
+        data_saver=data_saver.loc[:,geni_trusted]
+        data_saver=pd.merge(data_saver,label,right_index=True,left_index=True)
+        corr=data_saver.corr()
+    
+        correlati=set()
+        for gene in cinque_trusted:
+            tmp=corr.loc[:,gene]
+            tmp=tmp[tmp>0.75]
+            correlati.update(tmp.index)
+        correlati=list(correlati)
+        print(correlati)
+        target=pd.DataFrame(columns=['gene'])
+        for el in correlati:
+            if el !='postSilh':
+                target=target.append({'gene':el},ignore_index=True)
+        #universe.to_csv(output.universe,sep='\t')
+        target.to_csv(output.clique,sep='\t')
+rule find_all_cliques_prova:
+    input:expand("cliques_{corr}/{sample}/{sample}_cliques_prova.tsv",sample=SAMPLES_NO_TIMECOURSE,corr=0.7)
 
 
+rule plot_bimodal:
+    input:c=PRJ_ROOT+'/dataset/KMeans/kmeans/{sample}/{sample}_kmeans_2comp.csv',metagene=PRJ_ROOT+'/dataset/KMeans/kmeans/metageni/{sample}_metagene.csv'
+    output:out='distribution/{sample}_dist.pdf'
+    script: SRC_DIR+'/distribution.R'
 
+rule all_plot_bimodal:
+    input:expand('distribution/{sample}_dist.pdf',sample=SAMPLES)
+
+rule dataset_ff:
+    input: data=find_log2
+    output: out='dll4_data/{sample}_log2cpm.csv'
+    script: SRC_DIR+'/produce_ff_dataset.R'
+rule all_dataset_ff:
+    input:expand('dll4_data/{sample}_log2cpm.csv',sample=SAMPLES)
+rule Fig_1:
+    input:data='ff_data/{sample}_ff_log2cpm.csv', tsne=find_choord, k_out='kmeans/{sample}/{sample}_kmeans_2comp.csv'
+    output:plot_out='kmeans/Fig_1/{sample}_tsne.png',pdf='kmeans/Fig_1/{sample}_genes.pdf'
+    script:SRC_DIR+'/Fig_1.R'
+rule all_Fig_1:
+    input:expand('kmeans/Fig_1/{sample}_genes.pdf',sample=SAMPLES)
+
+def find_UMAP(wildcards):
+    return 'Alberto_integrated_UMAP/'+DIC_ALBERTO[wildcards.sample]
+    
+rule Fig_1_alberto:
+    input:data='dll4_data/{sample}_log2cpm.csv', umap=find_UMAP, k_out='kmeans/{sample}/{sample}_kmeans_2comp.csv'
+    output:pdf='dll4_notch1_notch2/{sample}_umap.pdf'#plot_out='Fig_1_alberto/{sample}_tsne.png'
+    script:SRC_DIR+'/Fig_1_a.R'
+rule all_Fig_1_alberto:
+    input:expand('dll4_notch1_notch2/{sample}_umap.pdf',sample=SAMPLES)
+
+    

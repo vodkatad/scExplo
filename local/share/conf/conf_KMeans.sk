@@ -42,13 +42,25 @@ DIC_FOLDER={
  'CRC0327_NT_t2':'rCASC_IRCC_tecrep',
  }
 
+DIC_ALBERTO={'CRC0322_cetux_1':'322_CTX.csv',  
+ 'CRC0322_NT_1_3000':'322_NT.csv',
+ 'CRC0327_cetux_2':'327_CTX_2.csv',
+ 'CRC0327_NT_2':'327_NT_2.csv',
+ 'CRC1502_cetux_1':'1502_CTX.csv',
+ 'CRC1502_NT_1':'1502_NT.csv',
+ 'CRC0069_CTX72h_1':'069_CTX.csv',
+ 'CRC0069_NT72h_1':'069_NT.csv',
+ 'CRC0542_CTX72h_1':'542_CTX.csv',
+ 'CRC0542_NT72h_1':'542_NT.csv',
+ 'CRC0322_3d_CTX':'322_CTX_tc.csv',
+ 'CRC0322_8d_NOEGF':'322_NT_tc.csv'
+ }
+
 SAMPLES=['CRC0327_cetux_2',
 'CRC0322_NT_1_3000',
-'CRC0327_NT_1',
 'CRC0322_cetux_1',
 'CRC0542_CTX72h_1',
 'CRC0069_NT72h_1',
-'CRC0327_cetux_1_4000',
 'CRC1502_cetux_1',
 'CRC1502_NT_1',
 'CRC0069_CTX72h_1',
@@ -57,6 +69,9 @@ SAMPLES=['CRC0327_cetux_2',
 'CRC0322_3d_CTX',
 'CRC0322_8d_NOEGF'
 ] 
+#'CRC0327_NT_1',
+
+#'CRC0327_cetux_1_4000',
 #'CRC0327_NT_t1',
 #'CRC0327_NT_t2',
 #'CRC0322_3d_CTX',
