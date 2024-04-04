@@ -468,4 +468,17 @@ rule velocyto:
                 {params.transcriptome}/genes/genes.gtf
             touch {output}
         """
-    
+  
+rule all_velocyto:
+    input: expand("velocyto_{sample}.vdone", sample=SAMPLES)
+
+rule all_velocyto_ln:
+    input: expand("{sample}.loom", sample=OSAMPLES)
+#Sample_S26093_499/velocyto/Sample_S26093_499.loom
+rule velo_ln:
+    output: "{sample}.loom"
+    params: inp=lambda wildcards: rev_samples_map[wildcards.sample]+'/velocyto/*loom'
+    shell:
+        """
+            ln -s {params.inp} {output}            
+        """

@@ -431,8 +431,8 @@ rule paneth_markers:
     input: expand("{sample}_0.2.clusters_markers.tsv", sample=OSAMPLES)
 
 
-rule all_reanalyze:
-    input: expand("{sample}.rea", sample=REANALYZE_SAMPLES)
+#rule all_reanalyze:
+#    input: expand("{sample}.rea", sample=REANALYZE_SAMPLES)
 
 rule cellranger_reanalyze:
     input: "{sample}.done", h5="{sample}/outs/filtered_feature_bc_matrix.h5"
@@ -450,3 +450,31 @@ rule cellranger_reanalyze:
         echo "rm {output}.tmp*"
         touch "{output}"
         """
+
+### velocityo
+rule velocyto:
+    input: "{sample}.done"
+    output: "velocyto_{sample}.vdone"
+    params: transcriptome=TRANSCRIPTOME,rep=REPEATS,threads=CORES
+    shell:
+        """
+            velocyto run10x -@ {params.threads} -m {params.rep} \
+                {wildcards.sample} \
+                {params.transcriptome}/genes/genes.gtf
+            touch {output}
+        """
+
+rule all_velocyto:
+    input: expand("velocyto_{sample}.vdone", sample=SAMPLES)
+
+rule all_velocyto_ln:
+    input: expand("{sample}.loom", sample=OSAMPLES)
+#Sample_S26093_499/velocyto/Sample_S26093_499.loom
+rule velo_ln:
+    output: "{sample}.loom"
+    params: inp=lambda wildcards: rev_samples_map[wildcards.sample]+'/velocyto/*loom'
+    shell:
+        """
+            ln -s {params.inp} {output}            
+        """
+

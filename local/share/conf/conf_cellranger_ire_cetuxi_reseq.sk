@@ -10,8 +10,8 @@ MEM=90
 CORES=22
 CELLRANGER=PRJ_ROOT+"local/src/cellranger-3.1.0/cellranger"
 FASTQ_DIR=PRJ_ROOT+"local/share/data/Ire_1_reseq/"
-SAMPLES=["Sample_S31434_CRC0327_cetux_1","Sample_S31435_CRC0322_NT_1","Sample_S26093_499","Sample_S26096_502","Sample_S26369_503","Sample_S26370_504","Sample_S26371_505","Sample_S26371_506",'aggr']
-OSAMPLES=["CRC0327_cetux_1_bis", "CRC0322_NT_1_bis","CRC0327_NT_1", "CRC0322_cetux_1", "CRC0327_NT_2", "CRC0327_cetux_2", "CRC1502_NT_1", "CRC1502_cetux_1", 'aggr']
+SAMPLES=["Sample_S31434_CRC0327_cetux_1","Sample_S31435_CRC0322_NT_1","Sample_S26093_499","Sample_S26096_502","Sample_S26369_503","Sample_S26370_504","Sample_S26371_505","Sample_S26371_506"]#,'aggr']
+OSAMPLES=["CRC0327_cetux_1_bis", "CRC0322_NT_1_bis","CRC0327_NT_1", "CRC0322_cetux_1", "CRC0327_NT_2", "CRC0327_cetux_2", "CRC1502_NT_1", "CRC1502_cetux_1"]#, 'aggr']
 RSAMPLES=["Sample_S31434_CRC0327_cetux_1","Sample_S31435_CRC0322_NT_1","Sample_S26093_499","Sample_S26096_502","Sample_S26369_503","Sample_S26370_504","Sample_S26371_505","Sample_S26371_506"]
 REANALYZE_SAMPLES=["CRC0327_cetux_1_4000", "CRC0322_NT_1_3000", "CRC0327_NT_1", "CRC0322_cetux_1", "CRC0327_NT_2", "CRC0327_cetux_2", "CRC1502_NT_1", "CRC1502_cetux_1"]
 # mess to manage resequencing ids vs rCASC
@@ -65,3 +65,4 @@ rule my_cellranger_reanalyze:
         touch "{output}"
         """
 
+REPEATS="/mnt/bioionfotree/task/gencode/dataset/hsapiens/33/rmsk.gtf"

@@ -3,10 +3,11 @@ data <- read.table(gzfile('/mnt/trcanmed/temp/scTimeCourse_fpkm.tsv.gz'), sep="\
 meta <- read.table('/mnt/trcanmed/temp/scTimeCourse_samples', sep="\t", header=TRUE)
 
 #ogenes <- genes
-genes <- read.table('/mnt/trcanmed/snaketree/prj/scRNA/local/share/data/Alberto_pops/genes_pop_322_CTX_WNT.txt', header=FALSE)
+#genes <- read.table('/mnt/trcanmed/snaketree/prj/scRNA/local/share/data/Alberto_pops/genes_pop_322_CTX_WNT.txt', header=FALSE)
 #genes <- read.table('/mnt/trcanmed/snaketree/prj/scRNA/local/share/data/Alberto_pops/genes_pop_327_2_CTX_WNT.txt', header=FALSE)
 #genes <- read.table('/mnt/trcanmed/snaketree/prj/scRNA/local/share/data/Alberto_pops/genes_pop_1502_CTX_WNT.txt', header=FALSE)
 #genes <- read.table('/mnt/trcanmed/snaketree/prj/scRNA/local/share/data/Alberto_pops/genes_pop_542_CTX_EE.txt', header=FALSE)
+genes <- read.table('/mnt/trcanmed/snaketree/prj/scRNA/local/share/data/Alberto_pops/genes_pop_Paneth.txt', header=FALSE)
 length(intersect(genes$V1, ogenes$V1))
 nrow(genes)
 nrow(ogenes)
@@ -50,6 +51,14 @@ my_palette <- c(colorRampPalette(colors = c("darkblue", "lightblue"))(n = length
 
 pheatmap(norm, annot_cols=meta,  breaks = bk, color=my_palette, show_rownames = FALSE)
 
+pp <- norm[norm$CRC0322_3d_CTX < 0,]
+write.table(pp, file="/tmp/genes_pop_322_CTX_WNT_3d_CTX-8d_EGF_neg.tsv", sep="\t", quote=F)
+ppp <- norm[norm$CRC0322_7d_CTX < 0,]
+
+aves <- as.data.frame(rowMeans(sdata))
+other = aves[!rownames(aves) %in% rownames(pp),1]; neg=aves[rownames(aves) %in% rownames(pp),1]
+pd <- data.frame(class=c(rep('neg', length(neg)), rep('pos', length(other))), values=c(neg, other))
+ggplot(data=pd, aes(x=class,y=values, color=class))+geom_violin()+geom_boxplot(width=0.1)
 # metagene
 metag <- colMeans(lfpkm)
 dp <- data.frame(metag)
@@ -326,14 +335,49 @@ scores <- data.frame(row.names=unique(ann$sample), PIS=panethIndScore)
 scores$lPIS <- scores$PIS
 scores$model <- rownames(scores)
 
-ggplot(scores, aes(y=lPIS,x=reorder(model, -lPIS)))+geom_col(fill='blue')+ylab("delta SSGSEA CRC0322 WNT")+xlab("Model")+theme_bw()+theme(axis.text.x = element_text(size=15, angle = 90, hjust = 1, vjust=0.5))
+panethIndScore <- sapply(unique(ann$sample), fc, d, '327_2_CTX_WNT', ann)
+scores <- data.frame(row.names=unique(ann$sample), PIS=panethIndScore)
+scores$lPIS <- scores$PIS
+scores$model <- rownames(scores)
+ggplot(scores, aes(y=lPIS,x=reorder(model, -lPIS)))+geom_col(fill='blue')+ylab("delta SSGSEA CRC0327 WNT")+xlab("Model")+theme_bw()+theme(axis.text.x = element_text(size=15, angle = 90, hjust = 1, vjust=0.5))
+
+panethIndScore <- sapply(unique(ann$sample), fc, d, 'WNT', ann)
+scores <- data.frame(row.names=unique(ann$sample), PIS=panethIndScore)
+scores$lPIS <- scores$PIS
+scores$model <- rownames(scores)
+ggplot(scores, aes(y=lPIS,x=reorder(model, -lPIS)))+geom_col(fill='blue')+ylab(" WNT")+xlab("Model")+theme_bw()+theme(axis.text.x = element_text(size=15, angle = 90, hjust = 1, vjust=0.5))
+
+panethIndScore <- sapply(unique(ann$sample), fc, d, 'Paneth', ann)
+scores <- data.frame(row.names=unique(ann$sample), PIS=panethIndScore)
+scores$lPIS <- scores$PIS
+scores$model <- rownames(scores)
+ggplot(scores, aes(y=lPIS,x=reorder(model, -lPIS)))+geom_col(fill='blue')+ylab("Paneth")+xlab("Model")+theme_bw()+theme(axis.text.x = element_text(size=15, angle = 90, hjust = 1, vjust=0.5))
+
+panethIndScore <- sapply(unique(ann$sample), fc, d, 'EE', ann)
+scores <- data.frame(row.names=unique(ann$sample), PIS=panethIndScore)
+scores$lPIS <- scores$PIS
+scores$model <- rownames(scores)
+ggplot(scores, aes(y=lPIS,x=reorder(model, -lPIS)))+geom_col(fill='blue')+ylab("EE")+xlab("Model")+theme_bw()+theme(axis.text.x = element_text(size=15, angle = 90, hjust = 1, vjust=0.5))
+
+panethIndScore <- sapply(unique(ann$sample), fc, d, 'sEE', ann)
+scores <- data.frame(row.names=unique(ann$sample), PIS=panethIndScore)
+scores$lPIS <- scores$PIS
+scores$model <- rownames(scores)
+ggplot(scores, aes(y=lPIS,x=reorder(model, -lPIS)))+geom_col(fill='blue')+ylab("sEE")+xlab("Model")+theme_bw()+theme(axis.text.x = element_text(size=15, angle = 90, hjust = 1, vjust=0.5))
+
 
 ## test on R
 
-d <- read.table('/mnt/trcanmed/snaketree/prj/DE_RNASeq/dataset/Biodiversa_up5starOK_cetuxi_treat_PDO_72h_R/Alberto_Alberto-scores.tsv', sep="\t")
-ann <- read.table('/mnt/trcanmed/snaketree/prj/DE_RNASeq/dataset/Biodiversa_up5starOK_cetuxi_treat_PDO_72h_R/samples_data', sep="\t", header=TRUE)
-rownames(ann) <- ann$id
-ann$id <- NULL
+dr <- read.table('/mnt/trcanmed/snaketree/prj/DE_RNASeq/dataset/Biodiversa_up5starOK_cetuxi_treat_PDO_72h_R/Alberto_Alberto-scores.tsv', sep="\t")
+annr <- read.table('/mnt/trcanmed/snaketree/prj/DE_RNASeq/dataset/Biodiversa_up5starOK_cetuxi_treat_PDO_72h_R/samples_data', sep="\t", header=TRUE)
+rownames(annr) <- annr$id
+annr$id <- NULL
+
+
+d <- cbind(d, dr)
+ann$ctx <- 'Responder'
+annr$ctx <- 'Non_Responder'
+ann <- rbind(ann, annr)
 
 ann <- ann[order(ann$treat),]
 d <- d[, match(rownames(ann), colnames(d))]
@@ -387,6 +431,44 @@ scores$model <- rownames(scores)
 
 ggplot(scores, aes(y=lPIS,x=reorder(model, -lPIS)))+geom_col(fill='red')+ylab("delta SSGSEA CRC0322 WNT")+xlab("Model")+theme_bw()+theme(axis.text.x = element_text(size=15, angle = 90, hjust = 1, vjust=0.5))
 
+
+
+panethIndScore <- sapply(unique(ann$sample), fc, d, 'WNT', ann)
+scores <- data.frame(row.names=unique(ann$sample), PIS=panethIndScore)
+scores$lPIS <- scores$PIS
+scores$model <- rownames(scores)
+scores <- merge(scores, ann, by.x="model",by.y="sample")
+ggplot(scores, aes(y=lPIS,x=reorder(model, -lPIS), fill=ctx))+geom_col()+ylab(" WNT")+xlab("Model")+theme_bw()+theme(axis.text.x = element_text(size=15, angle = 90, hjust = 1, vjust=0.5))
+
+
+
+panethIndScore <- sapply(unique(ann$sample), fc, d, 'EE', ann)
+scores <- data.frame(row.names=unique(ann$sample), PIS=panethIndScore)
+scores$lPIS <- scores$PIS
+scores$model <- rownames(scores)
+scores <- merge(scores, ann, by.x="model",by.y="sample")
+ggplot(scores, aes(y=lPIS,x=reorder(model, -lPIS), fill=ctx))+geom_col()+ylab("EE")+xlab("Model")+theme_bw()+theme(axis.text.x = element_text(size=15, angle = 90, hjust = 1, vjust=0.5))
+
+
+panethIndScore <- sapply(unique(ann$sample), fc, d, 'ssEE', ann)
+scores <- data.frame(row.names=unique(ann$sample), PIS=panethIndScore)
+scores$lPIS <- scores$PIS
+scores$model <- rownames(scores)
+scores <- merge(scores, ann, by.x="model",by.y="sample")
+scores <- scores[,c('model', 'lPIS', 'ctx')]
+scores <- unique(scores)
+ggplot(scores, aes(y=lPIS,x=reorder(model, -lPIS), fill=ctx))+geom_col()+ylab("ssEE")+xlab("Model")+theme_bw()+theme(axis.text.x = element_text(size=15, angle = 90, hjust = 1, vjust=0.5))
+
+
+
+panethIndScore <- sapply(unique(ann$sample), fc, d, 'Paneth', ann)
+scores <- data.frame(row.names=unique(ann$sample), PIS=panethIndScore)
+scores$lPIS <- scores$PIS
+scores$model <- rownames(scores)
+scores <- merge(scores, ann, by.x="model",by.y="sample")
+scores <- scores[,c('model', 'lPIS', 'ctx')]
+scores <- unique(scores)
+ggplot(scores, aes(y=lPIS,x=reorder(model, -lPIS), fill=ctx))+geom_col()+ylab(" Paneth")+xlab("Model")+theme_bw()+theme(axis.text.x = element_text(size=15, angle = 90, hjust = 1, vjust=0.5))
 
 ########################### whole ssgsea scores Alberto
 
@@ -480,5 +562,195 @@ for (i in 1:length(pathways)) {
 } 
 
 df <- fgsea(p, geneList, minSize=15, maxSize=1000, nperm=10000, nproc=6) 
-plotEnrichment(p[['322_CTX_paneth']][[as.character(row[1])]],geneList) +labs(title='322_CTX_paneth')
+plotEnrichment(p[['322_CTX_paneth']],geneList) +labs(title='322_CTX_paneth')
+plotEnrichment(p[['322_CTX_WNT']],geneList) +labs(title='322_CTX_WNT')
+plotEnrichment(p[['542_CTX_EE']],geneList) +labs(title='542_CTX_EE')
+
+## metagene bulk lfpkm on all samples
+meta <- read.table('/mnt/trcanmed/snaketree/prj/DE_RNASeq/dataset/Biodiversa_up5_starOK_selected/samples_data', sep="\t", header=T)
+pdo_basali <- meta[grepl('LMO_BASALE', meta$type),]
+pdo_treat <- meta[grepl('LMO_cetuxi', meta$type),]
+
+dorig <- read.table(gzfile('/mnt/trcanmed/snaketree/prj/DE_RNASeq/dataset/Biodiversa_up5_starOK_selected/tmm.tsv.gz'), sep="\t", header=T)
+d <- dorig
+d <- d[, colnames(d) %in% pdo_basali$id]
+
+genes <- read.table('/mnt/trcanmed/snaketree/prj/scRNA/local/share/data/Alberto_pops/genes_pop_322_CTX_WNT.txt', header=FALSE)
+sdata <- d[rownames(d) %in% paste0('H_', genes$V1),]
+sdata <- log(sdata+1)
+
+metagene <- as.data.frame(colMeans(sdata))
+colnames(metagene) <- 'meanLFPKM'
+d2 <- read.table('/mnt/trcanmed/snaketree/prj/DE_RNASeq/dataset/Biodiversa_up5_starOK_selected/Alberto_Alberto-scores.tsv', sep="\t")
+td2 <- t(d2)
+
+m <- merge(metagene, td2, by= "row.names")
+
+ggplot(data=m, aes(x=meanLFPKM, y=`322_CTX_WNT`))+geom_smooth(method='lm')+theme_bw()+geom_point()
+
+d <- dorig
+d <- d[, colnames(d) %in% pdo_treat$id]
+
+genes <- read.table('/mnt/trcanmed/snaketree/prj/scRNA/local/share/data/Alberto_pops/genes_pop_322_CTX_WNT.txt', header=FALSE)
+sdata <- d[rownames(d) %in% paste0('H_', genes$V1),]
+sdata <- log(sdata+1)
+
+metagene <- as.data.frame(colMeans(sdata))
+colnames(metagene) <- 'meanLFPKM'
+d2 <- read.table('/mnt/trcanmed/snaketree/prj/DE_RNASeq/dataset/Biodiversa_up5_starOK_selected/Alberto_Alberto-scores.tsv', sep="\t")
+td2 <- t(d2)
+
+m <- merge(metagene, td2, by= "row.names")
+
+ggplot(data=m, aes(x=meanLFPKM, y=`322_CTX_WNT`))+geom_smooth(method='lm')+theme_bw()+geom_point()
+
+d3 <- read.table('/mnt/trcanmed/snaketree/prj/DE_RNASeq/dataset/Biodiversa_up5starOK_cetuxi_treat_PDO_72h_S/Alberto_Alberto-scores.tsv', sep="\t")
+td3 <- t(d3)
+
+m <- merge(metagene, td3, by= "row.names")
+
+ggplot(data=m, aes(x=meanLFPKM, y=`322_CTX_WNT`))+geom_smooth(method='lm')+theme_bw()+geom_point()
+
+m <- merge(td2, td3, by= "row.names")
+
+ggplot(data=m, aes(x=`322_CTX_WNT.y`, y=`322_CTX_WNT.x`))+geom_smooth(method='lm')+theme_bw()+geom_point()
+
+##
+library(UpSetR)
+dir <- '/mnt/trcanmed/snaketree/prj/scRNA/local/share/data/Alberto_pops'
+pops_f <- list.files(path = dir, full.names=TRUE, pattern = 'genes_pop_\\d+')
+
+gene_pops_l <- list()
+for (f in pops_f) {
+  genes <- read.table(f, header=FALSE)
+  gene_pops_l[[basename(f)]] <- genes$V1
+}
+
+upset(fromList(gene_pops_l), order.by = "freq", nsets=length(gene_pops_l))#, nintersects=NA)
+
+## wnt genes CRC0116 vs CRC0542
+genes <- read.table('/mnt/trcanmed/snaketree/prj/scRNA/local/share/data/Alberto_pops/genes_pop_WNT.txt', header=FALSE)
+
+d <- read.table('/mnt/trcanmed/snaketree/prj/DE_RNASeq/dataset/Biodiversa_up5starOK_cetuxi_treat_PDO_72h_S/fpkm.tsv.gz', sep="\t")
+ann <- read.table('/mnt/trcanmed/snaketree/prj/DE_RNASeq/dataset/Biodiversa_up5starOK_cetuxi_treat_PDO_72h_S/samples_data', sep="\t", header=TRUE)
+rownames(ann) <- ann$id
+ann$id <- NULL
+
+expr <- d[rownames(d) %in% paste0('H_', genes$V1),]
+
+
+w <- c('CRC0116', 'CRC0542')
+ann <- ann[ann$sample %in% w, ]
+
+expr <- expr[, rownames(ann)]
+
+ann <- ann[order(ann$sample, ann$treat),]
+expr <- expr[, match(rownames(ann), colnames(expr))]
+expr <- log2(expr+1)
+pheatmap(expr, annotation_col=ann, cluster_rows = F, cluster_cols=F)
+
+ann <- ann[order(ann$sample, ann$treat),]
+d <- d[, match(rownames(ann), colnames(d))]
+pheatmap(d, annotation_col=ann, cluster_rows = F, cluster_cols=F, breaks = bk, color=my_palette)
+
+## PIS on this ssGSEA
+fc <- function(model, data, sign, ann) {
+  d <- data[rownames(data)==sign,]
+  dt <- t(d)
+  m <- merge(dt, ann, by="row.names")
+  d <- m[m$sample==model, ]
+  d <- d[order(d$Row.names),] # we resort to using gen id to identify treat/nt, but we check
+  if (nrow(d) == 4) {
+    fc <- mean(c(d[2, sign] - d[1, sign], d[4, sign] - d[3, sign])) 
+    stopifnot(d[1, 'treat'] == "NT" && d[2, 'treat'] == "cetuxi" && d[3, 'treat'] == "NT" && d[4, 'treat'] == "cetuxi")
+  } else {
+    fc <- d[2, sign] - d[1, sign]
+    stopifnot(d[1, 'treat'] == "NT" && d[2, 'treat'] == "cetuxi")
+  }
+  return(fc)
+}
+
+## in vivo
+d <- read.table('/mnt/trcanmed/snaketree/prj/DE_RNASeq/dataset/Biodiversa_up5starOK_cetuxi_treat_PDX_S/Alberto_Alberto-scores.tsv', sep="\t")
+ann <- read.table('/mnt/trcanmed/snaketree/prj/DE_RNASeq/dataset/Biodiversa_up5starOK_cetuxi_treat_PDX_S/samples_data', sep="\t", header=TRUE)
+rownames(ann) <- ann$id
+ann$id <- NULL
+
+ann <- ann[order(ann$treat),]
+d <- d[, match(rownames(ann), colnames(d))]
+
+
+minv <- min(d)
+maxv <- max(d)
+neutral_value <- 0
+bk1 <- c(seq(minv-0.1,neutral_value-0.1,by=0.2),neutral_value-0.0999)
+bk2 <- c(neutral_value+0.001, seq(neutral_value+0.1,maxv+0.1,by=0.2))
+bk <- c(bk1, bk2)
+my_palette <- c(colorRampPalette(colors = c("darkblue", "lightblue"))(n = length(bk1)-1),
+                "#FFFFFF", #"snow1",
+                c(colorRampPalette(colors = c("tomato1", "darkred"))(n = length(bk2)-1)))
+
+pheatmap(d, annotation_col=ann, cluster_rows = F, cluster_cols=F, breaks = bk, color=my_palette)
+
+ann <- ann[order(ann$sample, ann$treat),]
+d <- d[, match(rownames(ann), colnames(d))]
+pheatmap(d, annotation_col=ann, cluster_rows = F, cluster_cols=F, breaks = bk, color=my_palette)
+
+## PIS on this ssGSEA
+#need to reorder differently for in vivo
+# XXX - is ok?
+fcvivo <- function(model, data, sign, ann) {
+  d <- data[rownames(data)==sign,]
+  dt <- t(d)
+  m <- merge(dt, ann, by="row.names")
+  d <- m[m$sample==model, ]
+  d <- d[order(d$Row.names),] # we resort to using gen id to identify treat/nt, but we check
+  nt <- mean(d[d$treat=="NT", sign])
+  ct <- mean(d[d$treat=="cetuxi", sign])
+  return(ct-nt)
+}
+
+panethIndScore <- sapply(unique(ann$sample), fcvivo, d, '322_CTX_paneth', ann)
+scores <- data.frame(row.names=unique(ann$sample), PIS=panethIndScore)
+scores$lPIS <- scores$PIS
+scores$model <- rownames(scores)
+
+ggplot(scores, aes(y=lPIS,x=reorder(model, -lPIS)))+geom_col(fill='blue')+ylab("delta SSGSEA CRC0322 Paneth")+xlab("Model")+theme_bw()+theme(axis.text.x = element_text(size=15, angle = 90, hjust = 1, vjust=0.5))
+
+
+panethIndScore <- sapply(unique(ann$sample), fcvivo, d, '322_CTX_WNT', ann)
+scores <- data.frame(row.names=unique(ann$sample), PIS=panethIndScore)
+scores$lPIS <- scores$PIS
+scores$model <- rownames(scores)
+
+panethIndScore <- sapply(unique(ann$sample), fcvivo, d, '327_2_CTX_WNT', ann)
+scores <- data.frame(row.names=unique(ann$sample), PIS=panethIndScore)
+scores$lPIS <- scores$PIS
+scores$model <- rownames(scores)
+ggplot(scores, aes(y=lPIS,x=reorder(model, -lPIS)))+geom_col(fill='blue')+ylab("delta SSGSEA CRC0327 WNT")+xlab("Model")+theme_bw()+theme(axis.text.x = element_text(size=15, angle = 90, hjust = 1, vjust=0.5))
+
+panethIndScore <- sapply(unique(ann$sample), fcvivo, d, 'WNT', ann)
+scores <- data.frame(row.names=unique(ann$sample), PIS=panethIndScore)
+scores$lPIS <- scores$PIS
+scores$model <- rownames(scores)
+ggplot(scores, aes(y=lPIS,x=reorder(model, -lPIS)))+geom_col(fill='blue')+ylab(" WNT")+xlab("Model")+theme_bw()+theme(axis.text.x = element_text(size=15, angle = 90, hjust = 1, vjust=0.5))
+
+panethIndScore <- sapply(unique(ann$sample), fcvivo, d, 'Paneth', ann)
+scores <- data.frame(row.names=unique(ann$sample), PIS=panethIndScore)
+scores$lPIS <- scores$PIS
+scores$model <- rownames(scores)
+ggplot(scores, aes(y=lPIS,x=reorder(model, -lPIS)))+geom_col(fill='blue')+ylab("Paneth")+xlab("Model")+theme_bw()+theme(axis.text.x = element_text(size=15, angle = 90, hjust = 1, vjust=0.5))
+
+panethIndScore <- sapply(unique(ann$sample), fc, d, 'EE', ann)
+scores <- data.frame(row.names=unique(ann$sample), PIS=panethIndScore)
+scores$lPIS <- scores$PIS
+scores$model <- rownames(scores)
+ggplot(scores, aes(y=lPIS,x=reorder(model, -lPIS)))+geom_col(fill='blue')+ylab("EE")+xlab("Model")+theme_bw()+theme(axis.text.x = element_text(size=15, angle = 90, hjust = 1, vjust=0.5))
+
+panethIndScore <- sapply(unique(ann$sample), fcvivo, d, 'sEE', ann)
+scores <- data.frame(row.names=unique(ann$sample), PIS=panethIndScore)
+scores$lPIS <- scores$PIS
+scores$model <- rownames(scores)
+ggplot(scores, aes(y=lPIS,x=reorder(model, -lPIS)))+geom_col(fill='blue')+ylab("sEE")+xlab("Model")+theme_bw()+theme(axis.text.x = element_text(size=15, angle = 90, hjust = 1, vjust=0.5))
+
 
