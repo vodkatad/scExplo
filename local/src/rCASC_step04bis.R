@@ -22,7 +22,7 @@ SEED <- 157
 #save.image('pluto.Rdata')
 setwd(dirname(opt$vande))
 seurat_ccycle(group="docker", scratch.folder=SCRATCH, file=opt$vande, separator=SEPARATOR, seed = SEED)
-seuratPCAEval(group = "docker", scratch.folder=SCRATCH, file=opt$vande, separator=",", logTen = 0, seed = SEED)
+#seuratPCAEval(group = "docker", scratch.folder=SCRATCH, file=opt$vande, separator=",", logTen = 0, seed = SEED)
 # this generates 
 #{sample}/Results/filtered_annotated_saver_ribomito_{sample}/PCE_bowPlot.pdf
 

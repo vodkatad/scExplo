@@ -1,0 +1,64 @@
+include : "conf.sk"
+import pandas as pd
+
+
+def find_log2(wildcards):
+    return PRJ_ROOT+'/dataset/'+DIC_FOLDER[wildcards.sample]+'/{sample}_dir/filtered_annotated_saver_ribomito_{sample}_log2_pc1_cpm.csv'
+
+rule calculate_posterior_and_silh_diag:
+    input:find_log2
+    output:out='posterior/{sample}/{sample}_posterior_diag.csv',sil='silh/{sample}/{sample}_silh_diag.csv',plot='posterior/{sample}/{sample}_gmm_diag_summary.pdf'
+    script:SRC_DIR+'/GMM_diag.R'
+
+rule all_posterior_diag:
+    input: expand("posterior/{sample}/{sample}_posterior_diag.csv", sample=SAMPLES)
+
+rule calculate_posterior_and_silh_full:
+    input:find_log2
+    output:out='posterior/{sample}/{sample}_posterior_full.csv',sil='silh/{sample}/{sample}_silh_full.csv',plot='posterior/{sample}/{sample}_gmm_full_summary.pdf'
+    script:SRC_DIR+'/GMM_full.R'
+
+rule all_posterior_full:
+    input: expand("posterior/{sample}/{sample}_posterior_full.csv", sample=SAMPLES)
+
+rule calculate_posterior_and_silh_diag_cinque:
+    input:find_log2
+    output:out='posterior_cinque/{sample}/{sample}_posterior_diag.csv',sil='silh_cinque/{sample}/{sample}_silh_diag.csv',plot='posterior/{sample}/{sample}_gmm_diag_summary.pdf'
+    script:SRC_DIR+'/GMM_diag_cinque.R'
+rule all_posterior_diag_cinque:
+    input: expand("posterior_cinque/{sample}/{sample}_posterior_diag.csv", sample=SAMPLES)
+rule calculate_posterior_and_silh_full_cinque:
+    input:find_log2
+    output:out='posterior_cinque/{sample}/{sample}_posterior_full.csv',sil='silh_cinque/{sample}/{sample}_silh_full.csv',plot='posterior/{sample}/{sample}_gmm_full_summary.pdf'
+    script:SRC_DIR+'/GMM_full_cinque.R'
+
+rule all_posterior_full_cinque:
+    input: expand("posterior_cinque/{sample}/{sample}_posterior_full.csv", sample=SAMPLES)
+
+def find_choord(wildcards):
+    return PRJ_ROOT+'/dataset/'+DIC_FOLDER[wildcards.sample]+'/{sample}_seurat_clusters_5.csv'
+rule tsne_plot_full:
+    input: tsne=find_choord,sil='silh/{sample}/{sample}_silh_full.csv'
+    output: res='silh/{sample}/{sample}_silh_full_tsne.pdf'
+    script:SRC_DIR+'/tsne.R'
+rule all_tsne_full:
+    input: expand("silh/{sample}/{sample}_silh_full_tsne.pdf", sample=SAMPLES)
+rule tsne_plot_diag:
+    input: tsne=find_choord,sil='silh/{sample}/{sample}_silh_diag.csv'
+    output: res='silh/{sample}/{sample}_silh_diag_tsne.pdf'
+    script:SRC_DIR+'/tsne.R'
+rule all_tsne_diag:
+    input: expand("silh/{sample}/{sample}_silh_diag_tsne.pdf", sample=SAMPLES)
+rule tsne_plot_full_cinque:
+    input: tsne=find_choord,sil='silh_cinque/{sample}/{sample}_silh_full.csv'
+    output: res='silh_cinque/{sample}/{sample}_silh_full_tsne.pdf'
+    script:SRC_DIR+'/tsne.R'
+rule all_tsne_full_cinque:
+    input: expand("silh_cinque/{sample}/{sample}_silh_full_tsne.pdf", sample=SAMPLES)
+rule tsne_plot_diag_cinque:
+    input: tsne=find_choord,sil='silh_cinque/{sample}/{sample}_silh_diag.csv'
+    output: res='silh_cinque/{sample}/{sample}_silh_diag_tsne.pdf'
+    script:SRC_DIR+'/tsne.R'
+rule all_tsne_diag_cinque:
+    input: expand("silh_cinque/{sample}/{sample}_silh_diag_tsne.pdf", sample=SAMPLES)
+
