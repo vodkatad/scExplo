@@ -144,6 +144,23 @@ rule step_04_seuratcycle:
             touch {output.t}
         """
 
+rule step_04_seuratboot_varres:
+    input: vande="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"
+    params: tool=SRC_DIR+'/rCASC_step04_varres.R', vande=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"), scratch=SCRATCH
+    output: t="{sample}_step04_res{res}_{pc}"#, c='{sample}_seurat_clusters_res{res}_{pc}.csv', c2="{sample}_dir/clustering_res{res}_{pc}.csv"
+    shell:  
+        """
+            {params.tool} -v {params.vande} -s {params.scratch} -p {wildcards.pc} -r {wildcards.res}
+            touch {output.t}
+	"""
+
+#this changes the date of -rwxrwxrwx 1 egrassi trcanmed 281749434 Nov 19 12:42 CRC0327_NT_1_dir/filtered_annotated_saver_ribomito_CRC0327_NT_1.csv
+	
+rule all_varres:
+    input: expand("{sample}_step04_res0.2_5", sample=SAMPLES)
+
+ruleorder: step_04_seuratboot_varres > step_04_seuratboot
+	
 #### shading of genes on UMAP
 rule gene_shading:
     input: step="{sample}_step04_{pc}", genes=PRJ_ROOT+'/local/share/data/genes_{genes}.txt', data="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"

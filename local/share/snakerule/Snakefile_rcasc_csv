@@ -3,12 +3,50 @@ include: "conf.sk"
 rule all_dir:
     input: expand("{sample}_dir/{sample}.tsv", sample=SAMPLES)
 
+rule all_counts:
+    input: expand("{sample}_dir/{sample}.tsv", sample=SAMPLES_FOR_COUNT)
+    output: "all_counts_dir/all_counts.tsv"
+    run:
+        import pandas as pd
+        res = pd.read_csv(input[0], sep=",", index_col=0, header=0).T
+        res['sample'] = [input[0]] * len(res)
+        i = 1
+        for f in input[1:]:
+            res_i = pd.read_csv(f, sep=",", index_col=0, header=0).T
+            res_i['sample'] = [input[i] * len(res_i)]
+            i = i + 1
+            res = res.append(res_i, ignore_index=True)
+        res.T.to_csv(output[0], sep= ",")
+
+
 rule all_rcasc_steps:
     input: expand("{sample}_cc_10.tsv", sample=SAMPLES)
 
 # move in dir?
+#input: CSV_DIR+'/{sample}.csv'
+# Note: this was linked to CSV_DIR where csv had the right name for the original samples
 rule step_01_saver:
-    input: CSV_DIR+'/{sample}.csv'
+    input: "{sample}_dir/{sample}.tsv"
+    output: "{sample}_saver.csv.gz"
+    params: tool=SRC_DIR+'/rCASC_step01.R', cores=CORES
+    shell:  
+        """
+            {params.tool} -c {input} -s {output} -p {params.cores}
+        """
+
+def get_absolute(wildcards, input):
+    return os.path.join(os.getcwd(), input.counts)
+
+def get_absolute_all(rpath):
+
+rule all_rcasc_steps:
+    input: expand("{sample}_cc_10.tsv", sample=SAMPLES)
+
+# move in dir?
+#input: CSV_DIR+'/{sample}.csv'
+# Note: this was linked to CSV_DIR where csv had the right name for the original samples
+rule step_01_saver:
+    input: "{sample}_dir/{sample}.tsv"
     output: "{sample}_saver.csv.gz"
     params: tool=SRC_DIR+'/rCASC_step01.R', cores=CORES
     shell:  
@@ -39,7 +77,8 @@ rule step_02_cc_ribomito:
 # {sample}_dir/Results/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}/PCE_bowPlot.pdf
 rule step_03_topsd_topexpr:
     input: counts='{sample}_dir/{sample}.tsv', gtf='{sample}_dir/gtf.gtf', saver="{sample}_saver.csv.gz"
-    output: cc="{sample}_dir/filtered_annotated_{sample}_cellCycle.tsv", vande="{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv"
+    output: cc="{sample}_dir/filtered_annotated_{sample}_cellCycle.tsv", vande="{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv",
+            saverfarm="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"
     params: tool=SRC_DIR+'/rCASC_step03.R', scratch=SCRATCH, rcounts=get_absolute, rgtf="gtf.gtf", saver=get_absolute_all("{sample}_dir/saver_{sample}.tsv"),
             saverfarm=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"),
             saverfarmva=get_absolute_all("{sample}_dir/filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv"),
@@ -117,28 +156,76 @@ rule step_03tris_saver_alive_pc_G1:
 rule step_04_seuratboot:
     input: vande="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"
     params: tool=SRC_DIR+'/rCASC_step04.R', vande=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"), scratch=SCRATCH
-    output: t="{sample}_step04_{pc}", c='{sample}_seurat_clusters_{pc}.csv', c2="{sample}_dir/clustering_{pc}.csv"
+    output: t="{sample}_step04_{pc}" #, c='{sample}_seurat_clusters_{pc}.csv', c2="{sample}_dir/clustering_{pc}.csv"
     shell:  
         """
             {params.tool} -v {params.vande} -s {params.scratch} -p {wildcards.pc}
             touch {output.t}
-            ln -s {wildcards.sample}_dir/Results/filtered_annotated_saver_ribomito_{wildcards.sample}/*/filtered_annotated_saver_ribomito_{wildcards.sample}_clustering.output.csv {output.c}
-            cp {wildcards.sample}_dir/Results/filtered_annotated_saver_ribomito_{wildcards.sample}/*/filtered_annotated_saver_ribomito_{wildcards.sample}_clustering.output.csv {output.c2}
         """
+#ln -s {wildcards.sample}_dir/Results/filtered_annotated_saver_ribomito_{wildcards.sample}/*/filtered_annotated_saver_ribomito_{wildcards.sample}_clustering.output.csv {output.c}
+#cp {wildcards.sample}_dir/Results/filtered_annotated_saver_ribomito_{wildcards.sample}/*/filtered_annotated_saver_ribomito_{wildcards.sample}_clustering.output.csv {output.c2}
 
-#this changes the date of -rwxrwxrwx 1 egrassi trcanmed 281749434 Nov 19 12:42 CRC0327_NT_1_dir/filtered_annotated_saver_ribomito_CRC0327_NT_1.csv
-# WHY WHY WHY
-
-# this rewrites the ccycle done in step03 using saver imputed data vs only filtered_annotated
-rule step_04_seuratcycle:
-    input: all_saver_filtered="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"
-    params: tool=SRC_DIR+'/rCASC_step04bis.R', all_saver_filtered=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"), scratch=SCRATCH
-    output: t="{sample}_step04bis", c="{sample}_dir/filtered_annotated_saver_ribomito_{sample}_cellCycle.csv"
+# Warning: rCASC if this rule runs when some other clustering results for the same samples are found (more than 1 directory in _dir/Results/sample_name, with different
+# cluster numbers) permAnalysisSeurat is not called and _score.csv _scoreSum.csv and *Stability_Plot.pdf are not produced.
+rule step_04_seuratboot_varres:
+    input: vande="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"
+    params: tool=SRC_DIR+'/rCASC_step04_varres.R', vande=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"), 
+            scratch=SCRATCH, mod_rCASC=SRC_DIR+'/seurat_bootstrap_mod.R'
+    output: t="{sample}_step04_res{res}_{pc}", c='{sample}_seurat_clusters_res{res}_{pc}.csv', 
     shell:  
         """
-            {params.tool} -v {params.all_saver_filtered} -s {params.scratch}
+            echo 'y\\ny\\ny\\ny' | {params.tool} -v {params.vande} -s {params.scratch} -p {wildcards.pc} -r {wildcards.res} -m {params.mod_rCASC}
+            cp {wildcards.sample}_dir/Results/filtered_annotated_saver_ribomito_{wildcards.sample}/filtered_annotated_saver_ribomito_{wildcards.sample}_clustering.output_{wildcards.res}.csv {output.c}
+            touch {output.t}
+	"""
+
+#this changes the date of -rwxrwxrwx 1 egrassi trcanmed 281749434 Nov 19 12:42 CRC0327_NT_1_dir/filtered_annotated_saver_ribomito_CRC0327_NT_1.csv
+	
+rule all_varres:
+    input: expand("{sample}_step04_res0.2_5", sample=SAMPLES)
+	
+ruleorder: step_04_seuratboot_varres > step_04_seuratboot
+# WHY WHY WHY
+
+rule step_04_seuratcycle:
+    input: all_saver_filtered="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"
+    params: tool=SRC_DIR+'/rCASC_step04bis.R', all_saver_filtered=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"), scratch=SCRATCH, source=SRC_DIR+'/seurat_ccycle_mod.R'
+    output: t="{sample}_step04bis", c="{sample}_dir/filtered_annotated_saver_ribomito_{sample}_cellCycle.csv",
+	    scaledata="{sample}_dir/filtered_annotated_saver_ribomito_{sample}_cellCycleScaleData.csv",
+	    variableFeat="{sample}_dir/filtered_annotated_saver_ribomito_{sample}_variableFeatures.txt"
+    shell:  
+        """
+            {params.tool} -v {params.all_saver_filtered} -s {params.scratch} -c {params.source}
             touch {output.t}
         """
+
+# We want to be able to use SeuratBootstrap both with counts and with scaledData after cell cycle normalization
+def variableFeatures_input(wildcards, input):
+    import os
+    abs_vand_path = get_absolute_all(str(input.vande))
+    basename = os.path.basename(abs_vand_path)
+    basedir = os.path.dirname(abs_vand_path)
+    split_fn = basename.split('_')
+    # Logic not needed cause we have two rules for cell cycle correction and standard seurat clustering
+    #if "cellCycleScaleData.csv" == split_fn[-1]: 
+    split_fn[-1] = 'variableFeatures.txt'
+    pathtxt = '_'.join(split_fn)
+    res = str(os.path.join(basedir, pathtxt))
+    return "-f " + res
+
+# Warning: rCASC if this rule runs when some other clustering results for the same samples are found (more than 1 directory in _dir/Results/sample_name, with different
+# cluster numbers) permAnalysisSeurat is not called and _score.csv _scoreSum.csv and *Stability_Plot.pdf are not produced.
+rule step_04_seurat_varres_cyclecorr:
+    input: vande="{sample}_dir/filtered_annotated_saver_ribomito_{sample}_cellCycleScaleData.csv"
+    params: tool=SRC_DIR+'/rCASC_step04_varres.R', vande=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}_cellCycleScaleData.csv"), 
+            scratch=SCRATCH, varFeat=variableFeatures_input, mod_rCASC=SRC_DIR+'/seurat_bootstrap_mod.R'
+    output: t="{sample}_step04cc_res{res}_{pc}", c='{sample}_seurat_clusters_cc_res{res}_{pc}.csv' #, c2="{sample}_dir/clustering_res{res}_{pc}.csv"
+    shell:  
+        """
+            {params.tool} -v {params.vande} -s {params.scratch} -p {wildcards.pc} -r {wildcards.res} -n {params.varFeat} -m {params.mod_rCASC}
+            cp {wildcards.sample}_dir/Results/filtered_annotated_saver_ribomito_{wildcards.sample}_cellCycleScaleData/filtered_annotated_saver_ribomito_{wildcards.sample}_cellCycleScaleData_clustering.output_{wildcards.res}.csv {output.c}
+            touch {output.t}
+	"""
 
 #### shading of genes on UMAP
 rule gene_shading:
@@ -173,7 +260,7 @@ rule gene_shading_G1:
 #rule all_paneth_shades:
 #    input: expand("pPaneth_genesshadingG1_{sample}_PC5", sample=SAMPLES)
 rule all_shades:
-    input: expand("rank100_genesshadingG1_{sample}_PC5", sample=SAMPLES)
+    input: expand("DUSP1_genesshadingG1_{sample}_PC5", sample=SAMPLES)
 
 rule step_05_comet_pb:
     input: vande="{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv", cycle="{sample}_dir/filtered_annotated_{sample}_cellCycle.tsv", step="{sample}_step04_{pc}"

@@ -1,0 +1,7 @@
+SPECIE1='Homo_sapiens'
+SPECIE2='homo_sapiens'
+VERSION='GRCh38'
+RELEASE='92'
+
+rule all: 
+    input: SPECIE1+'.'+VERSION+'.'+RELEASE+'.filtered.gtf'

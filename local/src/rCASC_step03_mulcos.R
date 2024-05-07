@@ -39,7 +39,7 @@ saver_last <- opt$saverla
 #setwd(odir)
 #filtering on raw data
 print('############################# scanno1')
-scannobyGtf(group = "docker", file=INPUT, gtf.name=GTF, biotype="protein_coding", mt = FALSE, ribo.proteins = FALSE, umiXgene = 3, riboStart.percentage = 0, riboEnd.percentage = 50, mitoStart.percentage = 1, mitoEnd.percentage = 5, thresholdGenes = 100)
+scannobyGtf(group = "docker", file=INPUT, gtf.name=GTF, biotype="protein_coding", mt = FALSE, ribo.proteins = FALSE, umiXgene = 3, riboStart.percentage = 0, riboEnd.percentage = 50, mitoStart.percentage = 0, mitoEnd.percentage = 40, thresholdGenes = 100)
 # thir produces (in the directory where INPUT is)
 # filtered_annotated_CRC0542_CTX72h_1.tsv  annotated_CRC0542_CTX72h_1.tsv CRC0542_CTX72h_1_annotated_genes.pdf  (who uses them then?) filteredStatistics.txt
 # so we want another directory for saver???

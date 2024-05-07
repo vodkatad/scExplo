@@ -308,6 +308,27 @@ rule tocsv:
         cp {output} {params.out}
         """
 
+#rule all_csv: 
+#    input: expand("{sample}_cellranger.csv", sample=OSAMPLES)
+
+#def find_csv_ln(wildcards):
+#    import os
+#    i = OSAMPLES.index(wildcards.sample)
+#    w = SAMPLES[i] + ".tsv"
+#    print(w)
+#    if os.path.isfile(w):
+#        return w
+#    else:
+#        raise ValueError("Check you SAMPLES_ORIG and SAMPLES in conf.sk!")
+            
+#rule csvln:
+#    input: find_csv_ln
+#    output: "{sample}_cellranger.csv"
+#    shell:
+#        """
+#            ln -s {input} {output}
+#        """
+    
 rule all_csv_raw:
     input: expand("{sample}_raw.csv", sample=SAMPLES[0:])
 
@@ -320,7 +341,7 @@ rule tocsv_raw:
         """
         {params.tool} mat2csv {input} {output}
         cp {output} {params.out}
-        """
+
 # FQ removed is needed to avoid failures when the original fq have been moved to make space
 def find_ln(wildcards):
     import os
@@ -350,6 +371,13 @@ rule seurat_markers:
     output: markers="{sample}_{res}.clusters_markers.tsv", cyclecl="{sample}_{res}.cycle_cluster.tsv", heatmap="{sample}_{res}.heat.pdf", umapcl="{sample}_{res}.umap_cl.pdf",
             umapcy="{sample}_{res}.umap_cy.pdf"
     script: SEURAT_MARKERS
+
+
+rule seurat_markers_nocc:
+    input: data="{sample}_Seurat_prelim.Rdata", cc=PRJ_ROOT+"local/share/data/regev_lab_cell_cycle_genes.txt"
+    output: markers="{sample}_{res}.clustersnocc_markers.tsv", heatmap="{sample}_{res}.heatnocc.pdf", umapcl="{sample}_{res}.umap_clnocc.pdf",
+            umapcy="{sample}_{res}.umapnocl_cy.pdf", cyclecl="{sample}_{res}.cyclenocl_cluster.tsv"
+    script: SEURAT_MARKERS_NOCC
 
 # TODO clone rule to get % mito and decide if we need to re-run or not
 

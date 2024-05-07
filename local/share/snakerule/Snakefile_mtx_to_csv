@@ -1,0 +1,17 @@
+include: "conf.sk"
+
+rule all_csv:
+    input: expand("{sample}.csv", sample=SAMPLES)
+
+def find_mtx(wildcards):
+    import os
+    return os.path.join(BASEDIR, SAMPLES[wildcards.sample])
+
+rule conversion_mtx_to_csv:
+    input: find_mtx
+    output: "{sample}.csv"
+    params: tool=SRC_DIR+'/cellranger-3.1.0/cellranger'
+    shell: 
+        """
+            {params.tool} mat2csv {input} {output}
+        """
