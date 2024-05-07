@@ -15,7 +15,7 @@ stringa_split<-function(stringa){
 }
 colnames(dato_t) <- sapply(colnames(dato_t),FUN=stringa_split)
 #cinque<-c("ATOH1","GFI1","DLL1","DEFA5","DEFA6")
-cinque<-c("DLL4","NOTCH1","NOTCH2")
+cinque<-c("OLFM4","ATOH1","DLL1","NOTCH1","NOTCH2","HES1","DLL4","DEFA5","DEFA6","APCDD1","WNT6","LGR5")
 
 cinque_df<-dato_t[,cinque]
 

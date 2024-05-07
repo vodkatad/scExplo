@@ -9,7 +9,8 @@ def find_log2(wildcards):
 def gene_name(stringa):
         return stringa.split(':')[1]
 def find_count(wildcards):
-    return PRJ_ROOT+'/dataset/'+DIC_FOLDER[wildcards.sample]+'/{sample}_dir/filtered_annotated_{sample}.tsv'
+    return PRJ_ROOT+'/dataset/'+DIC_FOLDER[wildcards.sample]+'/{sample}_dir/{sample}.tsv'
+
 
 def find_choord(wildcards):
     return PRJ_ROOT+'/dataset/'+DIC_FOLDER[wildcards.sample]+'/{sample}_seurat_clusters_5.csv'
@@ -32,6 +33,7 @@ rule calculate_log2_cpm:
         data=np.log2(cpm+1)
         print(data.head())
         data.to_csv(output.out)
+
 rule all_post_saver:
     input: expand("kmeans/{sample}/filtered_annotated_saver_ribomito_{sample}_log2.csv", sample=SAMPLES,)
 
@@ -42,7 +44,6 @@ rule calculate_tsne_choord:
 rule all_choords:
     input: expand("kmeans/{sample}/filtered_annotated_saver_ribomito_{sample}_choord.csv", sample=SAMPLES,)
 
-rule prova_cliques:
 rule calculate_kmeans_2_cinque:
     input:data=find_log2
     output:out='kmeans/{sample}/{sample}_kmeans_2comp_cinque.csv'
@@ -408,10 +409,10 @@ rule all_plot_bimodal:
 
 rule dataset_ff:
     input: data=find_log2
-    output: out='dll4_data/{sample}_log2cpm.csv'
+    output: out='OLFM/{sample}_log2cpm.csv'
     script: SRC_DIR+'/produce_ff_dataset.R'
 rule all_dataset_ff:
-    input:expand('dll4_data/{sample}_log2cpm.csv',sample=SAMPLES)
+    input:expand('OLFM/{sample}_log2cpm.csv',sample=SAMPLES)
 rule Fig_1:
     input:data='ff_data/{sample}_ff_log2cpm.csv', tsne=find_choord, k_out='kmeans/{sample}/{sample}_kmeans_2comp.csv'
     output:plot_out='kmeans/Fig_1/{sample}_tsne.png',pdf='kmeans/Fig_1/{sample}_genes.pdf'
@@ -423,10 +424,15 @@ def find_UMAP(wildcards):
     return 'Alberto_integrated_UMAP/'+DIC_ALBERTO[wildcards.sample]
     
 rule Fig_1_alberto:
-    input:data='dll4_data/{sample}_log2cpm.csv', umap=find_UMAP, k_out='kmeans/{sample}/{sample}_kmeans_2comp.csv'
-    output:pdf='dll4_notch1_notch2/{sample}_umap.pdf'#plot_out='Fig_1_alberto/{sample}_tsne.png'
+    input:data='OLFM/{sample}_log2cpm.csv', umap=find_UMAP, k_out='kmeans/{sample}/{sample}_kmeans_2comp.csv'
+    output:pdf='OLFM_plot/{sample}_umap.pdf'#plot_out='Fig_1_alberto/{sample}_tsne.png'
     script:SRC_DIR+'/Fig_1_a.R'
 rule all_Fig_1_alberto:
-    input:expand('dll4_notch1_notch2/{sample}_umap.pdf',sample=SAMPLES)
+    input:expand('OLFM_plot/{sample}_umap.pdf',sample=SAMPLES)
 
-    
+rule cpm_umap_filtered_genes:
+    input:count=find_count,umap=find_UMAP
+    output:pdf='ribosomal_gene/{sample}_umap.pdf'
+    script:SRC_DIR+'/Fig_1_ribosomal.R'
+rule all_cpm_umap_filtered_gene:
+    input:expand('ribosomal_gene/{sample}_umap.pdf',sample=SAMPLES)    

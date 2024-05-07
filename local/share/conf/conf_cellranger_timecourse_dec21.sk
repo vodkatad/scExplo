@@ -7,7 +7,8 @@ CRIS=PRJ_ROOT+"local/share/data/cris_wanted_gs.tsv"
 TRANSCRIPTOME=PRJ_ROOT+"local/share/data/refdata-cellranger-GRCh38-1.2.0"
 # TODO redo with wget http://cf.10xgenomics.com/supp/cell-exp/refdata-cellranger-GRCh38-3.0.0.tar.gz
 MEM=90
-CORES=8
+#CORES=8
+CORES=12 # upped for velocyto
 CELLRANGER=PRJ_ROOT+"local/src/cellranger-3.1.0/cellranger"
 FASTQ_DIR='./HL7L3DRXY/outs/fastq_path/'
 SEQ_DIR='/mnt/cold1/upload/scRNA_Candiolo_12_2021/ll/211209_A00959_0109_BHL7L3DRXY'
@@ -50,4 +51,7 @@ SEURAT_VIOLIN=SRC_DIR+"seurat_violin.R"
 VIOLIN_GENES='ATOH1,GFI1,SOX9,XBP1,DEFA5,DEFA6,LYZ,SPINK4,DLL1,DLL4'
 
 RCASC_DIR=PRJ_ROOT+'/dataset/rCASC_timecourse' 
+
+
+REPEATS="/mnt/trcanmed/temp/rmsk.gtf"
 

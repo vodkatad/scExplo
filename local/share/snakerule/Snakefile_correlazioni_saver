@@ -1,0 +1,36 @@
+include : "conf.sk"
+import pandas as pd
+import numpy as np
+def find_log2(wildcards):
+    return PRJ_ROOT+'/dataset/'+DIC_FOLDER[wildcards.sample]+'/{sample}_dir/filtered_annotated_saver_ribomito_{sample}_log2_pc1_cpm.csv'
+def gene_name(stringa):
+        return stringa.split(':')[1]
+def find_count(wildcards):
+    return PRJ_ROOT+'/dataset/'+DIC_FOLDER[wildcards.sample]+'/{sample}_dir/filtered_annotated_{sample}.tsv'
+
+def find_count_not_filtered(wildcards):
+    return PRJ_ROOT+'/dataset/'+DIC_FOLDER[wildcards.sample]+'/{sample}_dir/{sample}.tsv'
+
+def find_choord(wildcards):
+    return PRJ_ROOT+'/dataset/'+DIC_FOLDER[wildcards.sample]+'/{sample}_seurat_clusters_5.csv'
+
+rule calculate_saver_correlazioni_filtered_annotated:
+    input:data=find_count
+    output:corr='{sample}_corr_filtered_annot_saver.csv'
+    script:SRC_DIR+'/saver_correlation.R'
+
+rule calculate_saver_correlazioni_not_filtered:
+    input:data=find_count_not_filtered
+    output:corr='{sample}_corr_saver.csv'
+    script:SRC_DIR+'/saver_correlation.R'
+
+rule calculate_magic_impute:
+    input:data=find_count
+    output: magic='{sample}_magic.csv'
+    run:
+    import magic
+    import numpy as np
+    import pandas as pd
+    import matplotlib
+    import matplotlib.pyplot as plt
+    data=pd.read_csv(input.data,sep='\t',header=0,index_col=0)

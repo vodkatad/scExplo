@@ -1,0 +1,46 @@
+#Snakefile GNN
+
+#include Graph_data.py 
+print(sys.path)
+rule prova_conda_env:
+    #conda:'GNN.yml'
+    run:
+         import torch
+         print('suka')
+
+rule create_data_log2_cpm:
+    output:out='raw/data.csv'
+    run:
+        import pandas as pd
+        import os
+        data=pd.DataFrame()
+        for f in os.listdir('data'):
+            sample=f.split('ribomito_')[1].split('_log')[0]
+            d=pd.read_csv(os.path.join('data',f),header=0,index_col=0).T
+            print(d.head())
+            if 'CRC0322' in sample : 
+                label='CRC0322'
+            elif 'CRC0327' in sample:
+                label='CRC0327'
+            elif 'CRC1502' in sample:
+                label='CRC1502'
+            else:
+                label='CRC1139'
+            d['sample']=[label]*len(d)
+            d=d.reset_index()
+            d=d.rename(columns={'index':'cell'})
+            data=pd.concat([data,d],axis=0,ignore_index=True)
+            
+        #data=data.rename(columns={'index':'cell'})
+        data.to_csv(output.out,index=False)
+
+rule GNN_train:
+    input:i='raw/data_sub.csv'
+    output:train='result/train.csv',val='result/val.csv',graph_rep='result/graph_rep.csv'
+    run:
+        #from Graph_data import *
+        import pandas as pd
+        print('yeah')
+        data=pd.read_csv(input.i,header=0,index_col=None)
+        print(data.head())
+

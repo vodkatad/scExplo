@@ -1,0 +1,111 @@
+---
+title: "Me and GMM covariance"
+author: "Elena Grassi"
+date: "2/2/2023"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(mclust)
+library(ggplot2)
+set.seed(42)
+```
+
+## Easy example in 2D where inside groups elements are not correlated
+
+```{r data_ex_1}
+
+SMALLER=300
+LARGER=700
+
+npG1 <- rnorm(LARGER, mean=2, sd=1)
+npG2 <- rnorm(LARGER, mean=4, sd=1.5)
+
+pG1 <- rnorm(SMALLER, mean=4, sd=1.2)
+pG2 <- rnorm(SMALLER, mean=10, sd=1.8)
+
+data <- data.frame(G1=c(npG1, pG1), G2=c(npG2, pG2))
+
+pan_real <- c(rep(FALSE, LARGER), rep(TRUE, SMALLER))
+ggplot(data, aes(x=G1, y=G2))+stat_density_2d(aes(fill = stat(level)), geom = "polygon")+theme_bw()
+
+```
+
+Let's fit it with the right thing, that here is diagonal, meaning the ellipses are inline with the x/y axes due to independence of G1 and
+G2 inside the two groups.  Let's go with VVI!
+Then we'll compute the correct answers for this model, and then try out a ``wrong'' one.
+
+```{r fitdiag_ex1}
+GMM <- densityMclust(data=data, G=2, modelNames='VVI')
+
+call_paneth <- function(GMMo, thr=0.99) {
+  posteriors <- GMMo$z # furtooo di codice
+  mu <- data.frame(GMMo$parameters$mean)
+  meta_mu <- apply(mu, 2, function(x) {exp(mean(log(x)))})
+  if (meta_mu[[1]][1] > meta_mu[[2]][1]) {
+    colnames(posteriors)<-list("p(paneth)","p(non_paneth)")
+  } else {
+    colnames(posteriors)<-list("p(non_paneth)","p(paneth)")
+  }
+  posteriors[,'p(paneth)'] > thr
+}
+
+pan <- call_paneth(GMM)
+table(pan, pan_real)
+```
+
+Uh, it seems I created a not so easy example, but I will finish working on it, then we can decide
+if we want to refine it to me more similar to real life.
+Let's see how the full model, VVV, works here.
+
+```{r fitfull_ex1}
+GMM <- densityMclust(data=data, G=2, modelNames='VVV')
+
+pan <- call_paneth(GMM)
+table(pan, pan_real)
+```
+Ok, in this case not so much worse (hard to say with these numbers, should bootstrap probably), but for the full model we would need to try looking for overfitting issues rather than errors (I guess?).
+
+## Example n.2: what if we have the dreaded correlation inside groups?
+
+Let's say they are only in the Paneth cells!
+
+```{r data_ex_2}
+npG1 <- rnorm(LARGER, mean=2, sd=1)
+npG2 <- rnorm(npG2, mean=4, sd=1.5)
+
+pG1 <- rnorm(SMALLER, mean=4, sd=1.2)
+pG2 <- pG1*1.5+jitter(pG1)+rnorm(SMALLER, mean=3, sd=2)
+
+data2 <- data.frame(G1=c(npG1, pG1), G2=c(npG2, pG2))
+
+ggplot(data2, aes(x=G1, y=G2))+stat_density_2d(aes(fill = stat(level)), geom = "polygon")+theme_bw()+geom_point()
+
+```
+
+
+```{r fitdiag_ex2}
+GMM <- densityMclust(data=data2, G=2, modelNames='VVI')
+
+pan <- call_paneth(GMM)
+table(pan, pan_real)
+```
+
+```{r fitdiag_ex2_plot}
+
+pdata2 <- data2
+pdata2$right <- pan_real != pan
+ggplot(data=pdata2)+geom_point(aes(G1, G2, color=right))+scale_color_manual(values=c('black', 'red'))
+
+```
+
+It's definitely worse in this scenario.
+
+```{r fitfull_ex2}
+GMM <- densityMclust(data=data2, G=2, modelNames='VVV')
+
+pan <- call_paneth(GMM)
+table(pan, pan_real)
+```
+Ok probably this example is too simple (and the plot died?).
