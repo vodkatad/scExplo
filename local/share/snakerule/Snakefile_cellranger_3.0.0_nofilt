@@ -1,6 +1,12 @@
 SEURAT_MARKERS="../../local/src/seurat_markers.R" # partial for compatibility with things run with old version without PCA (now re-running scRNA_Ire_cetuxi_nofilt)
 include: "conf.sk"
 
+samples_map = {}
+rev_samples_map = {}
+for i in range(0,len(SAMPLES)):
+    samples_map[SAMPLES[i]] = OSAMPLES[i]
+    rev_samples_map[OSAMPLES[i]] = SAMPLES[i]
+
 rule all_counts:
     input: expand("{sample}.done", sample=SAMPLES)
 
@@ -423,3 +429,52 @@ rule go_markers:
 
 rule paneth_markers:
     input: expand("{sample}_0.2.clusters_markers.tsv", sample=OSAMPLES)
+
+
+#rule all_reanalyze:
+#    input: expand("{sample}.rea", sample=REANALYZE_SAMPLES)
+
+rule cellranger_reanalyze:
+    input: "{sample}.done", h5="{sample}/outs/filtered_feature_bc_matrix.h5"
+    output: "{sample}.rea"
+    params: tool=CELLRANGER, 
+            rCASC=lambda wildcards: RCASC_DIR+"/"+ samples_map[wildcards.sample]+"_dir/filtered_annotated_saver_ribomito_" + samples_map[wildcards.sample] + "_log2_pc1_cpm.csv",
+            out= lambda wildcards: samples_map[wildcards.sample] + "_rea"
+    shell: 
+        """
+        echo "Barcode" > {output}.tmp0
+        head -n1 {params.rCASC} | tr -d '"' | tr "," "\\n" | sed 1d | tr "." "-" >> {output}.tmp0
+        echo "Gene" > {output}.tmp1
+        sed 1d {params.rCASC} | tr -d '"' | tr "," "\\t" | cut -f 1 | tr ":" "\\t" | cut -f 1 >> {output}.tmp1
+        {params.tool} reanalyze --id {params.out} --matrix {input.h5}  --barcodes={output}.tmp0 --genes={output}.tmp1
+        echo "rm {output}.tmp*"
+        touch "{output}"
+        """
+
+### velocityo
+rule velocyto:
+    input: "{sample}.done"
+    output: "velocyto_{sample}.vdone"
+    params: transcriptome=TRANSCRIPTOME,rep=REPEATS,threads=CORES
+    shell:
+        """
+            velocyto run10x -@ {params.threads} -m {params.rep} \
+                {wildcards.sample} \
+                {params.transcriptome}/genes/genes.gtf
+            touch {output}
+        """
+
+rule all_velocyto:
+    input: expand("velocyto_{sample}.vdone", sample=SAMPLES)
+
+rule all_velocyto_ln:
+    input: expand("{sample}.loom", sample=OSAMPLES)
+#Sample_S26093_499/velocyto/Sample_S26093_499.loom
+rule velo_ln:
+    output: "{sample}.loom"
+    params: inp=lambda wildcards: rev_samples_map[wildcards.sample]+'/velocyto/*loom'
+    shell:
+        """
+            ln -s {params.inp} {output}            
+        """
+

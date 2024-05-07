@@ -20,5 +20,8 @@ REF_DIR=PRJ_ROOT+'/dataset/celescope_references'
 CORES=4
 
 FQ_DIR=PRJ_ROOT+'/local/share/data/invivo_singleron_07_2022/raw'
-SAMPLES={'UID_220039_RNA' : 'CRC0322LMO_NT72h_1_singleron0722'}
+SAMPLES={'UID_220039_RNA' : 'CRC0322LMO_NT72h_1_singleron0722',
+         'UID_220043_RNA': 'CRC0322LMX_NT1w_1_singleron0722',
+         'UID_220044_RNA': 'CRC0322LMX_CTX1w_1_singleron0722',
+         'UID_220040_RNA': 'CRC0322LMO_CTX72h_1_singleron0722'}
 NCELLS=20000

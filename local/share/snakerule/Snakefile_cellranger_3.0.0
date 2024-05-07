@@ -454,3 +454,31 @@ rule go_markers:
 
 rule paneth_markers:
     input: expand("{sample}_0.2.clusters_markers.tsv", sample=OSAMPLES)
+
+
+### velocityo
+rule velocyto:
+    input: "{sample}.done"
+    output: "velocyto_{sample}.vdone"
+    params: transcriptome=TRANSCRIPTOME,rep=REPEATS,threads=CORES
+    shell: 
+        """
+            velocyto run10x -@ {params.threads} -m {params.rep} \
+                {wildcards.sample} \
+                {params.transcriptome}/genes/genes.gtf
+            touch {output}
+        """
+  
+rule all_velocyto:
+    input: expand("velocyto_{sample}.vdone", sample=SAMPLES)
+
+rule all_velocyto_ln:
+    input: expand("{sample}.loom", sample=OSAMPLES)
+#Sample_S26093_499/velocyto/Sample_S26093_499.loom
+rule velo_ln:
+    output: "{sample}.loom"
+    params: inp=lambda wildcards: rev_samples_map[wildcards.sample]+'/velocyto/*loom'
+    shell:
+        """
+            ln -s {params.inp} {output}            
+        """

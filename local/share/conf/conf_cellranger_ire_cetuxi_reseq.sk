@@ -10,8 +10,12 @@ MEM=90
 CORES=22
 CELLRANGER=PRJ_ROOT+"local/src/cellranger-3.1.0/cellranger"
 FASTQ_DIR=PRJ_ROOT+"local/share/data/Ire_1_reseq/"
-SAMPLES=["Sample_S31434_CRC0327_cetux_1","Sample_S31435_CRC0322_NT_1","Sample_S26093_499","Sample_S26096_502","Sample_S26369_503","Sample_S26370_504","Sample_S26371_505","Sample_S26371_506",'aggr']
-OSAMPLES=["CRC0327_cetux_1_bis", "CRC0322_NT_1_bis","CRC0327_NT_1", "CRC0322_cetux_1", "CRC0327_NT_2", "CRC0327_cetux_2", "CRC1502_NT_1", "CRC1502_cetux_1", 'aggr']
+SAMPLES=["Sample_S31434_CRC0327_cetux_1","Sample_S31435_CRC0322_NT_1","Sample_S26093_499","Sample_S26096_502","Sample_S26369_503","Sample_S26370_504","Sample_S26371_505","Sample_S26371_506"]#,'aggr']
+OSAMPLES=["CRC0327_cetux_1_bis", "CRC0322_NT_1_bis","CRC0327_NT_1", "CRC0322_cetux_1", "CRC0327_NT_2", "CRC0327_cetux_2", "CRC1502_NT_1", "CRC1502_cetux_1"]#, 'aggr']
+RSAMPLES=["Sample_S31434_CRC0327_cetux_1","Sample_S31435_CRC0322_NT_1","Sample_S26093_499","Sample_S26096_502","Sample_S26369_503","Sample_S26370_504","Sample_S26371_505","Sample_S26371_506"]
+REANALYZE_SAMPLES=["CRC0327_cetux_1_4000", "CRC0322_NT_1_3000", "CRC0327_NT_1", "CRC0322_cetux_1", "CRC0327_NT_2", "CRC0327_cetux_2", "CRC1502_NT_1", "CRC1502_cetux_1"]
+# mess to manage resequencing ids vs rCASC
+
 #original:
 #SAMPLES=["Sample_S26093_499","Sample_S26094_500","Sample_S26095_501","Sample_S26096_502","Sample_S26369_503","Sample_S26370_504","Sample_S26371_505","Sample_S26371_506"]
 #OSAMPLES=["CRC0327_NT_1", "CRC0327_cetux_1_skip", "CRC0322_NT_1_skip", "CRC0322_cetux_1", "CRC0327_NT_2", "CRC0327_cetux_2", "CRC1502_NT_1", "CRC1502_cetux_1"]
@@ -29,3 +33,36 @@ SEURAT_PARAMS=PRJ_ROOT+"local/share/data/seurat_params.txt"
 SEURAT_MARKERS=SRC_DIR+"seurat_markers_pca.R"
 SEURAT_VIOLIN=SRC_DIR+"seurat_violin.R"
 VIOLIN_GENES='ATOH1,GFI1,SOX9,XBP1,DEFA5,DEFA6,LYZ,SPINK4,DLL1,DLL4'
+
+RCASC_DIR='/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_Ire_cetuxi'
+
+r_samples_map = {}
+for i in range(0,len(RSAMPLES)):
+    r_samples_map[RSAMPLES[i]] = REANALYZE_SAMPLES[i]
+
+print(r_samples_map)
+
+ruleorder: my_all_reanalyze > all_reanalyze
+ruleorder: my_cellranger_reanalyze > cellranger_reanalyze
+
+rule my_all_reanalyze:
+    input: expand("{sample}.rea", sample=RSAMPLES)
+
+rule my_cellranger_reanalyze:
+    input: "{sample}.done", h5="{sample}/outs/filtered_feature_bc_matrix.h5"
+    output: "{sample}.rea"
+    params: tool=CELLRANGER, 
+            rCASC=lambda wildcards: RCASC_DIR+"/"+ r_samples_map[wildcards.sample]+"_dir/filtered_annotated_saver_ribomito_" + r_samples_map[wildcards.sample] + "_log2_pc1_cpm.csv",
+            out= lambda wildcards: r_samples_map[wildcards.sample] + "_rea"
+    shell: 
+        """
+        echo "Barcode" > {output}.tmp0
+        head -n1 {params.rCASC} | tr -d '"' | tr "," "\\n" | sed 1d | tr "." "-" >> {output}.tmp0
+        echo "Gene" > {output}.tmp1
+        sed 1d {params.rCASC} | tr -d '"' | tr "," "\\t" | cut -f 1 | tr ":" "\\t" | cut -f 1 >> {output}.tmp1
+        {params.tool} reanalyze --id {params.out} --matrix {input.h5}  --barcodes={output}.tmp0 --genes={output}.tmp1
+        echo "rm {output}.tmp*"
+        touch "{output}"
+        """
+
+REPEATS="/mnt/bioionfotree/task/gencode/dataset/hsapiens/33/rmsk.gtf"

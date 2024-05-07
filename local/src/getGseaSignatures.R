@@ -14,6 +14,7 @@ if (is.null(opt$gmt) || is.null(opt$rds) || is.null(opt$category)) {
     usage <- getopt(opts, usage=TRUE)
     stop(usage)
 }
+
 gmt_file <- opt$gmt
 outputfile <- opt$rds
 cat <- opt$category
