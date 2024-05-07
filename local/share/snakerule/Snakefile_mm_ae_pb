@@ -23,12 +23,13 @@ rule all_gsea:
     output: touch("{enrich_cat}.done")
 
 rule all_gsea_all:
-    input: "H.done", "C2.done"    
+    input: "H.done", "C2.done", "C3.done" 
 
 rule gsea:
     input: gene_res_freq = "ranks/{sample}.rnk"
     output: GSEA_r = "{sample}.results_{enrich_cat}.tsv", GSEA_ridgeplot = "{sample}.ridgeplot_{enrich_cat}.pdf"
     script: SRC_DIR+'/GSEA_analysis.R'
 
-#    egrassi@godot:/scratch/trcanmed/scExplo/dataset/mixture_models_ae_pb$ for f in *results_H.tsv; do cut  -f 1,4,8 $f | sed 1d | bawk -v F=$f '{{print F, $0}}'; done |  sed 's/\.results_H\.tsv//1' > H.tsv
-#egrassi@godot:/scratch/trcanmed/scExplo/dataset/mixture_models_ae_pb$ for f in *results_C2.tsv; do cut  -f 1,4,8 $f | sed 1d | bawk -v F=$f '{{print F, $0}}'; done |  sed 's/\.results_C2\.tsv//1' > C2.tsv
+#    egrassi@godot:/scratch/trcanmed/scExplo/dataset/mixture_models_ae_pb$ 
+#for f in *results_H.tsv; do cut  -f 1,5,8 $f | sed 1d | bawk -v F=$f '{{print F, $0}}'; done |  sed 's/\.results_H\.tsv//1' > H.tsv
+#egrassi@godot:/scratch/trcanmed/scExplo/dataset/mixture_models_ae_pb$ for f in *results_C2.tsv; do cut  -f 1,5,8 $f | sed 1d | bawk -v F=$f '{{print F, $0}}'; done |  sed 's/\.results_C2\.tsv//1' > C2.tsv

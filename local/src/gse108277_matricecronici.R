@@ -18,7 +18,7 @@ xeno_final <- xeno_loess # filtrato per probe non crosshyb + detected e probe co
 #load('/scratch/trcanmed/scExplo/local/share/data/xeno_loess_full.rda')
 #xeno <- xeno_loess # dato totale
 metadata <-  pData(xeno_final)
-metadata_cronici <- metadata[metadata$TRATTAMENTO %in% c('CRONICO', 'NT'),]
+#metadata_cronici <- metadata[metadata$TRATTAMENTO %in% c('CRONICO', 'NT'),]
 
 # extract only cronici/nt
 expr_df <- exprs(xeno_final)
@@ -38,4 +38,4 @@ m_expr_df$TargetID <- NULL
 metadata$id <- gsub('X', '', rownames(metadata), fixed=TRUE)
 write.table(metadata, file="/scratch/trcanmed/scExplo/local/share/data/metadata_GSE108277.tsv", sep="\t", quote=FALSE, row.names=FALSE)
 
-write.table(m_expr_df, file=gzfile("/scratch/trcanmed/scExplo/local/share/data/expr_GSE108277.tsv.gz"), sep="\t", quote=FALSE, row.names=FALSE)
+write.table(m_expr_df, file=gzfile("/scratch/trcanmed/scExplo/local/share/data/expr_GSE108277.tsv.gz"), sep="\t", quote=FALSE, row.names=TRUE)
