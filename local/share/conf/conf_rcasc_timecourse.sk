@@ -39,3 +39,16 @@ SCRATCH="/tmp"
 
 VIO_GENES='/mnt/cold1/snaketree/prj/scRNA/local/share/data/Ire_cetuxi_first_and_reseq/genes_ensg.tsv'
 CYCLE_GENES='/mnt/cold1/snaketree/prj/scRNA/local/share/data/Ire_cetuxi_first_and_reseq/regev_lab_cell_cycle_genes_onlyensg.txt'
+
+
+BASE_DIR_RAF='/mnt/cold1/calogero/reanalysis_on_AIsc/paneth_only/time_course/'
+SAMPLES_MAP_RAF= {
+"CRC0322_4d_NOEGF": 'noegf4d',
+"CRC0322_4d_EGF": 'egf4d',
+"CRC0322_8d_NOEGF": 'noegf8d',
+"CRC0322_8d_EGF": 'egf8d',
+"CRC0322_3d_CTX": 'ctx3d',
+"CRC0322_12d_NOEGF": 'noegf12d',
+"CRC0322_12d_EGF": 'egf12d',
+"CRC0322_7d_CTX": 'ctx7d'
+}

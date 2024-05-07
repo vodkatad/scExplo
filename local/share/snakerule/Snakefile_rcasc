@@ -4,22 +4,6 @@ include: "conf.sk"
 rule all_dir:
     input: expand("{sample}_dir/{sample}.csv", sample=SAMPLES)
 
-
-rule all_counts:
-    input: expand("{sample}_dir/{sample}.tsv", sample=SAMPLES_FOR_COUNT)
-    output: "all_counts_dir/all_counts.csv"
-    run:
-        import pandas as pd
-        res = pd.read_csv(input[0], sep=",", index_col=0).T
-        res['sample'] = [input[0]] * len(res)
-        i = 1
-        for f in input[1:]:
-            res_i = pd.read_csv(f, sep=",", index_col=0).T
-            res_i['sample'] = [input[i]] * len(res_i)
-            i = i + 1
-            res = res.append(res_i, ignore_index=False)
-        res.T.to_csv(output[0], sep= ",")
-
 ## rule to make a dir for each sample with the starting tsv and the needed gtf
 # need to copy instead on ln because rCASC copies to another dir that is then mounted 
 # in the docker as a volume.
@@ -105,9 +89,9 @@ rule step_03tris_saver_alive_pc_G1:
 # long steps that I am not sure why uses all available cores (or a hardcoded fixed N that I missed somehow?)
 # i.e. permAtTime?
 rule step_04_seuratboot:
-    input: vande="{sample}_dirmito_{sample}.csv"
+    input: vande="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"
     params: tool=SRC_DIR+'/rCASC_step04.R', vande=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"), scratch=SCRATCH
-    output: t="{sample}_step04_{pc}", c='{sample}_seurat_clusters_{pc}.csv', c2="{sample}_dir/clustering_{pc}.csv"
+    output: t="{sample}_step04_{pc,\d+}", c='{sample}_seurat_clusters_{pc,\d+}.csv', c2="{sample}_dir/clustering_{pc,\d+}.csv"
     shell:  
         """
             {params.tool} -v {params.vande} -s {params.scratch} -p {wildcards.pc}
@@ -189,10 +173,20 @@ rule gene_shading:
     shell:
         """
             tr "," "\\t" < {input.data} | tr -d '"' | sed 1d | cut -f 1 | tr ":" "\\t" | filter_1col 2 {input.genes} | tr "\\t" ":" > {output.t}.tmp
+            echo 'y\\n'|
             {params.tool} -c {params.clustering} -s {params.scratch} -g {params.g} -p {params.plot} -t {params.tool2} -e {params.expr}
             touch {output.t}
             rm {output.t}.tmp
         """
+
+rule paneth_color_plot:
+    input: step="{sample}_step04_{pc}", tsne="{sample}_dir/clustering_{pc}.csv", raf=lambda wildcards: BASE_DIR_RAF+SAMPLES_MAP_RAF[wildcards.sample]+"_log2cpmfisher.csv"
+    output: plot="panethplot/{sample}_{pval}_pc{pc}.pdf"
+    params: outdir="panethplot"
+    script: SRC_DIR+'/paneth_stupid_plotter.R'
+
+rule all_paneth_color_plots:
+    input: expand("panethplot/{sample}_0.01_pc5.pdf", sample=SAMPLES)
 
 rule gene_shading_G1:
     input: step="{sample}_step04_{pc}", genes=PRJ_ROOT+'/local/share/data/genes_{genes}.txt', data="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv",
@@ -204,13 +198,18 @@ rule gene_shading_G1:
     shell:
         """
             tr "," "\\t" < {input.data} | tr -d '"' | sed 1d | cut -f 1 | tr ":" "\\t" | filter_1col 2 {input.genes} | tr "\\t" ":" > {output.t}.tmp
+            echo 'y\\n'|
             {params.tool} -c {params.clustering} -s {params.scratch} -g {params.g} -p {params.plot} -t {params.tool2} -e {params.expr} -E {input.expr_pc}
             touch {output.t}
             rm {output.t}.tmp
         """
 
 rule all_paneth_shades:
-    input: expand("DUSP1_genesshadingG1_{sample}_PC5", sample=SAMPLES)
+    input: expand("fantastici5_genesshading_{sample}_PC5", sample=SAMPLES)
+    
+
+#rule all_paneth_shades:
+#    input: expand("DUSP1_genesshadingG1_{sample}_PC5", sample=SAMPLES)
 
 rule step_05_comet_pb:
     input: vande="{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv", cycle="{sample}_dir/filtered_annotated_{sample}_cellCycle.tsv", step="{sample}_step04_{pc}"
@@ -223,6 +222,22 @@ rule step_05_comet_pb:
             echo -en "y\\ny\\ny\\n" | {params.tool} -v {params.vande} -s {params.scratch} -t {output} -o $CLU -n {wildcards.sample} -y {input.cycle}
         """
 
+rule step_05_comet_filt_annot_cc:
+    input: vande="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv", step="{sample}_step04cc_res{res}_{pc}",
+            clusters="{sample}_seurat_clusters_cc_res{res}_{pc}.csv"
+    output: directory("comet_{sample}_cc_res{res}_{pc}")
+    #docker: 'repbioinfo/cometsc.2020.01'
+    shell:  
+        """
+            echo $PWD
+            mkdir -p {output}
+            tr ',' '\\t' < {input.vande} > {output}/vande.tmp
+            tr ',' '\\t' < {input.clusters} | sed 1d  > {output}/clusters.tmp
+            echo 'vaffanculo' > {output}/vis.tmp
+            Comet {output}/vande.tmp {output}/vis.tmp {output}/clusters.tmp {output} -C 3 -X 0.15 -K 1 -skipvis True
+            rm {output}/vande.tmp {output}/vis.tmp {output}/clusters.tmp
+        """
+
 rule step_05bis_cycle:
     input: cycle="{sample}_dir/filtered_annotated_{sample}_cellCycle.tsv", step="{sample}_step04_{pc}"
     params: tool=SRC_DIR+'/rCASC_step05bis.R',
@@ -233,7 +248,7 @@ rule step_05bis_cycle:
             CLU=$({params.find_clu} {wildcards.sample})
             {params.tool} -t {output} -o $CLU -y {input.cycle}
         """
-#
+
 # other outputs of this step05:
 # -rw-r--r-- 1 egrassi trcanmed     780591 Jun  9 07:18 filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_CRC0069_CTX72h_1_bulkColumn.csv
 # -rw-r--r-- 1 egrassi trcanmed     712553 Jun  9 07:18 filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_CRC0069_CTX72h_1_bulklog2.csv

@@ -15,26 +15,25 @@ SNAKE_ROOT=os.getenv('SNAKE_ROOT')
 BIN_DIR=PRJ_ROOT+'/local/bin'
 SRC_DIR=PRJ_ROOT+'/local/src'
 
-SAMPLES=["CRC0322_cetux_1_nopaneth","CRC0322_cetux_1","CRC0327_NT_1", "CRC0327_cetux_1_4000", "CRC0322_NT_1_3000", "CRC0322_cetux_1", "CRC0327_NT_2", "CRC0327_cetux_2","CRC1502_NT_1", "CRC1502_cetux_1"]
-
-BASE_DIR_RAF='/mnt/cold1/calogero/reanalysis_on_AIsc/paneth_only/all/log2cpmfisher/'
-SAMPLES_MAP_RAF= {
-   "CRC0322_cetux_1": 'crc322ctx', # who are ctx1 and nt1?
-   "CRC0327_NT_1": 'crc327nt1', 
-   "CRC0327_cetux_1_4000": 'crc327ctx1', #controllare 1 e 2 di tutti i 327 una volta che ho fisher 
-   "CRC0322_NT_1_3000": 'crc322nt',
-   "CRC0327_NT_2": 'crc327nt2',
-   "CRC0327_cetux_2": 'crc327ctx2', 
-   "CRC1502_NT_1": 'crc1502nt', 
-   "CRC1502_cetux_1": 'crc1502ctx' 
-
-}
-
-SAMPLES_FOR_COUNTS=["CRC0322_cetux_1","CRC0327_NT_1", "CRC0327_cetux_1_4000", "CRC0322_NT_1_3000", "CRC0322_cetux_1", "CRC0327_NT_2", "CRC0327_cetux_2"]
+SAMPLES=["all_samples"]
+#SAMPLES_FOR_COUNTS=["all_samples",CRC0322_cetux_1","CRC0327_NT_1", "CRC0327_cetux_1_4000", "CRC0322_NT_1_3000", "CRC0322_cetux_1", "CRC0327_NT_2", "CRC0327_cetux_2"]
 #SAMPLES=["CRC0322_NT_1_3000","CRC0327_cetux_1_4000","CRC0327_cetux_2"]
 #SAMPLES=["CRC0322_NT_1_bis", "CRC1502_NT_1","CRC0322_NT_1_3000","CRC0327_cetux_1_4000", "CRC0322_cetux_1"]
 NSAMPLES=len(SAMPLES)
+#ALL_SAMPLE_NAME=["all_samples","CRC0322_cetux_1","CRC0327_NT_1", "CRC0327_cetux_1_4000", "CRC0322_NT_1_3000", "CRC0322_cetux_1", "CRC0327_NT_2", "CRC0327_cetux_2", "CRC1502_NT_1", "CRC1502_cetux_1"]
+SAMPLES_TO_MERGE=['/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_Ire_cetuxi/CRC0322_cetux_1_dir/CRC0322_cetux_1.tsv',
+'/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_Ire_cetuxi/CRC0322_NT_1_3000_dir/CRC0322_NT_1_3000.tsv',
+'/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_Ire_cetuxi/CRC0327_cetux_2_dir/CRC0327_cetux_2.tsv',
+'/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_Ire_cetuxi/CRC0327_NT_1_dir/CRC0327_NT_1.tsv',
+'/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_Ire_cetuxi/CRC0327_NT_2_dir/CRC0327_NT_2.tsv',
+'/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_Ire_cetuxi/CRC1502_cetux_1_dir/CRC1502_cetux_1.tsv',
+'/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_Ire_cetuxi/CRC1502_NT_1_dir/CRC1502_NT_1.tsv',
+'/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_Ire_cetuxi/CRC0327_cetux_1_4000_dir/CRC0327_cetux_1_4000.tsv',
+'/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_longer/CRC0069_CTX72h_1_dir/CRC0069_CTX72h_1.tsv',
+'/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_longer/CRC0069_NT72h_1_dir/CRC0069_NT72h_1.tsv'
+]
 
+#questo non serve ?
 CSV_DIR='/mnt/cold1/snaketree/prj/scRNA/local/share/data/Ire_cetuxi_first_and_reseq'
 
 ALL_CSV=expand(CSV_DIR+'/{sample}.tsv', sample=SAMPLES)
@@ -46,7 +45,7 @@ SCRATCH="/tmp"
 
 VIO_GENES='/mnt/cold1/snaketree/prj/scRNA/local/share/data/Ire_cetuxi_first_and_reseq/genes_ensg.tsv'
 CYCLE_GENES='/mnt/cold1/snaketree/prj/scRNA/local/share/data/Ire_cetuxi_first_and_reseq/regev_lab_cell_cycle_genes_onlyensg.txt'
-BASED='/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_Ire_cetuxi/'
+BASED='/mnt/cold1/snaketree/prj/scRNA/dataset/all_samples/'
 
 
 rule all_seurat_integration:
@@ -55,6 +54,9 @@ rule all_seurat_integration:
 rule all_seurat_integration_CRC0327:
     input: expand("CRC0327_res{res}_G1_clu_cycle.tsv", res=[0.01, 0.05, 0.1, 0.2, 0.5])
 
+
+# modded script to skip top sd top expr
+rCASC_step03=SRC_DIR+'/rCASC_step03_notopsdexpr.R'
 
 ########### Seurat integration, WARNING needs the required saver outputs to be there, un-chained rule.
 def find_saver_twosample(wildcards):
@@ -77,11 +79,15 @@ rule seurat_integration_two:
             {params.tool} -i {params.cinput} -r {wildcards.res} -g {params.genes} -k {wildcards.kind} -x {wildcards.s1}-{wildcards.s2}_res{wildcards.res}_{wildcards.kind}_ -n 7 -c {params.cycle} -b {params.base}
         """
 
+
+def find_counts_all(wildcards):
+    return SAMPLES_TO_MERGE
+
 rule seurat_integration_nomarkers:
-    input: find_saver_twosample # 
-    output: cy="{s1}-{s2}_res{res}_{kind}_clu_cycle_int2.tsv", pcs="{s1}-{s2}_res{res}_{kind}_PC_int2.pdf", norm="{s1}-{s2}_res{res}_{kind}_scaled_int2.tsv.gz"
+    input: find_counts_all
+    output: cy="all_res{res}_{kind}_clu_cycle_int2.tsv", pcs="all_res{res}_{kind}_PC_int2.pdf", norm="all_res{res}_{kind}_scaled_int2.tsv.gz"
     params: tool=SRC_DIR+'/seurat_integration_nomarkers.R', cinput=lambda wildcards, input: ','.join(input), cycle=CYCLE_GENES, base=BASED
-    #docker: 'seuratintegration_deg_getopt'
+    docker: 'seuratintegration_deg_getopt'
     shell:
         """
             {params.tool} -i {params.cinput} -r {wildcards.res} -k {wildcards.kind} -x all_res{wildcards.res}_{wildcards.kind}_ -n 20 -c {params.cycle} -b {params.base}

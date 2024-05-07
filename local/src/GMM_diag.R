@@ -1,0 +1,1 @@
+/mnt/cold1/snaketree/prj/scRNA/local/src/GMM_diag.R

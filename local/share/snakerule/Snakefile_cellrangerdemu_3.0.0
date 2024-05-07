@@ -275,8 +275,8 @@ rule go:
 
 ### cellranger 2csv
 #(base) [outs]egrassi@hactarlogin$ ../../../../local/src/cellranger-3.1.0/cellranger mat2csv filtered_feature_bc_matrix.h5 test.csv
-rule all_tsv:
-    input: expand("{sample}.tsv", sample=SAMPLES[0:])
+rule all_csv_base:
+    input: expand("{sample}.csv", sample=SAMPLES[0:])
 
 
 samples_map = {}
@@ -284,9 +284,9 @@ for i in range(0,len(SAMPLES)):
    samples_map[SAMPLES[i]] = OSAMPLES[i]
 
 rule tocsv:
-    params: tool=CELLRANGER, out=lambda wildcards: samples_map[wildcards.sample]+".tsv"
+    params: tool=CELLRANGER, out=lambda wildcards: samples_map[wildcards.sample]+".csv"
     input: "{sample}/outs/filtered_feature_bc_matrix.h5"
-    output: "{sample}.tsv"
+    output: "{sample}.csv"
     shell: 
         """
         {params.tool} mat2csv {input} {output}
@@ -418,3 +418,23 @@ rule go_markers:
 
 rule paneth_markers:
     input: expand("{sample}_0.2.clusters_markers.tsv", sample=OSAMPLES)
+
+rule all_reanalyze:
+    input: expand("{sample}.rea", sample=SAMPLES)
+
+rule cellranger_reanalyze:
+    input: "{sample}.done", h5="{sample}/outs/filtered_feature_bc_matrix.h5"
+    output: "{sample}.rea"
+    params: tool=CELLRANGER, 
+            rCASC=lambda wildcards: RCASC_DIR+"/"+ samples_map[wildcards.sample]+"_dir/filtered_annotated_saver_ribomito_" + samples_map[wildcards.sample] + "_log2_pc1_cpm.csv",
+            out= lambda wildcards: samples_map[wildcards.sample] + "_rea"
+    shell: 
+        """
+        echo "Barcode" > {output}.tmp0
+        head -n1 {params.rCASC} | tr -d '"' | tr "," "\\n" | sed 1d | tr "." "-" >> {output}.tmp0
+        echo "Gene" > {output}.tmp1
+        sed 1d {params.rCASC} | tr -d '"' | tr "," "\\t" | cut -f 1 | tr ":" "\\t" | cut -f 1 >> {output}.tmp1
+        {params.tool} reanalyze --id {params.out} --matrix {input.h5}  --barcodes={output}.tmp0 --genes={output}.tmp1
+        echo "rm {output}.tmp*"
+        touch "{output}"
+        """

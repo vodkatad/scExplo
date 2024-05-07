@@ -15,7 +15,10 @@ SNAKE_ROOT=os.getenv('SNAKE_ROOT')
 BIN_DIR=PRJ_ROOT+'/local/bin'
 SRC_DIR=PRJ_ROOT+'/local/src'
 
-SAMPLES=["CRC0322LMO_NT72h_1_singleron0722","CRC0322LMO_CTX72h_1_singleron0722","CRC0322LMX_CTX1w_1_singleron0722","CRC0322LMX_NT1w_1_singleron0722"]#, "CRC0322LMO_NT72h_1_signleron0722_us"]
+SAMPLES=[
+	"CRC0322LMX_CTX1w_2_sg", "CRC0322LMX_NT1w_2_sg"
+]
+
 NSAMPLES=len(SAMPLES)
 
 BASE_DIR_RAF='/mnt/cold1/calogero/reanalysis_on_AIsc/paneth_only/all/log2cpmfisher/'
@@ -25,7 +28,7 @@ SAMPLES_MAP_RAF= {"CRC0322LMO_NT72h_1_singleron0722":'singnt',
 "CRC0322LMX_NT1w_1_singleron0722":'singpdxnt'
 }
 
-CSV_DIR=PRJ_ROOT+'/dataset/invivo_singleron_07_2022_mtx_to_csv'
+CSV_DIR='/mnt/trcanmed/snaketree/prj/scRNA/dataset/singleron_jan_23_CRC0322'
 
 ALL_CSV=expand(CSV_DIR+'/{sample}.csv', sample=SAMPLES)
 CORES=10

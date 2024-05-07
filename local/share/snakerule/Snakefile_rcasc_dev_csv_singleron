@@ -1,4 +1,4 @@
-SPEC='_cellule_sfigate' # to quickly change rCASC scripts without passing 100 parameters
+SPEC='' # to quickly change rCASC scripts without passing 100 parameters
 include: "conf.sk"
 
 rule all_dir:

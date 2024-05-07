@@ -18,6 +18,13 @@ SRC_DIR=PRJ_ROOT+'/local/src'
 SAMPLES=["CRC0069_NT72h_1","CRC0542_NT72h_1","CRC0069_CTX72h_1","CRC0542_CTX72h_1"]#,"CRC1307_NT72h_1","CRC0542_NT1WK_1","CRC1307_CXT72h_1","CRC0542_CTX1WK_1"]
 NSAMPLES=len(SAMPLES)
 
+BASE_DIR_RAF='/mnt/cold1/calogero/reanalysis_on_AIsc/paneth_only/all/log2cpmfisher/'
+SAMPLES_MAP_RAF= {"CRC0069_NT72h_1":'crc69nt',
+"CRC0542_NT72h_1":'crc542nt',
+"CRC0069_CTX72h_1":'crc69ctx',
+"CRC0542_CTX72h_1":'crc542ctx'
+}
+
 CSV_DIR=SNAKE_ROOT+'/prj/scRNA/dataset/cetuxi_longer'
 
 ALL_CSV=expand(CSV_DIR+'/{sample}.tsv', sample=SAMPLES)

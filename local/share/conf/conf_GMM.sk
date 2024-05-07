@@ -1,0 +1,48 @@
+import os
+import sys
+def find_prj_root(path=os.getcwd()):
+    if os.path.isfile(os.path.join(path,'.PRJ_ROOT')):
+        return path
+    else:
+        if path:
+            return find_prj_root(os.path.dirname(path))
+        else:
+            raise Exception('Can not find the PRJ_ROOT directory')
+
+PRJ_ROOT=find_prj_root()
+
+BIOINFO_ROOT = os.getenv('BIOINFO_ROOT')
+SNAKE_ROOT=os.getenv('SNAKE_ROOT')
+
+BIN_DIR=PRJ_ROOT+'/local/bin'
+SRC_DIR=PRJ_ROOT+'/local/src'
+sys.path.append(SRC_DIR)
+DIC_FOLDER={
+ 'CRC0322LMO_CTX72h_1_singleron0722':'invivo_singleron_07_2022_rCASC',
+ 'CRC0322LMO_NT72h_1_singleron0722':'invivo_singleron_07_2022_rCASC',
+ 'CRC1620_cetux_1':'candiolo_kras_dec22_rCASC',
+ 'CRC1620_NT_1':'candiolo_kras_dec22_rCASC',
+ 'CRC1139_cetux_1':'candiolo_kras_dec22_rCASC',
+ 'CRC0322LMX_CTX1w_1_singleron0722':'invivo_singleron_07_2022_rCASC',
+ 'CRC0322LMX_NT1w_1_singleron0722':'invivo_singleron_07_2022_rCASC',
+ 'CRC0327LMX_NT1w_1_sg':'singleron_jan_23_CRC0327_rCASC',
+ 'CRC0327LMX_CTX1w_1_sg':'singleron_jan_23_CRC0327_rCASC',
+ 'CRC0322LMX_NT1w_2_sg':'singleron_jan_23_CRC0322_rCASC',
+ 'CRC0322LMX_CTX1w_2_sg':'singleron_jan_23_CRC0322_rCASC'
+ 
+ }
+
+SAMPLES=['CRC0322LMX_CTX1w_1_singleron0722',
+'CRC0322LMX_NT1w_1_singleron0722']
+#'CRC0322LMX_NT1w_2_sg',
+#'CRC0322LMX_CTX1w_2_sg',
+#'CRC0322LMO_CTX72h_1_singleron0722',
+#'CRC0322LMO_NT72h_1_singleron0722'
+##'CRC0322LMX_NT1w_2_sg',
+#'CRC0322LMX_CTX1w_2_sg'
+MSIGN=['C2','H','C8']
+CLUSTER=['Paneth','nPaneth']
+#
+INTERSECTION=[0]
+SAMPLES_CLIQUE=[0]
+SAMPLES_NO_TIMECOURSE=[0]
