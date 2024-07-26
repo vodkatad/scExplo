@@ -1,4 +1,5 @@
-SPEC='_cellule_sfigate' # to quickly change rCASC scripts without passing 100 parameters
+#SPEC='_cellule_sfigate' # to quickly change rCASC scripts without passing 100 parameters # has been put in the in vivo conf
+SPEC=''
 include: "conf.sk"
 
 rule all_dir:
@@ -23,7 +24,7 @@ rule all_rcasc_steps:
 
 # move in dir?
 rule step_01_saver:
-    input: CSV_DIR+'/{sample}.csv'
+    input: '{sample}_dir/{sample}.csv'
     output: "{sample}_saver.csv.gz"
     params: tool=SRC_DIR+'/rCASC_step01.R', cores=CORES
     shell:  
@@ -52,7 +53,6 @@ rule step_02_cc_ribomito:
 # gtf is looked for in counts dir, that needs to be an absolute path.
 # other output:
 # {sample}_dir/Results/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}/PCE_bowPlot.pdf
-SPEC='_cellule_sfigate'
 rule step_03_topsd_topexpr:
     input: counts='{sample}_dir/{sample}.csv', gtf='{sample}_dir/gtf.gtf', saver="{sample}_saver.csv.gz"
     output: cc="{sample}_dir/filtered_annotated_{sample}_cellCycle.csv", vande="{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv",
@@ -170,6 +170,19 @@ rule all_clusters:
     input: expand('{sample}_seurat_clusters_cc_res{{res}}_{{pc}}.csv', sample=SAMPLES)
     output: "all_seu_clusters_cc_res{res}_{pc}.done"  
     shell: "touch {output}"  
+
+rule all_cpm:
+    input: expand("{sample}_dir/filtered_annotated_saver_ribomito_{sample}_log2_pc1_cpm_indepstep04.csv",sample=SAMPLES)
+
+rule indep_log2cpm:
+    input: data="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"
+    params: tool=SRC_DIR+'/rCASC_genecpm.R',  
+            tool2=SRC_DIR+'/geneVisualization.R', expr=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"),
+    output: cpm="{sample}_dir/filtered_annotated_saver_ribomito_{sample}_log2_pc1_cpm_indepstep04.csv"
+    shell:
+        """
+            {params.tool} -e {params.expr}
+        """
 
 #### shading of genes on UMAP
 rule gene_shading:

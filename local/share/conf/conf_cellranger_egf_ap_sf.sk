@@ -1,0 +1,45 @@
+DEBUG="yes"
+PRJ_ROOT="../../"
+SRC_DIR=PRJ_ROOT+"local/src/"
+#CLUSTER=
+CRIS=PRJ_ROOT+"local/share/data/cris_wanted_gs.tsv"
+
+TRANSCRIPTOME="/mnt/cold1/snaketree/prj/scRNA/local/share/data/refdata-cellranger-GRCh38-1.2.0/"
+# TODO redo with wget http://cf.10xgenomics.com/supp/cell-exp/refdata-cellranger-GRCh38-3.0.0.tar.gz
+MEM=90
+CORES=8
+CELLRANGER=PRJ_ROOT+"local/src/cellranger-3.1.0/cellranger"
+FASTQ_DIR='./HMMMWDRX2/outs/fastq_path/'
+SEQ_DIR='/mnt/cold1/snaketree/prj/scRNA/local/share/data/SC018_PULIAFITO/240715_A00959_0319_BHMMMWDRX2'
+
+
+SAMPLES=[
+ "cell_colon_1502_7d_T",
+ "cell_colon_327_7d_T", 
+ "cell_colon_1502_11d_T",
+ "cell_colon_327_11d_T"
+]
+
+OSAMPLES=[
+"CRC1502_7d_T",
+"CRC0327_7d_T",
+"CRC1502_11d_T",
+"CRC0327_11d_T"
+]
+
+NSAMPLES=len(SAMPLES)
+
+#GSEA_PATHWAYS=PRJ_ROOT+"local/share/data/Hallmark_curated_hs_entred.RData"
+#GSEA_PATHWAYS=PRJ_ROOT+"local/share/data/Hallmark_curated_hs_symbol.RData"
+GSEA_PATHWAYS=PRJ_ROOT+"local/share/data/Curated_onco_hs_symbol.RData"
+GSEA=PRJ_ROOT+"/local/src/gsea.R"
+GSEA_INPUT=PRJ_ROOT+"/local/src/gsea_input_from_cr.R"
+GSEA_XLS=PRJ_ROOT+"/local/src/gsea_genes_signature.R"
+
+SEURAT_PARAMS=PRJ_ROOT+"local/share/data/seurat_params.txt"
+
+SEURAT_MARKERS=SRC_DIR+"seurat_markers_pca.R"
+SEURAT_VIOLIN=SRC_DIR+"seurat_violin.R"
+VIOLIN_GENES='ATOH1,GFI1,SOX9,XBP1,DEFA5,DEFA6,LYZ,SPINK4,DLL1,DLL4'
+
+RCASC_DIR=PRJ_ROOT+"/dataset/candiolo_kras_dec22_rCASC"

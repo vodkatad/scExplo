@@ -1,0 +1,107 @@
+import os
+def find_prj_root(path=os.getcwd()):
+    if os.path.isfile(os.path.join(path,'.PRJ_ROOT')):
+        return path
+    else:
+        if path:
+            return find_prj_root(os.path.dirname(path))
+        else:
+            raise Exception('Can not find the PRJ_ROOT directory')
+
+PRJ_ROOT=find_prj_root()
+BIOINFO_ROOT = os.getenv('BIOINFO_ROOT')
+SNAKE_ROOT=os.getenv('SNAKE_ROOT')
+
+# step04 notes:
+# seed 157 was used CRC1502_7d_T_step04_5, but for CRC1502_11d_T.csv it blocks, changed to 174
+
+
+BIN_DIR=PRJ_ROOT+'/local/bin'
+SRC_DIR=PRJ_ROOT+'/local/src'
+
+SAMPLES=[
+"CRC1502_7d_T",
+"CRC0327_7d_T",
+"CRC1502_11d_T",
+"CRC0327_11d_T"
+]
+
+NSAMPLES=len(SAMPLES)
+
+BASE_DIR_RAF='/mnt/cold1/calogero/reanalysis_on_AIsc/paneth_only/all/log2cpmfisher/'
+#SAMPLES_MAP_RAF= {"CRC0069_NT72h_1":'crc69nt'}
+SAMPLES_MAP_RAF= {}
+CSV_DIR='/mnt/cold2/snaketree/prj/scRNA/dataset/EGF_AP_SF'
+
+ALL_CSV=expand(CSV_DIR+'/{sample}.tsv', sample=SAMPLES)
+CORES=10
+
+RCASC_GTF=PRJ_ROOT+"/local/share/data/Homo_sapiens.GRCh38.101.gtf"
+SCRATCH="/tmp"
+
+VIO_GENES='/mnt/cold1/snaketree/prj/scRNA/local/share/data/Ire_cetuxi_first_and_reseq/genes_ensg.tsv'
+CYCLE_GENES='/mnt/cold1/snaketree/prj/scRNA/local/share/data/Ire_cetuxi_first_and_reseq/regev_lab_cell_cycle_genes_onlyensg.txt'
+BASED='/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_longer/'
+
+
+rule all_seurat_integration:
+    input: expand("{sample}_res{res}_G1_clu_cycle.tsv", res=[0.01, 0.05, 0.1, 0.2, 0.5], sample=["CRC0542", "CRC0069"])
+
+
+# (snakemake) egrassi@ulisse:/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_Ire_cetuxi$ gzip -c /mnt/cold1/calogero/reanalysis_on_AIsc/comparing_CRC0327/CTX1_CTX2/CRC0327_cetux_2_clx/saver_CRC0327_cetux_2.csv > CRC0327_cetux_2_saver.csv.gz
+
+ALL=['/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_longer/CRC0069_NT72h_1_saverAlivePC.csv.gz',
+'/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_longer/CRC0542_CTX72h_1_saverAlivePC.csv.gz',
+'/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_longer/CRC0542_NT72h_1_saverAlivePC.csv.gz',
+'/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_longer/CRC0069_CTX72h_1_saverAlivePC.csv.gz',
+'/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_Ire_cetuxi/CRC0322_cetux_1_saverAlivePC.csv.gz', 
+'/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_Ire_cetuxi/CRC0322_NT_1_3000_saverAlivePC.csv.gz', 
+'/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_Ire_cetuxi/CRC0327_cetux_1_4000_saverAlivePC.csv.gz',
+'/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_Ire_cetuxi/CRC0327_cetux_2_saverAlivePC.csv.gz', 
+'/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_Ire_cetuxi/CRC0327_NT_1_saverAlivePC.csv.gz',
+'/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_Ire_cetuxi/CRC0327_NT_2_saverAlivePC.csv.gz'  
+]
+
+rule seurat_integration_all:
+    input: ALL
+    output: cy="allres{res}_{kind}_clu_cycle.tsv", climage="allres{res}_{kind}_UMAP.pdf", markers="allres{res}_{kind}_markers.tsv",
+            markersall="allres{res}_{kind}_markersall.tsv", markersdir=directory("allres{res}_{kind}_markers"), viodir=directory("allres{res}_{kind}_violins"), pcs="allres{res}_{kind}_PC.pdf"
+    params: tool=SRC_DIR+'/seurat_integration.R', genes=VIO_GENES, cinput=lambda wildcards, input: ','.join(input), cycle=CYCLE_GENES, base=BASED
+    #docker: 'seuratintegration_deg_getopt'
+    shell:
+        """
+            rm -rf {output.viodir} {output.markersdir}
+            mkdir {output.viodir} {output.markersdir}
+            {params.tool} -i {params.cinput} -r {wildcards.res} -g {params.genes} -k {wildcards.kind} -x allres{wildcards.res}_{wildcards.kind}_ -n 7 -c {params.cycle} -b {params.base}
+        """
+
+ALL2=['/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_longer/CRC0069_NT72h_1_saverAlivePC.csv.gz',
+'/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_longer/CRC0542_CTX72h_1_saverAlivePC.csv.gz',
+'/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_longer/CRC0542_NT72h_1_saverAlivePC.csv.gz',
+'/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_longer/CRC0069_CTX72h_1_saverAlivePC.csv.gz',
+'/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_Ire_cetuxi/CRC0322_cetux_1_saverAlivePC.csv.gz', 
+'/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_Ire_cetuxi/CRC0322_NT_1_3000_saverAlivePC.csv.gz', 
+'/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_Ire_cetuxi/CRC0327_cetux_1_4000_saverAlivePC.csv.gz',
+'/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_Ire_cetuxi/CRC0327_cetux_2_saverAlivePC.csv.gz', 
+'/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_Ire_cetuxi/CRC0327_NT_1_saverAlivePC.csv.gz',
+'/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_Ire_cetuxi/CRC0327_NT_2_saverAlivePC.csv.gz',
+'/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_IRCC_tecrep/CRC0327_NT_t1_saverAlivePC.csv.gz',
+'/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_IRCC_tecrep/CRC0327_NT_t2_saverAlivePC.csv.gz',
+]
+# use rCASC_Ire_cetuxi/CRC0322_NT_1_3000_dir/filtered_annotated_saver_CRC0322_NT_1_3000.tsv as input exploit rCASC
+# we need to filter the saver output keeping only cells in there!
+#
+# TODO write rule and add step02_bis to obtain a nodead_saver 
+
+rule seurat_integration_all2:
+    input: ALL2
+    output: cy="all2res{res}_{kind}_clu_cycle.tsv", climage="all2res{res}_{kind}_UMAP.pdf", markers="all2res{res}_{kind}_markers.tsv",
+            markersall="all2res{res}_{kind}_markersall.tsv", markersdir=directory("all2res{res}_{kind}_markers"), viodir=directory("all2res{res}_{kind}_violins"), pcs="all2res{res}_{kind}_PC.pdf"
+    params: tool=SRC_DIR+'/seurat_integration.R', genes=VIO_GENES, cinput=lambda wildcards, input: ','.join(input), cycle=CYCLE_GENES, base=BASED
+    #docker: 'seuratintegration_deg_getopt'
+    shell:
+        """
+            rm -rf {output.viodir} {output.markersdir}
+            mkdir {output.viodir} {output.markersdir}
+            {params.tool} -i {params.cinput} -r {wildcards.res} -g {params.genes} -k {wildcards.kind} -x all2res{wildcards.res}_{wildcards.kind}_ -n 7 -c {params.cycle} -b {params.base}
+        """
