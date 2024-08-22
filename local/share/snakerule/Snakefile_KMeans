@@ -409,10 +409,10 @@ rule all_plot_bimodal:
 
 rule dataset_ff:
     input: data=find_log2
-    output: out='OLFM/{sample}_log2cpm.csv'
+    output: out='HER/{sample}_log2cpm.csv'
     script: SRC_DIR+'/produce_ff_dataset.R'
 rule all_dataset_ff:
-    input:expand('OLFM/{sample}_log2cpm.csv',sample=SAMPLES)
+    input:expand('HER/{sample}_log2cpm.csv',sample=SAMPLES)
 rule Fig_1:
     input:data='ff_data/{sample}_ff_log2cpm.csv', tsne=find_choord, k_out='kmeans/{sample}/{sample}_kmeans_2comp.csv'
     output:plot_out='kmeans/Fig_1/{sample}_tsne.png',pdf='kmeans/Fig_1/{sample}_genes.pdf'
@@ -424,11 +424,11 @@ def find_UMAP(wildcards):
     return 'Alberto_integrated_UMAP/'+DIC_ALBERTO[wildcards.sample]
     
 rule Fig_1_alberto:
-    input:data='OLFM/{sample}_log2cpm.csv', umap=find_UMAP, k_out='kmeans/{sample}/{sample}_kmeans_2comp.csv'
-    output:pdf='OLFM_plot/{sample}_umap.pdf'#plot_out='Fig_1_alberto/{sample}_tsne.png'
+    input:data='HER/{sample}_log2cpm.csv', umap=find_UMAP, k_out='kmeans/{sample}/{sample}_kmeans_2comp.csv'
+    output:pdf='HER_plot/{sample}_umap.pdf'#plot_out='Fig_1_alberto/{sample}_tsne.png'
     script:SRC_DIR+'/Fig_1_a.R'
 rule all_Fig_1_alberto:
-    input:expand('OLFM_plot/{sample}_umap.pdf',sample=SAMPLES)
+    input:expand('HER_plot/{sample}_umap.pdf',sample=SAMPLES)
 
 rule cpm_umap_filtered_genes:
     input:count=find_count,umap=find_UMAP
@@ -436,3 +436,10 @@ rule cpm_umap_filtered_genes:
     script:SRC_DIR+'/Fig_1_ribosomal.R'
 rule all_cpm_umap_filtered_gene:
     input:expand('ribosomal_gene/{sample}_umap.pdf',sample=SAMPLES)    
+
+rule Fig_1_invivo:
+    input:data='ff_data/{sample}_ff_log2cpm.csv', tsne=find_choord, k_out='kmeans/{sample}/{sample}_kmeans_2comp.csv'
+    output:plot_out='kmeans/Fig_1/{sample}_tsne.png',pdf='kmeans/Fig_1/{sample}_genes.pdf'
+    script:SRC_DIR+'/Fig_1.R'
+rule all_Fig_1_invivo:
+    input:expand('kmeans/Fig_1/{sample}_genes.pdf',sample=SAMPLES)

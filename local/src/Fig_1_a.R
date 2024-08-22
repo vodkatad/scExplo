@@ -22,7 +22,7 @@ dato<- read.table(file = input,row.names = 1,sep=",",header = TRUE,stringsAsFact
 #dato<-dato[row.names(kmeans),]
 #metagene_cinque<-apply(dato[row.names(kmeans),],1,mean)
 #metagene_cinque[metagene_cinque>10]<-10
-#dato[dato>10]<-10
+dato[dato>8]<-8
 #write.csv(metagene_cinque, meta_ou, row.names=TRUE)
 
 chords<-read.table(file = tsne,row.names = 1,sep=",",header = TRUE)
@@ -57,11 +57,12 @@ for (i in colnames(dato)){
   print(length(chords$X_umap2))
  
   p<-ggplot(chords, aes(x=X_umap1, y=X_umap2,color=chords[,i])) + 
-  geom_point(size=1)+scale_colour_gradientn(colours = rainbow(10))+#
+  geom_point(size=1)+scale_colour_gradientn(colours = rainbow(10),guide = guide_colourbar())+#scale_colour_gradientn(colours = rainbow(10))+#
 labs(title =i, color=i)+xlab('umap1')+ylab('umap2')+guides(color = guide_colourbar(barwidth = 0.5, barheight = 6))+
 theme_classic()+theme(axis.ticks.x = element_blank(),axis.text.x = element_blank(),axis.ticks.y = element_blank(),axis.text.y = element_blank())
   print(p)
 }
+#,limits=c(0,10)
 graphics.off()
 
 
