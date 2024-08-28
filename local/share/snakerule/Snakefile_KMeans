@@ -409,10 +409,10 @@ rule all_plot_bimodal:
 
 rule dataset_ff:
     input: data=find_log2
-    output: out='HER/{sample}_log2cpm.csv'
+    output: out='ff_data/{sample}_log2cpm.csv'
     script: SRC_DIR+'/produce_ff_dataset.R'
 rule all_dataset_ff:
-    input:expand('HER/{sample}_log2cpm.csv',sample=SAMPLES)
+    input:expand('ff_data/{sample}_log2cpm.csv',sample=SAMPLES)
 rule Fig_1:
     input:data='ff_data/{sample}_ff_log2cpm.csv', tsne=find_choord, k_out='kmeans/{sample}/{sample}_kmeans_2comp.csv'
     output:plot_out='kmeans/Fig_1/{sample}_tsne.png',pdf='kmeans/Fig_1/{sample}_genes.pdf'
