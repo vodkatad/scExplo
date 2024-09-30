@@ -10,7 +10,8 @@ def gene_name(stringa):
         return stringa.split(':')[1]
 def find_count(wildcards):
     return PRJ_ROOT+'/dataset/'+DIC_FOLDER[wildcards.sample]+'/{sample}_dir/{sample}.tsv'
-
+def find_UMAP(wildcards):
+    return 'Alberto_integrated_UMAP/'+DIC_ALBERTO[wildcards.sample]
 
 def find_choord(wildcards):
     return PRJ_ROOT+'/dataset/'+DIC_FOLDER[wildcards.sample]+'/{sample}_seurat_clusters_5.csv'
@@ -81,7 +82,7 @@ rule find_marker_wilcoxon:
 
 rule HES1_sorted:
     input: data=find_log2,
-    output:hes1_corted='HES1_sorted_spearman/{sample}_HES1_correlated.tsv'
+    output:hes1_corted='DLL1_sorted_spearman/{sample}_DLL1_correlated.tsv'
     run:
         import pandas as pd
         df=pd.read_csv(input.data,header=0,index_col=0).T
@@ -89,18 +90,18 @@ rule HES1_sorted:
             return stringa.split(':')[1]
         df.columns=df.columns.to_series().apply(gene_name)
         print(df.head())
-        hes1_values = df["HES1"].fillna(0.0)
+        hes1_values = df["DLL1"].fillna(0.0)
         correlations = {}
         print(df.columns.isna().sum())
         for gene in df.columns:
-            if gene != "HES1": # Skip the target gene itself
+            if gene != "DLL1": # Skip the target gene itself
                 # Ensure that both series are aligned and drop NaN values
                 valid_data = pd.concat([df[gene].fillna(0.0), hes1_values], axis=1)
                 
                 # Calculate the correlation between the current gene and "HES1"
                 if not valid_data.empty:
                     try:
-                        correlation = valid_data[gene].corr(valid_data["HES1"],method='spearman')
+                        correlation = valid_data[gene].corr(valid_data["DLL1"],method='spearman')
                         # Store the correlation in the dictionary
                         correlations[gene] = correlation
                     except:
@@ -114,12 +115,109 @@ rule HES1_sorted:
                 #print(sorted_genes)
 rule all_HES1_sorted:
     input:expand("HES1_sorted_spearman/{sample}_HES1_correlated.tsv",sample=SAMPLES)
+rule calculate_kmeans_2_HES1:
+    input:data='HER/{sample}_log2cpm.csv',umap=find_UMAP
+    output:out='kmeans_HES1/{sample}/{sample}_kmeans_2comp_HES1.csv',out_plot='kmeans_HES1/{sample}/{sample}_kmeans_2comp_HES1.pdf'
+    script:SRC_DIR+'/kmeans_HES1.R'
+
+rule all_kmeans_2_HES1:
+    input: expand("kmeans_HES1/{sample}/{sample}_kmeans_2comp_HES1.csv", sample=SAMPLES,) 
+rule find_marker_wilcoxon_HES:
+    conda:"sofia_env.yaml" # ideally also yaml should be put in local/share/envs or similar
+    #container: 'docker://egrassi/godot_scanpy:latest'
+    input: data=find_log2, cluster='kmeans_HES1/{sample}/{sample}_kmeans_2comp_HES1.csv'
+    output:marker_HES_pos='kmeans_HES1/{sample}/{sample}_HES_markers.tsv',plot='figures/rank_genes_groups_isPaneth_{sample}.pdf'
+    script: 
+        SRC_DIR+'/find_markers_HES1.py'
+rule gsea_analysis_plot_wilcoxon_HES1:
+    input: gene_res_freq = "kmeans_HES1/{sample}/{sample}_HES_markers.tsv"
+    output: GSEA_r = "gsea_HES1/GSEA_results.{msign}.{sample}.tsv", GSEA_ridgeplot = "gsea_HES1/gsea_ridgeplot_{msign}.{sample}.pdf"
+    script: SRC_DIR+'/GSEA_analysis_HES1_wilcoxon.R'
+def find_gsea_HES1_wilcoxon(wildcards):
+    sign=wildcards.msign
+    list_gsea_files=[]
+    for file in os.listdir(os.path.join(PRJ_ROOT,'dataset/KMeans/gsea_HES1')):
+        if sign in file and '.tsv' in file:
+            list_gsea_files.append(os.path.join(PRJ_ROOT,'dataset/KMeans/gsea_HES1',file))
+    return list_gsea_files
+rule gsea_summary_files_HES1_wilcoxon:
+    input:list_gsea=find_gsea_HES1_wilcoxon
+    output:out_data='gsea_HES1/data_heatmap_{msign}_th_{intersection}.csv',out_annot='gsea_HES1/annot_heatmap_{msign}_th_{intersection}.csv'
+    run:
+        num_min_samples=int(wildcards.intersection)
+        data_upset=pd.DataFrame(columns=['signature','sample'],dtype=object)
+        sample_names=[]
+        print(input)
+        for file in input:
+            sample_name=file.split(PRJ_ROOT)[1].split('/')[4].split('.')[2]
+            if sample_name in SAMPLES:
+                results=pd.read_csv(file,sep='\t',header=0,index_col=0)
+                best=results[(results['p.adjust']<0.05)]
+                best['ID']=np.where(best['enrichmentScore']>0,best['ID']+'_POS',best['ID']+'_NEG')
+                sample_names.append(sample_name)
+                sample_cluster=[sample_name]*len(best)
+                marker=best['ID'].tolist()
+                data_sample_cluster=pd.DataFrame(marker,columns=['signature'])
+                data_sample_cluster['sample']=sample_cluster
+                data_upset=pd.concat([data_upset,data_sample_cluster],axis=0, ignore_index=True)
+        sopravvissuti=[]
+        for signature in data_upset['signature'].unique():
+            if len(data_upset.loc[data_upset['signature']==signature])>(num_min_samples):
+                sopravvissuti.append(signature)
+        print(len(sopravvissuti))
+        sample_names.append('signature')
+        data_heat=pd.DataFrame(columns=sample_names,dtype=object)
+        sign_heat=pd.DataFrame(columns=sample_names,dtype=object)
+        for sign in sopravvissuti:
+            riga={}
+            riga_annot={}
+            riga['signature']=sign
+            for sample in input.list_gsea:
+                sample_name=sample.split(PRJ_ROOT)[1].split('/')[4].split('.')[2]
+                if sample_name in SAMPLES_NO_TIMECOURSE:
+                
+                    data=pd.read_csv(sample,header=0,sep='\t')
+                    data['ID']=np.where(data['enrichmentScore']>0,data['ID']+'_POS',data['ID']+'_NEG')
+
+                    try:
+                        en=data[data['ID']==sign]['NES'][0]
+                        s=data[data['ID']==sign]['p.adjust'][0]
+
+                    except:
+                        en=0
+                        s=1
+                    
+                    
+                    riga[sample_name]=en
+                    riga_annot[sample_name]=s
+            data_heat=data_heat.append(riga,ignore_index=True)
+            sign_heat=sign_heat.append(riga_annot,ignore_index=True)
+        
+        data_heat.set_index('signature',inplace=True)
+        sign_heat.set_index('signature',inplace=True)
+
+        sign_heat=pd.DataFrame(np.where(sign_heat<0.05,'.','A'),index=data_heat.index,columns=data_heat.columns)
+
+        data_heat.to_csv(output.out_data)
+        sign_heat.to_csv(output.out_annot)
+rule plot_gsea_summary_heatmap_HES1_wilcoxon:
+    input:data='gsea_HES1/data_heatmap_{msign}_th_{intersection}.csv',annot='gsea_HES1/annot_heatmap_{msign}_th_{intersection}.csv'
+    output:plot='gsea_HES1/heatmap_{msign}_th_{intersection}.pdf'
+    script: SRC_DIR+'/gsea_HES1.R'
+
+rule corr_density:
+    input:data='DLL1_sorted_spearman/{sample}_DLL1_correlated.tsv'
+    output:plot='DLL1_sorted_spearman_density/{sample}_DLL1_correlated_density.pdf'
+    script:SRC_DIR+'/density_corr.R'
+rule all_corr_density:
+    input:expand("HES1_sorted_spearman_density/{sample}_HES1_correlated_density.pdf",sample=SAMPLES)
+
 rule gsea_analysis_plot_HES1_sorted:
     input: gene_res_freq = "HES1_sorted_spearman/{sample}_HES1_correlated.tsv"
     output: GSEA_r = "HES1_sorted_spearman_gsea/GSEA_results.{msign}.{sample}.tsv", GSEA_ridgeplot = "HES1_sorted_spearman_gsea/gsea_ridgeplot_{msign}.{sample}.pdf"
     script: SRC_DIR+'/GSEA_analysis_HES1.R'
 rule all_gsea_plot_HES1_sorted:
-    input:expand("HES1_sorted_spearman_gsea/GSEA_results.{msign}.{sample}.tsv", sample=SAMPLES,msign=MSIGN)
+    input:expand("HES1_sorted_spearman_gsea/gsea_ridgeplot_{msign}.{sample}.pdf", sample=SAMPLES,msign=MSIGN)
                 
 def find_gsea_HES1(wildcards):
     sign=wildcards.msign
@@ -128,6 +226,7 @@ def find_gsea_HES1(wildcards):
         if sign in file and '.tsv' in file:
             list_gsea_files.append(os.path.join(PRJ_ROOT,'dataset/KMeans/HES1_sorted_spearman_gsea',file))
     return list_gsea_files
+
 #Rule to produce heatmap of significative signature separate for each gsea genes set 
 rule gsea_summary_files_HES1:
     input:list_gsea=find_gsea_HES1
@@ -534,8 +633,7 @@ rule Fig_1:
 rule all_Fig_1:
     input:expand('kmeans/Fig_1/{sample}_genes.pdf',sample=SAMPLES)
 
-def find_UMAP(wildcards):
-    return 'Alberto_integrated_UMAP/'+DIC_ALBERTO[wildcards.sample]
+
     
 rule Fig_1_alberto:
     input:data='ff_data/{sample}_log2cpm.csv',tsne=find_choord , k_out='kmeans/{sample}/{sample}_kmeans_2comp.csv' #umap=find_UMAP
@@ -545,7 +643,7 @@ rule all_Fig_1_alberto:
     input:expand('HER_plot/{sample}_umap.pdf',sample=SAMPLES)
 
 rule cpm_umap_filtered_genes:
-    input:count=find_count,umap=find_UMAP
+    input:count_=find_count,umap=find_UMAP
     output:pdf='ribosomal_gene/{sample}_umap.pdf'
     script:SRC_DIR+'/Fig_1_ribosomal.R'
 rule all_cpm_umap_filtered_gene:
