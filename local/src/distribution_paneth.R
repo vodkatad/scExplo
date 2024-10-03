@@ -14,25 +14,27 @@ library(patchwork)
 #library(ggpubr)
 
 #output_plot<-snakemake@output[[1]]
-cet<-snakemake@input$c[1]
-nt<-snakemake@input$c[2]
+meta_path<-snakemake@input$metagene
+clu_path<-snakemake@input$cluster
+
 
 
 output_plot<-snakemake@output$out[1]
 #kmeans<- read.table(file = clust,row.names = 1,sep=",",header = TRUE,stringsAsFactors = FALSE)
-meta_cet<- read.table(file = cet,row.names = 1,sep=",",header = TRUE,stringsAsFactors = FALSE)
-meta_cet<-as.data.frame(meta_cet)
-meta_nt<-read.table(file = nt,row.names = 1,sep=",",header = TRUE,stringsAsFactors = FALSE)
-meta_nt<-as.data.frame(meta_nt)
-print(length(meta_cet$x))
-print(length(meta_nt$x))
-meta_nt$Treatment <- "Not Treated"
-meta_cet$Treatment<- "Cetuximab"
+meta<- read.table(file = meta_path,row.names = 1,sep=",",header = TRUE,stringsAsFactors = FALSE)
+meta<-as.data.frame(meta)
 
+cluster<-read.table(file = clu_path,row.names = 1,sep=",",header = TRUE,stringsAsFactors = FALSE)
+cluster<-as.data.frame(cluster)
+
+df_combined<-merge(meta,cluster,by='row.names')
+print(head(df_combined))
+rownames(df_combined)<-df_combined$Row.names
+df_combined$Row.names<-NULL
+df_combined<-df_combined[df_combined$isPaneth!='filtered',]
 
 # Combina i due dataframe
-df_combined <- rbind(meta_cet, meta_nt)
-print(head(df_combined))
+
 
 # Crea il grafico
 x_min <- 0
@@ -44,14 +46,14 @@ x_max<-max(breaks_x)
 print(breaks_x) # "pretty" genera una serie di break esteticamente piacevoli
 print(x_max)
 # Crea il grafico con tick specificati manualmente
-a <- ggplot(df_combined, aes(x = x, color = Treatment)) +
-  #geom_histogram(aes(fill='white'), alpha=0.3, binwidth=0.05, position = 'identity')+
-  
-  geom_density((aes(y=after_stat(scaled))),position = "identity", bw = 0.05, size = 0.8) +
-  scale_color_manual(name = "Treatment", 
-                     values = c("Cetuximab" = "red", "Not Treated" = "black")) +
+df_combined$isPaneth <- factor(df_combined$isPaneth, levels = c("Paneth", "nPaneth"), labels = c("Paneth", "Others"))
+colori<-c(rainbow(10)[2],rainbow(10)[5],rainbow(10)[8])
+# Crea il grafico con il nuovo nome nella legenda
+a <- ggplot(df_combined, aes(x = x, color = isPaneth)) +
+  geom_density(aes(y = after_stat(count * 0.05)), position = "identity", bw = 0.05, size = 1) +
+  scale_color_manual(name = "Cluster", 
+                     values = c("Others" = colori[1], "Paneth" = colori[3])) +
   scale_x_continuous(expand = c(0, 0), limits = c(x_min, x_max), breaks = breaks_x) +  # Specifica i tick manualmente
-    # Mantiene l'asse Y gestito automaticamente
   ggtitle("Metagene Distribution") +
   theme_minimal() +
   theme(panel.background = element_rect(fill = "white", color = NA),  # Sfondo bianco
@@ -65,13 +67,11 @@ a <- ggplot(df_combined, aes(x = x, color = Treatment)) +
   guides(color = guide_legend(override.aes = list(linetype = 1, size = 1, shape = NA, fill = NA)))
 
 
-# p <- ggplot(data=df_combined, aes(x=x)) + 
-#   geom_histogram(aes(fill='white'), alpha=0.3, binwidth=0.05, position = 'identity')
-density_data <- ggplot_build(a)$data[[1]]
+p <- ggplot(data=df_combined, aes(x=x)) + 
+  geom_histogram(aes(fill='white'), alpha=0.3, binwidth=0.05, position = 'identity')
 
-#ggp <- ggplot_build(a)
-#maxy <- ceiling(max(ggp$data[[1]]$count * 0.05) )
-maxy <- ceiling(max(density_data$y))# [[2]] if histogram is removed
+ggp <- ggplot_build(a)
+maxy <- ceiling(max(ggp$data[[1]]$count * 0.05) )# [[2]] if histogram is removed
 breaks_y <- pretty(c(0, maxy), n = 5) 
 maxy<-max(breaks_y)
 print(maxy)
