@@ -20,26 +20,16 @@ sys.path.append(SRC_DIR)
 DIC_FOLDER={
  'CRC0322_cetux_1':'rCASC_Ire_cetuxi',  
  'CRC0322_NT_1_3000':'rCASC_Ire_cetuxi',
- 'CRC0327_cetux_1_4000':'rCASC_Ire_cetuxi',
  'CRC0327_cetux_2':'rCASC_Ire_cetuxi',
- 'CRC0327_NT_1':'rCASC_Ire_cetuxi',
  'CRC0327_NT_2':'rCASC_Ire_cetuxi',
- 'CRC1502_cetux_1':'rCASC_Ire_cetuxi',
- 'CRC1502_NT_1':'rCASC_Ire_cetuxi',
  'CRC0069_CTX72h_1':'rCASC_longer',
  'CRC0069_NT72h_1':'rCASC_longer',
  'CRC0542_CTX72h_1':'rCASC_longer',
  'CRC0542_NT72h_1':'rCASC_longer',
- 'CRC0322_3d_CTX':'rCASC_timecourse',
- 'CRC0322_8d_NOEGF':'rCASC_timecourse',
- 'CRC0322_8d_EGF':'rCASC_timecourse',
- 'CRC0322_12d_EGF':'rCASC_timecourse',
- 'CRC0322_12d_NOEGF':'rCASC_timecourse',
- 'CRC0322_4d_EGF':'rCASC_timecourse',
- 'CRC0322_4d_NOEGF':'rCASC_timecourse',
- 'CRC0322_7d_CTX':'rCASC_timecourse',
  'CRC0327_NT_t1':'rCASC_IRCC_tecrep',
  'CRC0327_NT_t2':'rCASC_IRCC_tecrep',
+ 'CRC0327_cetux_1_4000':'rCASC_Ire_cetuxi',
+ 'CRC0327_NT_1':'rCASC_Ire_cetuxi'
  }
 
 DIC_ALBERTO={'CRC0322_cetux_1':'322_CTX.csv',  
@@ -63,42 +53,18 @@ SAMPLES=['CRC0327_cetux_2',
 'CRC0542_NT72h_1',
 'CRC0327_NT_2',
 'CRC0069_CTX72h_1',
-'CRC0069_NT72h_1',
+'CRC0069_NT72h_1'
 ] 
-
-#'CRC0327_NT_1',
-#'CRC0322_3d_CTX',
-#'CRC0322_8d_NOEGF'
-#'CRC0327_cetux_1_4000',
 #'CRC0327_NT_t1',
 #'CRC0327_NT_t2',
-#'CRC0322_3d_CTX',
-#'CRC0322_3d_CTX',
-#'CRC0322_8d_NOEGF'
-SAMPLES_NO_TIMECOURSE=['CRC0327_cetux_2',
-'CRC0322_NT_1_3000',
-'CRC0327_NT_1',
-'CRC0322_cetux_1',
-'CRC0542_CTX72h_1',
-'CRC0327_cetux_1_4000',
-'CRC1502_cetux_1',
-'CRC1502_NT_1',
-'CRC0542_NT72h_1',
-'CRC0327_NT_2',
-'CRC0322_8d_EGF'
+#'CRC0327_cetux_1_4000',
+#'CRC0327_NT_1'
+SAMPLE_prova=['CRC0322_cetux_1'
 ]
-#'CRC0069_CTX72h_1',
-#'CRC0069_NT72h_1'
 
 MSIGN=['C2','H']
 CLUSTER=['Paneth']
 INTERSECTION=[9,8,7,6,5,4,3,2,1,0]
-SAMPLES_CLIQUE=['CRC0327_cetux_2',
-'CRC0322_NT_1_3000',
-'CRC0327_NT_1',
-'CRC0322_cetux_1',
-'CRC0327_cetux_1_4000',
-'CRC0542_NT72h_1',
-'CRC0327_NT_2']
+
 
 

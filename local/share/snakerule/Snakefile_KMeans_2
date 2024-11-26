@@ -1,0 +1,76 @@
+include : "conf.sk"
+
+import pandas as pd
+import numpy as np
+from  scipy.stats import pearsonr
+def find_log2(wildcards):
+    return PRJ_ROOT+'/dataset/'+DIC_FOLDER[wildcards.sample]+'/{sample}_dir/filtered_annotated_saver_ribomito_{sample}_log2_pc1_cpm.csv'
+def find_cc(wildcards):
+    return PRJ_ROOT+'/dataset/'+DIC_FOLDER[wildcards.sample]+'/{sample}_dir/filtered_annotated_saver_ribomito_{sample}_cellCycle.csv'
+def find_choord(wildcards):
+    return PRJ_ROOT+'/dataset/'+DIC_FOLDER[wildcards.sample]+'/{sample}_seurat_clusters_5.csv'
+rule calculate_kmeans_2:
+    input:data=find_log2, tsne=find_choord #capire perchè per LMX serve cell_id,cell_id=find_cellcycle
+    output:out='kmeans/{sample}/{sample}_kmeans_2comp.csv',tsne_out='kmeans/{sample}/{sample}_kmeans2_tsne.pdf'
+    script:SRC_DIR+'/kmeans_2.R'
+rule all_kmeans_2:
+    input: expand("kmeans/{sample}/{sample}_kmeans_2comp.csv", sample=SAMPLES,)
+rule find_marker_wilcoxon:
+    conda:"sofia_env.yaml" # ideally also yaml should be put in local/share/envs or similar
+    #container: 'docker://egrassi/godot_scanpy:latest'
+    input: data=find_log2, cluster='kmeans/{sample}/{sample}_kmeans_2comp.csv'
+    output:marker_paneth='kmeans/{sample}/{sample}_Paneth_markers.tsv',plot='figures/rank_genes_groups_isPaneth_{sample}.pdf',marker_nonpaneth='kmeans/{sample}/{sample}_nPaneth_markers.tsv'
+    script: 
+        SRC_DIR+'/find_markers.py'
+
+rule plot_percentage_paneth_cc_cake:
+    input:clust='kmeans/{sample}/{sample}_kmeans_2comp.csv',cc=find_cc
+    output:plot_out='paneth_percentage_cake/{sample}_plot_percentage_cc.pdf'#,log='paneth_percentage_cake_chi/{sample}_plot_percentage_cc.log'
+    script:SRC_DIR+'/plot_percentage_paneth_cc_cake.R'
+rule all_plot_percentage_paneth_cc_cake:    
+    input: expand("paneth_percentage_cake/{sample}_plot_percentage_cc.pdf", sample=SAMPLES)
+
+
+rule dataset_ff:
+    input: data=find_log2
+    output: out='ff_data/{sample}_log2cpm.csv'
+    script: SRC_DIR+'/produce_ff_dataset.R'
+rule all_ff:    
+    input: expand("ff_data/{sample}_log2cpm.csv", sample=SAMPLES)
+
+rule calculate_umap:
+    input:data=find_log2, tsne=find_choord
+    output:out='umap_{min_dist}_{n_neighbors}/{sample}/{sample}_umap.csv',umap_out='umap_{min_dist}_{n_neighbors}/{sample}/{sample}_umap.pdf'
+    script:SRC_DIR+'/umap.R'
+rule all_umap:  
+    input: expand("umap_{min_dist}_{n_neighbors}/{sample}/{sample}_umap.csv", sample=SAMPLES, min_dist=0.5, n_neighbors=50)    
+rule umap_metagene:
+    input: umap='umap_{min_dist}_{n_neighbors}/{sample}/{sample}_umap.csv',data='ff_data/{sample}_log2cpm.csv'
+    output:plot_out='metagene_{sat_min}_{sat_max}/{sample}_umap_{min_dist}_{n_neighbors}_metagene.pdf'
+    script:SRC_DIR+'/umap_metagene.R'
+rule all_umap_metagene:
+    input: expand("metagene_{sat_min}_{sat_max}/{sample}_umap_{min_dist}_{n_neighbors}_metagene.pdf", sample=SAMPLES, min_dist=0.5, n_neighbors=50,sat_max=9,sat_min=1)
+rule umap_paneth:
+    input: umap='umap_{min_dist}_{n_neighbors}/{sample}/{sample}_umap.csv',kmeans='kmeans/{sample}/{sample}_kmeans_2comp.csv'
+    output:plot_out='paneth_umap/{sample}_umap_{min_dist}_{n_neighbors}_paneth.pdf'
+    script:SRC_DIR+'/umap_paneth.R'
+rule all_umap_paneth:
+    input: expand("paneth_umap/{sample}_umap_{min_dist}_{n_neighbors}_paneth.pdf", sample=SAMPLES, min_dist=0.5, n_neighbors=50)
+rule umap_genivari:
+    input: umap='umap_{min_dist}_{n_neighbors}/{sample}/{sample}_umap.csv',data='ff_data/{sample}_log2cpm.csv'
+    output:plot_out='genivari_umap/{sample}_umap_{min_dist}_{n_neighbors}_genivari.pdf'
+    script:SRC_DIR+'/umap_genivari.R'
+rule all_umap_genivari:   
+    input: expand("genivari_umap/{sample}_umap_{min_dist}_{n_neighbors}_genivari.pdf", sample=SAMPLES, min_dist=0.5, n_neighbors=50)
+rule dataset_geni_HES1:
+    input: data=find_log2
+    output: out='HES1_similar/{sample}_log2cpm.csv'
+    script: SRC_DIR+'/produce_HES1_genes_data.R'
+rule all_geni_HES1:    
+    input: expand("HES1_similar/{sample}_log2cpm.csv", sample=SAMPLES)
+rule umap_geni_HES1:
+    input: umap='umap_{min_dist}_{n_neighbors}/{sample}/{sample}_umap.csv',data='HES1_similar/{sample}_log2cpm.csv'
+    output:plot_out='geni_HES1/{sample}_umap_{min_dist}_{n_neighbors}.pdf'
+    script:SRC_DIR+'/umap_genivari.R'
+rule all_umap_geni_HES1:    
+    input: expand("geni_HES1/{sample}_umap_{min_dist}_{n_neighbors}.pdf", sample=SAMPLES, min_dist=0.5, n_neighbors=50)

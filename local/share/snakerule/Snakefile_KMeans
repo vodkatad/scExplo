@@ -610,15 +610,42 @@ rule _cliques:
         target.to_csv(output.clique,sep='\t')
 rule find_all_cliques_prova:
     input:expand("cliques_{corr}/{sample}/{sample}_cliques_prova.tsv",sample=SAMPLES_NO_TIMECOURSE,corr=0.7)
+# def find_cluster_2samples(wildcards):
+#     lista=[PRJ_ROOT+'/dataset/KMeans/kmeans/{sample1}/{sample1}_kmeans_2comp.csv',
+#             PRJ_ROOT+'/dataset/KMeans/kmeans/{sample2}/{sample2}_kmeans_2comp.csv']
+#     return lista
+def find_metagene_2samples(wildcards):
+    lista=[PRJ_ROOT+'/dataset/KMeans/kmeans/metageni/{sample_cet}_metagene.csv',
+            PRJ_ROOT+'/dataset/KMeans/kmeans/metageni/{sample_nt}_metagene.csv']
+    return lista  
 
-
-rule plot_bimodal:
-    input:c=PRJ_ROOT+'/dataset/KMeans/kmeans/{sample}/{sample}_kmeans_2comp.csv',metagene=PRJ_ROOT+'/dataset/KMeans/kmeans/metageni/{sample}_metagene.csv'
-    output:out='distribution/{sample}_dist.pdf'
+rule plot_bimodal_density:
+    input:c=find_metagene_2samples
+    #c=PRJ_ROOT+'/dataset/KMeans/kmeans/{sample}/{sample}_kmeans_2comp.csv',metagene=PRJ_ROOT+'/dataset/KMeans/kmeans/metageni/{sample}_metagene.csv'
+    output:out='distribution/{sample_cet}vs{sample_nt}_dist.pdf'
     script: SRC_DIR+'/distribution.R'
+rule plot_bimodal_density_scaled:
+    input:c=find_metagene_2samples
+    #c=PRJ_ROOT+'/dataset/KMeans/kmeans/{sample}/{sample}_kmeans_2comp.csv',metagene=PRJ_ROOT+'/dataset/KMeans/kmeans/metageni/{sample}_metagene.csv'
+    output:out='distribution_scaled/{sample_cet}vs{sample_nt}_dist.pdf'
+    script: SRC_DIR+'/distribution_scaled.R'
 
-rule all_plot_bimodal:
-    input:expand('distribution/{sample}_dist.pdf',sample=SAMPLES)
+rule plot_dist_paneth:
+    input:metagene=PRJ_ROOT+'/dataset/KMeans/kmeans/metageni/{sample}_metagene.csv', cluster=PRJ_ROOT+'/dataset/KMeans/kmeans/{sample}/{sample}_kmeans_2comp.csv'
+    output:out='distribution_paneth/{sample}_paneth_dist.pdf'
+    script:SRC_DIR+'/distribution_paneth.R'
+rule all_plot_paneth:
+    input:expand('distribution_paneth/{sample}_paneth_dist.pdf',sample=SAMPLES)
+
+
+rule plot_dist_HES1:
+    input:metagene=PRJ_ROOT+'/dataset/KMeans/HER/{sample}_log2cpm.csv', cluster=PRJ_ROOT+'/dataset/KMeans/kmeans/{sample}/{sample}_kmeans_2comp.csv'
+    output:out='distribution_HES1/{sample}_HES1_dist.pdf'
+    script:SRC_DIR+'/distribution_HES1.R'
+
+
+rule all_plot_HES1:
+    input:expand('distribution_HES1/{sample}_HES1_dist.pdf',sample=SAMPLES)
 
 rule dataset_ff:
     input: data=find_log2
@@ -647,12 +674,34 @@ rule cpm_umap_filtered_genes:
     output:pdf='ribosomal_gene/{sample}_umap.pdf'
     script:SRC_DIR+'/Fig_1_ribosomal.R'
 rule all_cpm_umap_filtered_gene:
-    input:expand('ribosomal_gene/{sample}_umap.pdf',sample=SAMPLES)    
-
+    input:expand('ribosomal_gene/{sample}_umap.pdf',sample=SAMPLES)  
+rule dataset_variance:
+    input: data=find_log2,variance='varianze.csv'
+    output: out='variance_data/{sample}_log2cpm.csv'
+    script: SRC_DIR+'/produce_variance_dataset.R'  
+rule heatmap_genes:
+    input:data=find_log2 #'variance_data/{sample}_log2cpm.csv'
+    output:pdf='heatmap_genes/{sample}_heatmap.pdf'
+    script:SRC_DIR+'/Fig_1_heatmap.R'
 #rule Fig_1_invivo:
     #input:data='ff_data/{sample}_ff_log2cpm.csv', tsne=find_choord, k_out='kmeans/{sample}/{sample}_kmeans_2comp.csv'
     #output:plot_out='kmeans/Fig_1/{sample}_tsne.png',pdf='kmeans/Fig_1/{sample}_genes.pdf'
     #script:SRC_DIR+'/Fig_1.R'
 #rule all_Fig_1_invivo:
     #input:expand('kmeans/Fig_1/{sample}_genes.pdf',sample=SAMPLES)
+rule fake_GO:
+    output:'fake_GO/GO_results.tsv'
+    script:SRC_DIR+'/fake_GO.R'
+rule Fig_1_tsne:
+    input:data='ff_data/{sample}_log2cpm.csv', tsne=find_choord, k_out='kmeans/{sample}/{sample}_kmeans_2comp.csv'
+    output:pdf='Fig_1_tsne/{sample}_genes.pdf'#plot_out='kmeans/Fig_1_tsne/{sample}_tsne.png'
+    script:SRC_DIR+'/Fig_1_tsne.R'
+rule all_Fig_1_tsne:
+    input:expand('Fig_1_tsne/{sample}_genes.pdf',sample=SAMPLES)
 
+rule DLL1_capo:
+    input: meta=PRJ_ROOT+'/dataset/KMeans/kmeans/metageni/{sample}_metagene.csv', data='ff_data/{sample}_ff_log2cpm.csv',cluster=PRJ_ROOT+'/dataset/KMeans/kmeans/{sample}/{sample}_kmeans_2comp.csv'
+    output:plot_out='DLL1_capo/{sample}_DLL1_capo.pdf'
+    script:SRC_DIR+'/DLL1_capo.R'
+rule all_DLL1_capo:     
+    input:expand('DLL1_capo/{sample}_DLL1_capo.pdf',sample=SAMPLES)

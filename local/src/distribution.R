@@ -43,25 +43,26 @@ breaks_x <- pretty(c(x_min, x_max), n = 5)
 x_max<-max(breaks_x)
 print(breaks_x) # "pretty" genera una serie di break esteticamente piacevoli
 print(x_max)
-# Crea il grafico con tick specificati manualmente
+
+
 a <- ggplot(df_combined, aes(x = x, color = Treatment)) +
   #geom_histogram(aes(fill='white'), alpha=0.3, binwidth=0.05, position = 'identity')+
   
-  geom_density((aes(y=after_stat(scaled))),position = "identity", bw = 0.05, size = 0.8) +
+  geom_density(position = "identity", bw = 0.05, size = 0.8) +#(aes(y=after_stat(scaled))),
   scale_color_manual(name = "Treatment", 
                      values = c("Cetuximab" = "red", "Not Treated" = "black")) +
   scale_x_continuous(expand = c(0, 0), limits = c(x_min, x_max), breaks = breaks_x) +  # Specifica i tick manualmente
     # Mantiene l'asse Y gestito automaticamente
-  ggtitle("Metagene Distribution") +
+  ggtitle("Metagene Distribution") + labs(y = "Fraction of total cells(A.U.)", x = "Metagene")+
   theme_minimal() +
-  theme(panel.background = element_rect(fill = "white", color = NA),  # Sfondo bianco
-        panel.grid.major = element_blank(),                          # Rimuovi griglie maggiori
-        panel.grid.minor = element_blank(),                          # Rimuovi griglie minori
-        axis.line = element_line(color = "black"),                   # Colore nero per gli assi
-        axis.ticks = element_line(color = "black"),                  # Tick marks neri
-        axis.ticks.length = unit(0.2, "cm"),                         # Lunghezza dei tick
-        axis.title.x = element_text(size = 12),                      # Etichetta asse X
-        axis.title.y = element_text(size = 12))                      # Etichetta asse Y
+  theme(panel.background = element_rect(fill = "white", color = NA),  
+        panel.grid.major = element_blank(),                          
+        panel.grid.minor = element_blank(),                         
+        axis.line = element_line(color = "black"),                   
+        axis.ticks = element_line(color = "black"),                  
+        axis.ticks.length = unit(0.2, "cm"),                         
+        axis.title.x = element_text(size = 12),                      
+        axis.title.y = element_text(size = 12))                      
   guides(color = guide_legend(override.aes = list(linetype = 1, size = 1, shape = NA, fill = NA)))
 
 

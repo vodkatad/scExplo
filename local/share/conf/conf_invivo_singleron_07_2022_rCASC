@@ -25,7 +25,7 @@ SAMPLES_MAP_RAF= {"CRC0322LMO_NT72h_1_singleron0722":'singnt',
 "CRC0322LMX_NT1w_1_singleron0722":'singpdxnt'
 }
 
-CSV_DIR=PRJ_ROOT+'/dataset/invivo_singleron_07_2022_mtx_to_csv'
+CSV_DIR='mnt/cold2/snaketree/prj/scRNA/dataset/invivo_singleron_07_2022_mtx_to_csv'
 
 ALL_CSV=expand(CSV_DIR+'/{sample}.csv', sample=SAMPLES)
 CORES=10
@@ -37,6 +37,7 @@ VIO_GENES='/mnt/cold1/snaketree/prj/scRNA/local/share/data/Ire_cetuxi_first_and_
 CYCLE_GENES='/mnt/cold1/snaketree/prj/scRNA/local/share/data/Ire_cetuxi_first_and_reseq/regev_lab_cell_cycle_genes_onlyensg.txt'
 BASED='/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_IRCC_tecrep/'
 
+SPEC='_cellule_sfigate'
 
 rule all_seurat_integration:
     input: expand("{sample}_res{res}_G1_clu_cycle.tsv", res=[0.01, 0.05, 0.1, 0.2, 0.5], sample=["CRC0327"])
