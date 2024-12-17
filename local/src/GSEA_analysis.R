@@ -9,18 +9,18 @@ library(DOSE)
 library(ggplot2)
 
 gene_res_f <- snakemake@input[["gene_res_freq"]]
-GSEA_r <- snakemake@output[["GSEA_r"]]
+GSEA_r <- snakemake@output[["GSEA_r"]]#non ti serve
 GSEA_ridgeplot <- snakemake@output[["GSEA_ridgeplot"]]
-type <- snakemake@wildcards[["msign"]]
+type <- snakemake@wildcards[["msign"]]#="C2"
 signature<-snakemake@wildcards[['cluster']]
 
 gene_res_df <- read.table(gene_res_f, quote = "", sep = "\t", header = TRUE)
 score<-paste0(signature,'_score')
 ###order
-print(score)
-print(head(gene_res_df))
-geneList <- gene_res_df[,score]
-names(geneList) <- as.character(gene_res_df[,signature])
+#print(score)
+#print(head(gene_res_df))
+geneList <- gene_res_df[,score] #colonna con gli score
+names(geneList) <- as.character(gene_res_df[,signature]) #rownames devono essere i geni
 geneList <- sort(geneList, decreasing = TRUE)
 
 
@@ -31,6 +31,8 @@ m_t2g <- msigdbr(species = "Homo sapiens", category = type) %>%
 
 
 em <- GSEA(geneList, TERM2GENE = m_t2g, pvalueCutoff = 1,nPerm=10000)
+
+#ciao mi tengo solo le robe significative e che hanno un enrichment score 
 ciao<-em[(em$enrichmentScore>0.5 | em$enrichmentScore< -0.5)& em$p.adjust<0.05,asis=TRUE]
 pdf('sofia_.pdf',width=12,height=12)
 #save.image("gsea_results.R")

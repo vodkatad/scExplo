@@ -74,3 +74,61 @@ rule umap_geni_HES1:
     script:SRC_DIR+'/umap_genivari.R'
 rule all_umap_geni_HES1:    
     input: expand("geni_HES1/{sample}_umap_{min_dist}_{n_neighbors}.pdf", sample=SAMPLES, min_dist=0.5, n_neighbors=50)
+def find_count(wildcards):
+    return PRJ_ROOT+'/dataset/'+DIC_FOLDER[wildcards.sample]+'/{sample}_dir/{sample}.tsv'
+rule decode_pkl:
+    input:data_id='data_ID/ID_across_scales.pkl', raw=find_count
+    output:id_csv='ID_{n}/{sample}_ID.csv'
+    run:
+        import pickle 
+        id_path=input['data_id']
+        coun_path=input['raw']
+        sample=coun_path.split('/')[-1]
+        n=str(wildcards.n)
+        print('=============================')
+        print(sample)
+
+        with open(id_path, 'rb') as f:
+            data_id = pickle.load(f)
+        import csv
+        with open(coun_path, mode='r', encoding='utf-8') as file:
+            reader = csv.reader(file)
+            cell_id = next(reader)  
+        import pandas as pd
+        id=data_id[sample][n]
+        out=pd.DataFrame({'cell_id':cell_id[1:len(cell_id)],'id':id})
+        out.to_csv(output['id_csv'],index=False)        
+        
+rule all_decode_pkl:
+    input:expand('ID_{n}/{sample}_ID.csv', sample=SAMPLES,n=130)
+rule umap_ID:
+    input: umap='umap_{min_dist}_{n_neighbors}/{sample}/{sample}_umap.csv',data='ID_{n}/{sample}_ID.csv'
+    output:plot_out='ID_umap_{n}/{sample}_umap_{min_dist}_{n_neighbors}.pdf'
+    script:SRC_DIR+'/umap_ID.R'
+
+rule all_umap_ID:   
+    input: expand("ID_umap_{n}/{sample}_umap_{min_dist}_{n_neighbors}.pdf", sample=SAMPLES, min_dist=0.5, n_neighbors=50,n=130)
+
+rule ID_check:
+    input: id='ID_{n}/{sample}_ID.csv', data='ff_data/{sample}_log2cpm.csv',cc=find_cc
+    output:plot_out='ID_vs_geni_vari_{n}/{sample}_ID.pdf'
+    script:SRC_DIR+'/ID_vs_geni.R'
+rule all_ID_check:
+    input: expand("ID_vs_geni_vari_{n}/{sample}_ID.pdf", sample=SAMPLES,n=130)
+
+rule ID_vs_morte:
+    input: id='ID_{n}/{sample}_ID.csv',cc=find_cc
+    output:plot_out='ID_vs_morte_{n}/{sample}_ID.pdf'
+    script:SRC_DIR+'/ID_vs_morte.R'
+rule all_ID_vs_morte:
+    input: expand("ID_vs_morte_{n}/{sample}_ID.pdf", sample=SAMPLES,n=130)
+
+def find_cc_2samples(wildcards):
+    lista=[PRJ_ROOT+'/dataset/'+DIC_FOLDER[wildcards.sample_nt]+'/{sample_nt}_dir'+'/filtered_annotated_saver_ribomito_{sample_nt}_cellCycle.csv',
+            PRJ_ROOT+'/dataset/'+DIC_FOLDER[wildcards.sample_cet]+'/{sample_cet}_dir'+'/filtered_annotated_saver_ribomito_{sample_cet}_cellCycle.csv']
+    return lista  
+    
+rule skip_dead_ID:
+    input: id_nt='ID_{n}/{sample_nt}_ID.csv',id_cet='ID_{n}/{sample_cet}_ID.csv',cc=find_cc_2samples
+    output:out='ID_nt_vs_cet_{n}/{sample_nt}_VS_{sample_cet}_ID_no_dead.pdf'
+    script:SRC_DIR+'/skip_dead_ID.R'
