@@ -30,6 +30,7 @@ rule plot_percentage_paneth_cc_cake:
 rule all_plot_percentage_paneth_cc_cake:    
     input: expand("paneth_percentage_cake/{sample}_plot_percentage_cc.pdf", sample=SAMPLES)
 
+        
 
 rule dataset_ff:
     input: data=find_log2
@@ -132,3 +133,4 @@ rule skip_dead_ID:
     input: id_nt='ID_{n}/{sample_nt}_ID.csv',id_cet='ID_{n}/{sample_cet}_ID.csv',cc=find_cc_2samples
     output:out='ID_nt_vs_cet_{n}/{sample_nt}_VS_{sample_cet}_ID_no_dead.pdf'
     script:SRC_DIR+'/skip_dead_ID.R'
+

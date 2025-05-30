@@ -16,6 +16,7 @@ pdf_<-snakemake@output[['pdf']]
 dato<- read.table(file = input,row.names = 1,sep=",",header = TRUE,stringsAsFactors = FALSE)
 kmeans<-read.table(file = kmeans_i,row.names = 1,sep=",",header = TRUE,stringsAsFactors = FALSE)
 metagene_cinque<-apply(dato,1,mean)
+print('suka')
 #set saturation to 10
 metagene_cinque[metagene_cinque>10]<-10
 metagene_cinque[metagene_cinque<4]<-0

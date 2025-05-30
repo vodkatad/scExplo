@@ -648,11 +648,11 @@ rule all_plot_HES1:
     input:expand('distribution_HES1/{sample}_HES1_dist.pdf',sample=SAMPLES)
 
 rule dataset_ff:
-    input: data=find_log2
-    output: out='ff_data/{sample}_log2cpm.csv'
+    input: data=find_log2,gene_list='gene_list.txt'
+    output: out='reduced_data/{sample}_log2cpm.csv'
     script: SRC_DIR+'/produce_ff_dataset.R'
 rule all_dataset_ff:
-    input:expand('ff_data/{sample}_log2cpm.csv',sample=SAMPLES)
+    input:expand('reduced_data/{sample}_log2cpm.csv',sample=SAMPLES)
 rule Fig_1:
     input:data='ff_data/{sample}_log2cpm.csv', tsne=find_choord, k_out='kmeans/{sample}/{sample}_kmeans_2comp.csv'
     output:plot_out='kmeans/Fig_1/{sample}_tsne.png',pdf='kmeans/Fig_1/{sample}_genes.pdf'
@@ -700,7 +700,7 @@ rule all_Fig_1_tsne:
     input:expand('Fig_1_tsne/{sample}_genes.pdf',sample=SAMPLES)
 
 rule DLL1_capo:
-    input: meta=PRJ_ROOT+'/dataset/KMeans/kmeans/metageni/{sample}_metagene.csv', data='ff_data/{sample}_ff_log2cpm.csv',cluster=PRJ_ROOT+'/dataset/KMeans/kmeans/{sample}/{sample}_kmeans_2comp.csv'
+    input: meta=PRJ_ROOT+'/dataset/KMeans/kmeans/metageni/{sample}_metagene.csv', data='ff_data/{sample}_log2cpm.csv',cluster=PRJ_ROOT+'/dataset/KMeans/kmeans/{sample}/{sample}_kmeans_2comp.csv'
     output:plot_out='DLL1_capo/{sample}_DLL1_capo.pdf'
     script:SRC_DIR+'/DLL1_capo.R'
 rule all_DLL1_capo:     

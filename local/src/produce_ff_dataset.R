@@ -1,6 +1,7 @@
 library(data.table)
 
 input<-snakemake@input[['data']]
+gene_list<-snakemake@input[['gene_list']]
 
 out<-snakemake@output[['out']]
 #leggo dato
@@ -15,8 +16,10 @@ stringa_split<-function(stringa){
 }
 colnames(dato_t) <- sapply(colnames(dato_t),FUN=stringa_split)
 #cinque<-c()
-cinque<-c("ATOH1","GFI1","DLL1","DEFA5","DEFA6","OLFM4","NOTCH1","NOTCH2","HES1","DLL4","APCDD1","WNT6","LGR5","BTC","AREG","EGF","ERBB2","ERBB3","EREG","HBEGF","TGFA","EGFR","ERBB2")
-
+#cinque<-c("ATOH1","LEF1","GFI1","DLL1","DEFA5","DEFA6","OLFM4","NOTCH1","NOTCH2","HES1","DLL4","APCDD1","WNT6","LGR5","BTC","AREG","EGF","ERBB2","ERBB3","EREG","HBEGF","TGFA","EGFR","ERBB2","SPDEF","CREB3L4")
+cinque<-read.table(file = gene_list,sep=",",header = FALSE)
+cinque<-cinque$V1
+cinque<-intersect(cinque, colnames(dato_t))
 
 cinque_df<-dato_t[,cinque]
 
