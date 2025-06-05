@@ -30,6 +30,12 @@ rule removefirstcol_copycsv:
             tr "," "\\t" < {input.counts} | cut --complement -f 1 | tr "\\t" "," > {output.counts}
         """
 
+# do we choose randomly one ensg for the bad gene symbol with more than one ensg and translate saver outputs?
+rule ensg_gs_map:
+    input: gtf=RCASC_GTF
+    output: map="ensg_gs_map.tsv"
+    script: SRC_DIR+"/gtf_to_map.R"
+
 SAMPLES=[
 "KUL01-B",
 "KUL01-N",
