@@ -1,0 +1,73 @@
+import os
+def find_prj_root(path=os.getcwd()):
+    if os.path.isfile(os.path.join(path,'.PRJ_ROOT')):
+        return path
+    else:
+        if path:
+            return find_prj_root(os.path.dirname(path))
+        else:
+            raise Exception('Can not find the PRJ_ROOT directory')
+
+PRJ_ROOT=find_prj_root()
+BIOINFO_ROOT = os.getenv('BIOINFO_ROOT')
+SNAKE_ROOT=os.getenv('SNAKE_ROOT')
+
+BIN_DIR=PRJ_ROOT+'/local/bin'
+SRC_DIR=PRJ_ROOT+'/local/src'
+
+CSV_DIR='/mnt/cold1/snaketree/prj/scRNA/dataset/Scanpy_prova/count_matrix/GSE144735'
+RCASC_GTF=PRJ_ROOT+"/local/share/data/Homo_sapiens.GRCh38.101.gtf"
+
+
+rule removefirstcol_copycsv:
+    input: counts=CSV_DIR+'/GSE144735_GEO_processed_CRC_10X_raw_UMI_{sample}_count_matrix_epithelial.csv', gtf=RCASC_GTF
+    output: counts="{sample}_dir/{sample}.csv", gtf="{sample}_dir/gtf.gtf"
+    params: dir="{sample}_dir"
+    shell:  
+        """
+            mkdir -p {params.dir}
+            cp {input.gtf} {output.gtf}
+            tr "," "\\t" < {input.counts} | cut --complement -f 1 | tr "\\t" "," > {output.counts}
+        """
+
+SAMPLES=[
+"KUL01-B",
+"KUL01-N",
+"KUL01-T",
+"KUL19-B",
+"KUL19-N",
+"KUL19-T",
+"KUL21-B",
+"KUL21-N",
+"KUL21-T",
+"KUL28-B",
+"KUL28-N",
+"KUL28-T",
+"KUL30-B",
+"KUL30-N",
+"KUL30-T",
+"KUL31-B",
+"KUL31-N",
+"KUL31-T"
+]
+
+NSAMPLES=len(SAMPLES)
+
+BASED='/mnt/cold1/snaketree/prj/scRNA/dataset/Scanpy_prova'
+
+ALL_CSV=expand(CSV_DIR+'/{sample}.tsv', sample=SAMPLES)
+CORES=10
+
+SCRATCH="/tmp"
+
+VIO_GENES='/mnt/cold1/snaketree/prj/scRNA/local/share/data/Ire_cetuxi_first_and_reseq/genes_ensg.tsv'
+CYCLE_GENES='/mnt/cold1/snaketree/prj/scRNA/local/share/data/Ire_cetuxi_first_and_reseq/regev_lab_cell_cycle_genes_onlyensg.txt'
+
+
+#BASE_DIR_RAF='/mnt/cold1/calogero/reanalysis_on_AIsc/paneth_only/time_course/'
+SAMPLES_MAP_RAF= {
+}
+
+
+rule all_saver:
+    input: expand("{sample}_saver.csv.gz", sample=SAMPLES)
