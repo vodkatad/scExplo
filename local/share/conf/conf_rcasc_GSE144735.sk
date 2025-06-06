@@ -18,23 +18,26 @@ SRC_DIR=PRJ_ROOT+'/local/src'
 CSV_DIR='/mnt/cold1/snaketree/prj/scRNA/dataset/Scanpy_prova/count_matrix/GSE144735'
 RCASC_GTF=PRJ_ROOT+"/local/share/data/Homo_sapiens.GRCh38.101.gtf"
 
+# do we choose randomly one ensg for the bad gene symbol with more than one ensg and translate saver outputs?
+rule ensg_gs_map:
+    input: gtf=RCASC_GTF
+    output: map="ensg_gs_map.tsv", map_disamb="first_ensg_gs_map.tsv"
+    script: SRC_DIR+"/gtf_to_map.R"
+
+MAP="first_ensg_gs_map.tsv"
 
 rule removefirstcol_copycsv:
-    input: counts=CSV_DIR+'/GSE144735_GEO_processed_CRC_10X_raw_UMI_{sample}_count_matrix_epithelial.csv', gtf=RCASC_GTF
+    input: counts=CSV_DIR+'/GSE144735_GEO_processed_CRC_10X_raw_UMI_{sample}_count_matrix_epithelial.csv', gtf=RCASC_GTF, map=MAP
     output: counts="{sample}_dir/{sample}.csv", gtf="{sample}_dir/gtf.gtf"
     params: dir="{sample}_dir"
     shell:  
         """
             mkdir -p {params.dir}
             cp {input.gtf} {output.gtf}
-            tr "," "\\t" < {input.counts} | cut --complement -f 1 | tr "\\t" "," > {output.counts}
+            tr "," "\\t" < {input.counts} | cut --complement -f 1 |  tee >(bawk 'NR==1' | tr "\\t" "," > {output.counts}.tmp2) | translate -k {input.map} 1 | tr "\\t" "," > {output.counts}.tmp
+            cat {output.counts}.tmp2 {output.counts}.tmp > {output.counts}
+            rm {output.counts}.tmp*
         """
-
-# do we choose randomly one ensg for the bad gene symbol with more than one ensg and translate saver outputs?
-rule ensg_gs_map:
-    input: gtf=RCASC_GTF
-    output: map="ensg_gs_map.tsv"
-    script: SRC_DIR+"/gtf_to_map.R"
 
 SAMPLES=[
 "KUL01-B",
@@ -73,7 +76,3 @@ CYCLE_GENES='/mnt/cold1/snaketree/prj/scRNA/local/share/data/Ire_cetuxi_first_an
 #BASE_DIR_RAF='/mnt/cold1/calogero/reanalysis_on_AIsc/paneth_only/time_course/'
 SAMPLES_MAP_RAF= {
 }
-
-
-rule all_saver:
-    input: expand("{sample}_saver.csv.gz", sample=SAMPLES)
