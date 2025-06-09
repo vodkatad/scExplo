@@ -34,7 +34,7 @@ rule removefirstcol_copycsv:
         """
             mkdir -p {params.dir}
             cp {input.gtf} {output.gtf}
-            tr "," "\\t" < {input.counts} | cut --complement -f 1 |  tee >(bawk 'NR==1' | tr "\\t" "," > {output.counts}.tmp2) | translate -k {input.map} 1 | tr "\\t" "," > {output.counts}.tmp
+            tr "," "\\t" < {input.counts} |  tee >(bawk 'NR==1' | tr "\\t" "," > {output.counts}.tmp2) | translate -k {input.map} 1 | tr "\\t" "," > {output.counts}.tmp
             cat {output.counts}.tmp2 {output.counts}.tmp > {output.counts}
             rm {output.counts}.tmp*
         """
