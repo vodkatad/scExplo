@@ -1,0 +1,57 @@
+include : "Snakefile"
+
+rule all_count_matrix_notEpithelial:
+    input:
+        expand(
+            "count_matrix/{GSE_id}/{GSE_id}_GEO_processed_CRC_10X_raw_UMI_{sample_id}_count_matrix_notEpithelial.csv",
+            zip,
+            GSE_id=[g[0] for g in get_all_samples()],
+            sample_id=[g[1] for g in get_all_samples()]
+        )
+
+
+#creo il file count_matrix delel cellule epitheliali per ogni sample 
+rule count_matrix_notEpithelial_per_sample_per_database:
+    input:
+        cell_annotation_path=lambda wildcards: get_input_files(wildcards)["cell_annotation_path"],
+        count_matrix_path=lambda wildcards: get_input_files(wildcards)["count_matrix_path"]
+
+    output:
+        count_matrix_epithelial_per_sample="count_matrix/{GSE_id}/{GSE_id}_GEO_processed_CRC_10X_raw_UMI_{sample_id}_count_matrix_notEpithelial.csv"
+
+    run:
+        import pandas as pd
+        import gzip
+
+        annotation_filename = input.cell_annotation_path
+        df_annotation = pd.read_csv(annotation_filename, sep="\t", compression="gzip")
+
+        df_epithelial = df_annotation[
+            (df_annotation['Cell_type'] != 'Epithelial cells') &
+            (df_annotation['Sample'] == wildcards.sample_id)
+        ]
+        cell_sample_id = df_epithelial["Index"].tolist()
+
+        with gzip.open(input.count_matrix_path, "rt") as f:
+            header = f.readline().strip().split("\t")
+
+        gene_col = header[0]
+        column_sample = [gene_col] + [col for col in header if col in cell_sample_id]
+        
+        df_count_matrix_epithelial_sample = pd.read_csv(
+            input.count_matrix_path,
+            sep="\t",
+            compression="gzip",
+            usecols=column_sample,
+            index_col='Index'
+        )
+
+        df_count_matrix_epithelial_sample.index.name=None
+        print(df_count_matrix_epithelial_sample.head())
+        
+        df_count_matrix_epithelial_sample.to_csv(
+            output.count_matrix_epithelial_per_sample,
+            sep=',',
+            index=True,
+            header=True
+        )

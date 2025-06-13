@@ -57,9 +57,18 @@ rule step_03_topsd_topexpr:
 # cc input is here just to enforce a correct i/o linking with the previous step03_topsd_topexpr rule
 rule log2cpm:
     input: data="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv",
-           cc="{sample}_dir/filtered_annotated_{sample}_cellCycle.csv"
+           #cc="{sample}_dir/filtered_annotated_{sample}_cellCycle.csv"
     params: tool=SRC_DIR+'/rCASC_geneCPM.R', expr=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"),
     output: cpm="{sample}_dir/filtered_annotated_saver_ribomito_{sample}_log2_pc1_cpm.csv"
+    shell:
+        """
+            {params.tool} -e {params.expr}
+        """
+
+rule log2cpm_without_impute_filter:
+    input: data="{sample}_dir/annotated_{sample}.csv",
+    params: tool=SRC_DIR+'/rCASC_geneCPM.R', expr=get_absolute_all("{sample}_dir/annotated_{sample}.csv"),
+    output: cpm="{sample}_dir/annotated_{sample}_log2_pc1_cpm.csv"
     shell:
         """
             {params.tool} -e {params.expr}
@@ -87,10 +96,13 @@ rule all_step01:
     input: expand("{sample}_saver.csv.gz", sample=SAMPLES)## expand("{sample}_saverAlivePC.csv.gz", sample=SAMPLES)
 
 rule all_step03:
-    input: expand("{sample}_dir/filtered_annotated_{sample}_cellCycle.csv", sample=SAMPLES)## expand("{sample}_saverAlivePC.csv.gz", sample=SAMPLES)
+    input: expand("{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv", sample=SAMPLES)## expand("{sample}_saverAlivePC.csv.gz", sample=SAMPLES)
 
 rule all_cpm:
-    input: expand("{sample}_dir/filtered_annotated_{sample}_log2_pc1_cpm.csv", sample=SAMPLES)
+    input: expand("{sample}_dir/filtered_annotated_saver_ribomito_{sample}_log2_pc1_cpm.csv", sample=SAMPLES)
+
+rule all_cpm_without_impute_filter:
+    input: expand("{sample}_dir/annotated_{sample}_log2_pc1_cpm.csv", sample=SAMPLES)
 
 
 rule all_saver_alive:
