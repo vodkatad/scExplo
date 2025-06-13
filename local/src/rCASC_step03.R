@@ -10,7 +10,8 @@ opts <- matrix(c(
   'saver', 'a', 1, 'character',
   'saverla', 'f', 1, 'character',
   'saverfarm', 'r', 1, 'character',
-  'saverfarmva', 'v', 1, 'character'
+  'saverfarmva', 'v', 1, 'character',
+  'docker_script', 'd', 1, 'character'
   ), ncol=4, byrow=TRUE)
 opt <- getopt(opts)
 
@@ -21,6 +22,7 @@ if (is.null(opt$counts) | !is.null(opt$help) | is.null(opt$gtf) | is.null(opt$sc
     stop('everything is mandatory :P')
 }
 
+source(opt$docker_script)
 #WD = "/path_to_saver_and_raw_data"
 #INPUT="CRC0322_NT_1_bis.csv"
 SEPARATOR=","
@@ -47,7 +49,7 @@ scannobyGtf(group = "docker", file=INPUT, gtf.name=GTF, biotype="protein_coding"
 # calculating cell cycle, here not on inputed data!
 # its input is filtered_annotated_CRC0542_CTX72h_1.tsv
 fa_name <- file.path(dirname(INPUT), paste0('filtered_annotated_', basename(INPUT)))
-print('############################# ccycle')
+#print('############################# ccycle') # commented out for public data
 seurat_ccycle(group = "docker", scratch.folder=SCRATCH, file=fa_name, separator=SEPARATOR, seed=111)
 # this generates filtered_annotated_CRC0542_CTX72h_1_cellCycle.tsv in the fa_name dir - but who uses THIS?
 
@@ -74,8 +76,10 @@ topx(group = "docker", file=saver_farmva_f, threshold=5000, separator=SEPARATOR,
 #file.rename(from=paste("filtered_expression_filtered_variance_filtered_annotated_saver_ribomito", INPUT, sep="_"), to="VandE.csv")
 #system("mv VandE.csv VandE")
 
-print('############################# pcaeval')
-seuratPCAEval(group = "docker", scratch.folder=SCRATCH, file=saver_last, separator=",", logTen = 0, seed = 111)
+# commented out to skip cause we were not using it and for samples with < 50 cells it generates errors (would need to change rCASC internal docker code to fix)
+# /home/main.R in docker.io/repbioinfo/seuratpcaeval using npcs=min(50, ncol(...))
+#print('############################# pcaeval')
+#seuratPCAEval(group = "docker", scratch.folder=SCRATCH, file=saver_last, separator=",", logTen = 0, seed = 111) 
 ###seuratPCAEval(group = "docker", scratch.folder=SCRATCH, file=saver_farm_f, separator=",", logTen = 0, seed = 111)
 # this generates 
 #CRC0069_CTX72h_1_dir/Results/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_CRC0069_CTX72h_1/PCE_bowPlot.pdf

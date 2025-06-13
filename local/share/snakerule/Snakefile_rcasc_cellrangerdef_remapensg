@@ -40,16 +40,15 @@ rule step_02_cc_ribomito:
 # {sample}_dir/Results/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}/PCE_bowPlot.pdf
 rule step_03_topsd_topexpr:
     input: counts='{sample}_dir/{sample}.csv', gtf='{sample}_dir/gtf.gtf', saver="{sample}_saver.csv.gz"
-    #output: cc="{sample}_dir/filtered_annotated_{sample}_cellCycle.csv",
-    output: vande="{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv"
+    output: cc="{sample}_dir/filtered_annotated_{sample}_cellCycle.csv", vande="{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv"
     params: tool=SRC_DIR+'/rCASC_step03.R', scratch=SCRATCH, rcounts=get_absolute, rgtf="gtf.gtf", saver=get_absolute_all("{sample}_dir/saver_{sample}.tsv"),
             saverfarm=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"),
             saverfarmva=get_absolute_all("{sample}_dir/filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv"),
-            saverfa=get_absolute_all("{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv")
+            saverfa=get_absolute_all("{sample}_dir/filtered_expression_filtered_variance_filtered_annotated_saver_ribomito_{sample}.csv"), docker_tool=SRC_DIR+"/seurat_cCycle.R"
     shell:  
         """
             gunzip -c {input.saver} > {wildcards.sample}_dir/saver_{wildcards.sample}.tsv
-            {params.tool} -c {params.rcounts} -g {params.rgtf} -s {params.scratch} -a {params.saver} -f {params.saverfa} -r {params.saverfarm} -v {params.saverfarmva} 
+            {params.tool} -c {params.rcounts} -g {params.rgtf} -s {params.scratch} -a {params.saver} -f {params.saverfa} -r {params.saverfarm} -v {params.saverfarmva} -d {params.docker_tool}
         """
 
 # rule for log2cpm without the need for clustering
@@ -57,7 +56,7 @@ rule step_03_topsd_topexpr:
 # cc input is here just to enforce a correct i/o linking with the previous step03_topsd_topexpr rule
 rule log2cpm:
     input: data="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv",
-           #cc="{sample}_dir/filtered_annotated_{sample}_cellCycle.csv"
+           cc="{sample}_dir/filtered_annotated_{sample}_cellCycle.csv"
     params: tool=SRC_DIR+'/rCASC_geneCPM.R', expr=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"),
     output: cpm="{sample}_dir/filtered_annotated_saver_ribomito_{sample}_log2_pc1_cpm.csv"
     shell:
@@ -67,6 +66,7 @@ rule log2cpm:
 
 rule log2cpm_without_impute_filter:
     input: data="{sample}_dir/annotated_{sample}.csv",
+           cc="{sample}_dir/filtered_annotated_{sample}_cellCycle.csv"
     params: tool=SRC_DIR+'/rCASC_geneCPM.R', expr=get_absolute_all("{sample}_dir/annotated_{sample}.csv"),
     output: cpm="{sample}_dir/annotated_{sample}_log2_pc1_cpm.csv"
     shell:
