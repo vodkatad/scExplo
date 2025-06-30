@@ -15,7 +15,7 @@ SNAKE_ROOT=os.getenv('SNAKE_ROOT')
 BIN_DIR=PRJ_ROOT+'/local/bin'
 SRC_DIR=PRJ_ROOT+'/local/src'
 
-SAMPLES=["CRC0322LMO_NT72h_1_singleron0722","CRC0322LMO_CTX72h_1_singleron0722","CRC0322LMX_CTX1w_1_singleron0722","CRC0322LMX_NT1w_1_singleron0722"]#, "CRC0322LMO_NT72h_1_signleron0722_us"]
+SAMPLES=["CRC0322LMO_NT72h_1_singleron0722","CRC0322LMO_CTX72h_1_singleron0722","CRC0322LMX_CTX1w_1_singleron0722","CRC0322LMX_NT1w_1_singleron0722"]
 NSAMPLES=len(SAMPLES)
 
 BASE_DIR_RAF='/mnt/cold1/calogero/reanalysis_on_AIsc/paneth_only/all/log2cpmfisher/'
@@ -37,6 +37,7 @@ VIO_GENES='/mnt/cold1/snaketree/prj/scRNA/local/share/data/Ire_cetuxi_first_and_
 CYCLE_GENES='/mnt/cold1/snaketree/prj/scRNA/local/share/data/Ire_cetuxi_first_and_reseq/regev_lab_cell_cycle_genes_onlyensg.txt'
 BASED='/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_IRCC_tecrep/'
 
+SPEC='_cellule_sfigate'
 
 rule all_seurat_integration:
     input: expand("{sample}_res{res}_G1_clu_cycle.tsv", res=[0.01, 0.05, 0.1, 0.2, 0.5], sample=["CRC0327"])
