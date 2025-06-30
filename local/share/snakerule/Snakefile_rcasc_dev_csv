@@ -22,6 +22,14 @@ rule directories:
 rule all_rcasc_steps:
     input: expand("{sample}_dir/filtered_annotated_{sample}_cellCycle.csv", sample=SAMPLES)
 
+# all_cpm should call the cp csv rule, then saver, then step 02/03 of rCASC (which annotate the cell cycle), then compute the log2cpm
+rule all_cpm:
+    input: expand("{sample}_dir/filtered_annotated_saver_ribomito_{sample}_log2_pc1_cpm.csv", sample=SAMPLES)
+
+rule all_cpm_without_impute_filter:
+    input: expand("{sample}_dir/annotated_{sample}_log2_pc1_cpm.csv", sample=SAMPLES)
+
+
 # move in dir?
 rule step_01_saver:
     input: '{sample}_dir/{sample}.csv'
@@ -65,6 +73,29 @@ rule step_03_topsd_topexpr:
         """
             gunzip -c {input.saver} > {wildcards.sample}_dir/saver_{wildcards.sample}.tsv
             {params.tool} -c {params.rcounts} -g {params.rgtf} -s {params.scratch} -a {params.saver} -f {params.saverfa} -r {params.saverfarm} -v {params.saverfarmva} 
+        """
+
+# rule for log2cpm without the need for clustering
+# we have the explicit ouput here (not in the geneshading rule), so we can call this directly if we want and do the whole rCASC round otherwise
+# cc input is here just to enforce a correct i/o linking with the previous step03_topsd_topexpr rule
+rule log2cpm:
+    input: data="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv",
+           cc="{sample}_dir/filtered_annotated_{sample}_cellCycle.csv"
+    params: tool=SRC_DIR+'/rCASC_geneCPM.R', expr=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"),
+    output: cpm="{sample}_dir/filtered_annotated_saver_ribomito_{sample}_log2_pc1_cpm.csv"
+    shell:
+        """
+            {params.tool} -e {params.expr}
+        """
+
+rule log2cpm_without_impute_filter:
+    input: data="{sample}_dir/annotated_{sample}.csv",
+           cc="{sample}_dir/filtered_annotated_{sample}_cellCycle.csv"
+    params: tool=SRC_DIR+'/rCASC_geneCPM.R', expr=get_absolute_all("{sample}_dir/annotated_{sample}.csv"),
+    output: cpm="{sample}_dir/annotated_{sample}_log2_pc1_cpm.csv"
+    shell:
+        """
+            {params.tool} -e {params.expr}
         """
 
 # upto here
@@ -170,19 +201,6 @@ rule all_clusters:
     input: expand('{sample}_seurat_clusters_cc_res{{res}}_{{pc}}.csv', sample=SAMPLES)
     output: "all_seu_clusters_cc_res{res}_{pc}.done"  
     shell: "touch {output}"  
-
-rule all_cpm:
-    input: expand("{sample}_dir/filtered_annotated_saver_ribomito_{sample}_log2_pc1_cpm_indepstep04.csv",sample=SAMPLES)
-
-rule indep_log2cpm:
-    input: data="{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"
-    params: tool=SRC_DIR+'/rCASC_genecpm.R',  
-            tool2=SRC_DIR+'/geneVisualization.R', expr=get_absolute_all("{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv"),
-    output: cpm="{sample}_dir/filtered_annotated_saver_ribomito_{sample}_log2_pc1_cpm_indepstep04.csv"
-    shell:
-        """
-            {params.tool} -e {params.expr}
-        """
 
 #### shading of genes on UMAP
 rule gene_shading:
