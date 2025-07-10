@@ -65,6 +65,18 @@ rule step_03_topsd_topexpr:
             {params.tool} -c {params.rcounts} -g {params.rgtf} -s {params.scratch} -a {params.saver} -f {params.saverfa} -r {params.saverfarm} -v {params.saverfarmva} 
         """
 
+rule all_cpm_without_impute_filter:
+    input: expand("{sample}_dir/annotated_{sample}_log2_pc1_cpm.csv", sample=SAMPLES)
+
+rule log2cpm_without_impute_filter:
+    input: data="{sample}_dir/annotated_{sample}.tsv",
+           cc="{sample}_dir/filtered_annotated_{sample}_cellCycle.tsv"
+    params: tool=SRC_DIR+'/rCASC_geneCPM.R', expr=get_absolute_all("{sample}_dir/annotated_{sample}.tsv"),
+    output: cpm="{sample}_dir/annotated_{sample}_log2_pc1_cpm.csv"
+    shell:
+        """
+            {params.tool} -e {params.expr}
+        """
 # upto here
 #real    105m47.706s
 #user    6m22.494s
