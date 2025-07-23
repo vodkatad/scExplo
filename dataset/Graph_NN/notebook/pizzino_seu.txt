@@ -1,0 +1,62 @@
+Due setup senza correzione del ciclo han girato da seu_int_graph.ipynb (kernel del mamba env R_seurat_V4, i warning mi sembrano del genere innocuo, anche se...):
+npc <- 300
+resolution <- 0.4
+
+pdf del notebook: seu_int_graph_morePC.pdf - che conferma che i due grupponi sono ciclanti-non, come dicevi.
+Avendo tanti geni del ciclo come universo secondo me con tante PC la umap diventa questi due grupponi per questo motivo.
+
+e 
+npc <- 20
+resolution <- 0.12
+
+pdf del notebook: seu_int_graph_lessPC.pdf (con contingency vs sè stesso per controllo)
+
+
+i loro cluster:
+/mnt/cold1/snaketree/prj/scRNA/dataset/Graph_NN/notebook/seurat_v4_integration_trainWT_graphgenes_lessPC.tsv # 4 di cui il quarto pettoso solo col CRC0327
+Situa Paneth:
+             0    1    2    3    4
+  nPaneth 3644 3071 2498  124   82
+  Paneth   120   10    5  496    0
+
+Qui ce ne sono 120 sparse con le altre non ciclanti e 'meno' aggiunte di sotto, ma onestamente non so cosa sia meglio...
+
+/mnt/cold1/snaketree/prj/scRNA/dataset/Graph_NN/notebook/seurat_v4_integration_trainWT_graphgenes_morePC.tsv # 3 
+Situa Paneth:
+             0    1    2    3
+  nPaneth 2984 2844 2738  853
+  Paneth     3   52   10  566
+
+Sono poco sparse altrove ma abbastanza mescolate con non Paneth, sembra più simile ad Harmony forse (e guardando ATOH1 non sono tutte le nostre Paneth classiche in effetti).
+Se alzo la sua resolution a 0.5 non succede nulla, 0.6 nemmeno (sempre 4 cluster ma il 3 sembra 'sbragarsi')...con 0.8 diventano 5, ma con quello paneth sbragatissimo e quello a sx diviso in tre. 
+
+contingency table:
+
+       0    1    2    3    4
+  0  319 2020  592    0   56
+  1 2659  122   83   19   13
+  2    4  922 1809    0   13
+  3  782   17   19  601    0
+
+A parte il 4 che vabbè mi sembra semi decente il mapping (righe-colonne):
+0-1
+1-0
+2-2
+3-3
+
+con gli sbavi più grossi dovuti alle 922 del cluster 1 del gruppo da 4 delle colonne che sanguina sul 2 delle righe.
+
+Il motivo per cui non ho salvato i marker è questo:
+sapply(deg, function(x) {xx <- x[, grepl('avg_log', colnames(x))]; table(apply(xx, 1, function(x) {all(x > 0)} )) })
+
+FALSE	50	165	29	165
+TRUE	113	24	100	96
+
+quindi i logfc dei soli significativi sono 'coerenti' ma mia poi tanto (questo è sui 4 cluster delle tante PC ma la cosa è simile con poche)
+
+## prova correggendo per il ciclo in seu_int_graph_cyclecorr
+# noooia non ho i geni del paper di regev con ENGS:gene symbol, per ora porcheggio per fare rapida e tolgo i gene symbol dalle matrici che carico in seurat.
+
+# noooia sono una polla non posso farlo inferendo il ciclo, perchè il mappign dei geni che inferisce il ciclo non ne trova abbastanza nei 900 (nonostante le GO).
+
+Ora vado in ufficio da Giorgio e lì ricomincio prendendo le fasi del ciclo inferite 'extra'
