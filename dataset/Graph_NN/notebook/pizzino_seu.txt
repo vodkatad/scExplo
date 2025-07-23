@@ -54,7 +54,7 @@ TRUE	113	24	100	96
 
 quindi i logfc dei soli significativi sono 'coerenti' ma mica poi tanto (questo è sui 4 cluster delle tante PC ma la cosa è simile con poche)
 
-## prova correggendo per il ciclo in seu_int_graph_cyclecorr
+## prova correggendo per il ciclo in seu_int_graph_integratemaptejpar (il nome ehm è per un errore dovuto ad una prova successiva che ha preso il posto del file col nome sensato)
 Noooia non ho i geni del paper di regev con ENGS:gene symbol, per ora porcheggio per fare rapida e tolgo i gene symbol dalle matrici che carico in seurat.
 
 Noooia sono una polla non posso farlo inferendo il ciclo, perchè il mappign dei geni che inferisce il ciclo non ne trova abbastanza nei 900 (nonostante le GO). Vabbè almeno

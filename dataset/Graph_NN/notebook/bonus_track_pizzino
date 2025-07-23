@@ -1,0 +1,20 @@
+Con il datasharing della famosa tipa francese di cui non capisco nulla sono finita qui: https://www.researchsquare.com/article/rs-6812365/v1
+ci sono delle frasi che mi hanno triggerato di brutto e vabbè (e non credo che siano supportate molto dai loro dati), cmq...
+ho un po' scavato nei metodi per capire come hanno fatto ad ottenre i gruppi annotati nella figura 2A, non l'ho capito appieno, ma dato che ho il loro dato ho iniziato a giocare
+con le proiezioni da dataset a dataset che usano loro per proiettare i loro cell type sui nostri.
+Paciocchi in seu_int_graph_cyclecorr, che povero notebook l'ho copiato per fare questo e poi ho editato quello originale, vabbè.
+Non sono sicura di come si parlino integrazione - top variant genes e sta procedura, quindi dopo vari errori ho provato a mappare soltanto il CRC0322.
+Qualcosa si mappa. Non che lo proponga come strada, ma se non troviamo un clustering che ci convinca potremmo provare sti gruppi qui 'from the literature' (poi boh in modo 
+grezzo per il preliminary del CIBB, poi bisogna rimuginare con calma e parlarne...).
+
+Poi boh era colpa mia che non avevo visto che il loro oggetto non aveva le variable feature estratte e la PCA fatta, avendolo fatto posso mappare anche il nostro dato integrato
+(sempre con una buona dose  di cose che faccio senza capirle :)).
+
+No cmq non funge sul dato integrato.
+Vabbè...spesso le bonus track negli album sono un pacco. Spero che leggendo la disillusione sia stata meno meh che la mia che aspettavo le run ma piuttosto ti abbia fatto sorridere 
+sulla mia picitudine.
+
+Qualche calcio dopo ci sono riuscita (almeno credo) e fa abbastanza cagare, mi pare, a me cmq consola perchè mi pare che voglia dire che i gruppi canonici che il mondo studia sui nostri organoidi
+non mappano poi così bene (a parte le paneth che sembrano essere ricche di goblet like, cosa che sapevamo).
+
+Se provo a mappare sul dato sui pochi geni ci sono molti meno geni in comune highly variable (sta cosa si può cmq modificare) ed il mapping cambia abbastanza, sembra 'meglio' rispetto alla umap, ma cosa voglia dire...
