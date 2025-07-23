@@ -55,9 +55,10 @@ TRUE	113	24	100	96
 quindi i logfc dei soli significativi sono 'coerenti' ma mica poi tanto (questo è sui 4 cluster delle tante PC ma la cosa è simile con poche)
 
 ## prova correggendo per il ciclo in seu_int_graph_cyclecorr
-# noooia non ho i geni del paper di regev con ENGS:gene symbol, per ora porcheggio per fare rapida e tolgo i gene symbol dalle matrici che carico in seurat.
+Noooia non ho i geni del paper di regev con ENGS:gene symbol, per ora porcheggio per fare rapida e tolgo i gene symbol dalle matrici che carico in seurat.
 
-# noooia sono una polla non posso farlo inferendo il ciclo, perchè il mappign dei geni che inferisce il ciclo non ne trova abbastanza nei 900 (nonostante le GO).
+Noooia sono una polla non posso farlo inferendo il ciclo, perchè il mappign dei geni che inferisce il ciclo non ne trova abbastanza nei 900 (nonostante le GO). Vabbè almeno
+posso tenere gli id engs:gene in pace.
 
 Ora vado in ufficio da Giorgio e lì ricomincio prendendo le fasi del ciclo inferite 'extra'.
 
@@ -70,3 +71,24 @@ Peraltro riguardano i pdf e la divisione in ciclo sembra che i due cluster cicla
 alla fine stiamo provando ad imparare dei cluster che sono le  3 fasi del ciclo + Paneth (credo per le Paneth di per sè sia interessante valutare chi ci finsice o meno insieme nei vari
 casi ma questo è una altro trip ancora non utile per noi ora)...per cui ora investo un po' di tempo per prendere a calci sta correzione e vedere cosa capita.
 
+Ok lato integrazione la UMAP con le fasi del ciclo post sembra aver mescolato le carte ma meno rispetto all'integrazione (è anche vero che ho usato come variabile di correzione
+la fase del ciclo e non i punteggi per fase S e  G2M suggeriti nella doc, perchè ho recuperato le inferenze fatte sui singoli campioni del ciclo...volendo potrei recuperare gli score facendo rigirare Seurat
+ma dubito cambi poi tanto). Con 20 PC e risoluzione come prima 0.12 sempre 4 cluster. Senza guardare i marker o così becca 'meglio' le paneth ed è il cluster 3 oppure il 2 sbavato come prima, vediamo...
+
+Il 2 sbavato...direi con una 'intrusione' di non Paneth intermedia tra i due di prima:
+             0    1    2    3
+  nPaneth 5205 3550  569   95
+  Paneth    22   67  541    1
+
+Suoi cluster:
+/mnt/cold1/snaketree/prj/scRNA/dataset/Graph_NN/notebook/seurat_v4_integration_trainWT_graphgenes_cyclecorr_lessPC.tsv
+
+e pdf:
+seu_int_graph_lessPC_cyclecorr.pdf
+
+Ho esplorato qualche marker confrontandoli con il dato non corretto...non so. A me sembra che qui spunti il cluster 3 piccolino con tutti i marker IFIT che senza
+correzione risultano cellule molto lontane (nei due blocchi ciclanti e non), ma che _forse_ a parte lui non cambi tantissimo...vero che le confusion matrix boh, ma ci sono dei top marker (che poi quanto marker
+data la umap boh...sicuramente non 0-1 come ATOH1, ma diciamo più alti in alcune cellule), tipo FXID3. Infatti il cluster 1 qui sembra essere il cluster 1 della prova tante PC sopra...lo 0  è
+un mega cluster delle cellule non ciclanti, che qui non son divise.
+
+Non saprei prendere una scelta chiara, ma si potrebbero considerare tutti contendenti per i GSEA su H/C2 per vedere chi ha la caratterizzazione più forte...
