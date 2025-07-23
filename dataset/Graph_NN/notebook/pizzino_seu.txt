@@ -19,7 +19,7 @@ Situa Paneth:
   nPaneth 3644 3071 2498  124   82
   Paneth   120   10    5  496    0
 
-Qui ce ne sono 120 sparse con le altre non ciclanti e 'meno' aggiunte di sotto, ma onestamente non so cosa sia meglio...
+Qui ce ne sono 120 sparse con le altre non ciclanti e 'meno' aggiunte di nPaneth al cluster 3, ma onestamente non so cosa sia meglio...
 
 /mnt/cold1/snaketree/prj/scRNA/dataset/Graph_NN/notebook/seurat_v4_integration_trainWT_graphgenes_morePC.tsv # 3 
 Situa Paneth:
@@ -52,11 +52,21 @@ sapply(deg, function(x) {xx <- x[, grepl('avg_log', colnames(x))]; table(apply(x
 FALSE	50	165	29	165
 TRUE	113	24	100	96
 
-quindi i logfc dei soli significativi sono 'coerenti' ma mia poi tanto (questo è sui 4 cluster delle tante PC ma la cosa è simile con poche)
+quindi i logfc dei soli significativi sono 'coerenti' ma mica poi tanto (questo è sui 4 cluster delle tante PC ma la cosa è simile con poche)
 
 ## prova correggendo per il ciclo in seu_int_graph_cyclecorr
 # noooia non ho i geni del paper di regev con ENGS:gene symbol, per ora porcheggio per fare rapida e tolgo i gene symbol dalle matrici che carico in seurat.
 
 # noooia sono una polla non posso farlo inferendo il ciclo, perchè il mappign dei geni che inferisce il ciclo non ne trova abbastanza nei 900 (nonostante le GO).
 
-Ora vado in ufficio da Giorgio e lì ricomincio prendendo le fasi del ciclo inferite 'extra'
+Ora vado in ufficio da Giorgio e lì ricomincio prendendo le fasi del ciclo inferite 'extra'.
+
+Pensiero laterale fatto in bici sulle GO in generale:
+pensavo che 1 cluster contro tutti gli altri essendo molto focalizzati sul ciclo ed essendo 0/1 come fase (vedi dai plot in fondo ai pdf dei notebook) potrebbe uscire poco,
+ma magari si potrebbero caratterizzare i due blocchi facendo cluster che cicla vs altro cluster che cicla (e viceversa per i non cicla) per rankare i geni differenziali.
+Non è detto abbia senso ma...magari sì.
+
+Peraltro riguardano i pdf e la divisione in ciclo sembra che i due cluster ciclanti c'entri con S vs G2M...che ci sta però fosse davvero così potrebbe essere un problema perchè
+alla fine stiamo provando ad imparare dei cluster che sono le  3 fasi del ciclo + Paneth (credo per le Paneth di per sè sia interessante valutare chi ci finsice o meno insieme nei vari
+casi ma questo è una altro trip ancora non utile per noi ora)...per cui ora investo un po' di tempo per prendere a calci sta correzione e vedere cosa capita.
+
