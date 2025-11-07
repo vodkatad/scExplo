@@ -1,0 +1,966 @@
+include : "conf.sk"
+def find_count(wildcards):
+    return PRJ_ROOT+'/dataset/'+DIC_FOLDER[wildcards.sample]+'/{sample}_dir/annotated_{sample}.tsv'
+
+rule compute_qc_for_counts:
+    input: counts=find_count
+    output: qc_plot='qc/{sample}_qc.pdf',data='filtered_data/filtered_{sample}.csv'
+    run: 
+        import scanpy as sc
+        import pandas as pd
+        import numpy as np
+        print('=============================')
+        print(input['counts'])
+        print(output['qc_plot'])
+        print('=============================')
+
+        data_path=input['counts']
+        data=pd.read_csv(data_path,header=0,index_col=0,sep=',').T
+        data.columns = [col.split(":")[1] if ":" in col else col for col in data.columns]
+        # salvo il dataframe in un annData e metto nomi di variabilie e obs unici(controllo che non ci siano geni con nomi duplicati)
+        adata = sc.AnnData(data,dtype='float64')
+        adata.var_names_make_unique()
+        adata.obs_names_make_unique()
+        #QC plot
+
+        # mitochondrial genes, "MT-" for human, "Mt-" for mouse
+        adata.var["mt"] = adata.var_names.str.startswith("MT-")
+        # ribosomal genes
+        adata.var["ribo"] = adata.var_names.str.startswith(("RPS", "RPL"))
+        sc.pp.calculate_qc_metrics(
+            adata, qc_vars=["mt", "ribo"], inplace=True, log1p=True
+        )
+        sc.pl.violin(
+            adata,
+            ["n_genes_by_counts", "total_counts"],
+            jitter=0.4,
+            multi_panel=True,
+            show=False,
+        )
+        import matplotlib.pyplot as plt
+        plt.savefig(output['qc_plot'])
+        plt.close()
+
+        sc.pp.filter_cells(adata, min_genes=100)
+        sc.pp.filter_genes(adata, min_cells=3)
+
+        df = pd.DataFrame(adata.X, index=adata.obs_names, columns=adata.var_names)
+        #print(df.head())
+
+        df.to_csv(output['data'], sep=',', index=True, header=True)
+
+
+rule normalized_filtered_data:
+    input: filtered_data='filtered_data/filtered_{sample}.csv'
+    output: norm_data='normalized_filtered_data/normalized_filtered_{sample}.csv'
+    run: 
+        import scanpy as sc
+        import pandas as pd
+        import numpy as np
+
+
+        data_path=input['filtered_data']
+        data=pd.read_csv(data_path,header=0,index_col=0,sep=',').T
+        adata = sc.AnnData(data,dtype='float64')
+
+        sc.pp.normalize_total(adata)
+        # Logarithmize the data
+        sc.pp.log1p(adata)
+        
+        df = pd.DataFrame(adata.X, index=adata.obs_names, columns=adata.var_names)
+        print(df.head())
+
+        df.to_csv(output['norm_data'], sep=',', index=True, header=True)
+
+rule pca_umap__cluster_normalized_filtered_data:
+    input: normalized_filtered_data='normalized_filtered_data/normalized_filtered_{sample}.csv'
+    output: pca_plot='pca/pca_{sample}.pdf', umap_component='umap_component/umap_normalized_filtered_data_{sample}.csv', cluster_cell='cluster_cell/cluster_cell_normalized_filtered_data_{sample}.csv'
+    run: 
+        import scanpy as sc
+        import pandas as pd
+        import numpy as np
+
+        data_path=input['normalized_filtered_data']
+        data=pd.read_csv(data_path,header=0,index_col=0,sep=',').T
+
+        
+        # Create AnnData with proper orientation 
+        # (cells as observations/rows, genes as variables/columns)
+        adata = sc.AnnData(data, dtype='float32') #float64 nan errror
+        
+        # Apply preprocessing safely
+        sc.pp.highly_variable_genes(adata, n_top_genes=2000)
+        
+        # Subset to highly variable genes before PCA (recommended)
+        #adata = adata[:, adata.var.highly_variable]
+        
+        # Run PCA and create plot
+        sc.tl.pca(adata, n_comps=19)
+        sc.pl.pca_variance_ratio(adata, n_pcs=19, log=True, show=False)
+                
+        import matplotlib.pyplot as plt
+
+        plt.savefig(output['pca_plot'])
+        plt.close()
+
+        
+        sc.pp.neighbors(adata)
+        sc.tl.umap(adata)
+        df = pd.DataFrame(adata.obsm['X_umap'], index=adata.obs_names, columns=['X', 'Y'])
+        df.to_csv(output['umap_component'], sep=',', index=True, header=True)
+
+        
+
+        sc.tl.leiden(adata, resolution=0.15)
+        df = pd.DataFrame(adata.obs['leiden'].values,  index=adata.obs_names, columns=['cluster'])
+        df.to_csv(output['cluster_cell'], sep=',', index=True, header=True)
+
+rule synapse_id:
+    input: id_patient='/mnt/cold1/snaketree/prj/scRNA/dataset/Scanpy_prova/Progressive_plasticity_during_colorectal_cancer_metastasis/2023-07-12062C-Supplementary_Table_1 - b.tsv', file_patient='/mnt/cold1/snaketree/prj/scRNA/dataset/Scanpy_prova/Progressive_plasticity_during_colorectal_cancer_metastasis/table_data.tsv'
+    output: synapse_id='Progressive_plasticity_during_colorectal_cancer_metastasis/synapse_id.csv'
+
+    run:
+        import pandas as pd
+
+        data_path_id_patient=input['id_patient']
+        df_ID_patient= pd.read_csv(data_path_id_patient,header=0,index_col=0,sep='\t')
+        df_ID_patient=df_ID_patient.reset_index()
+        print(df_ID_patient.head())
+        
+        data_path_file_patient=input['file_patient']
+        df_file_patient = pd.read_csv(data_path_file_patient, sep='\t')
+
+        print(df_file_patient.head())
+
+        df_reduce_ID_patient = df_ID_patient[['Lab ID ', 'H5AD ID', 'HTAN Patient ID','HTAN Biospecimen ID']]
+        df_reduce_file_patient = df_file_patient[['Filename','Biospecimen', 'HTAN Data File ID', 'Synapse Id']]
+
+        df_merge_info_patient = pd.merge(df_reduce_ID_patient, df_reduce_file_patient,
+                            left_on='HTAN Biospecimen ID',  right_on='Biospecimen',
+                            how='left')
+                            
+
+        print(df_merge_info_patient.head())
+
+        df_merge_info_patient[df_merge_info_patient.isna().any(axis=1)]
+
+        df_merge_info_patient.dropna(inplace=True)
+
+        print(f"Numero di righe: {df_merge_info_patient.shape[0]}")
+        
+        print(df_merge_info_patient['Filename'].str.endswith('.mtx').sum())
+
+        df_mtx_files_patient = df_merge_info_patient[df_merge_info_patient['Filename'].str.endswith('.mtx') & df_merge_info_patient['Lab ID '].str.contains('Li(.$)?$', regex=True)]
+        print(df_mtx_files_patient)
+        num_row_mtx = df_mtx_files_patient.shape[0]
+        print(f"Numero di righe: {num_row_mtx}")
+
+        df_synapse_id = df_mtx_files_patient[['Lab ID ','Synapse Id']]
+        
+        df_synapse_id.to_csv(output['synapse_id'], sep=',', index=True, header=True)
+
+
+def get_LabID():
+    import pandas as pd
+    df = pd.read_csv("Progressive_plasticity_during_colorectal_cancer_metastasis/synapse_id.csv")
+    return list(df["Lab ID "])
+
+# Regola per definire tutti i file che vogliamo creare
+rule all_synapse_file:
+    input:
+        expand('Progressive_plasticity_during_colorectal_cancer_metastasis/count/{LabID}_count.mtx', LabID=get_LabID())
+
+# Regola per ottenere un singolo file per ogni Lab ID
+rule getsynapsefile:
+    input: 
+        synapse_id='Progressive_plasticity_during_colorectal_cancer_metastasis/synapse_id.csv'
+    output: 
+        count_synapse='Progressive_plasticity_during_colorectal_cancer_metastasis/count/{LabID}_count.mtx'
+    run:
+        import pandas as pd
+        import synapseclient
+        import os
+        
+        data_path_synapse_id = input.synapse_id
+        df_synapse_id = pd.read_csv(data_path_synapse_id, header=0, index_col=0, sep=',')
+        
+        # Ottieni il Synapse ID corrispondente al Lab ID corrente
+        row = df_synapse_id[df_synapse_id["Lab ID "] == wildcards.LabID]
+        synapse_id = row['Synapse Id'].values[0]
+        
+        print(f"Downloading synapse ID {synapse_id} for Lab ID {wildcards.LabID}")
+            
+        syn = synapseclient.Synapse()
+        syn.login(authToken='eyJ0eXAiOiJKV1QiLCJraWQiOiJXN05OOldMSlQ6SjVSSzpMN1RMOlQ3TDc6M1ZYNjpKRU9VOjY0NFI6VTNJWDo1S1oyOjdaQ0s6RlBUSCIsImFsZyI6IlJTMjU2In0.eyJhY2Nlc3MiOnsic2NvcGUiOlsidmlldyIsImRvd25sb2FkIiwibW9kaWZ5Il0sIm9pZGNfY2xhaW1zIjp7fX0sInRva2VuX3R5cGUiOiJQRVJTT05BTF9BQ0NFU1NfVE9LRU4iLCJpc3MiOiJodHRwczovL3JlcG8tcHJvZC5wcm9kLnNhZ2ViYXNlLm9yZy9hdXRoL3YxIiwiYXVkIjoiMCIsIm5iZiI6MTc0MzY5MTYwMSwiaWF0IjoxNzQzNjkxNjAxLCJqdGkiOiIxODU2MSIsInN1YiI6IjM1Mzc2NjAifQ.POTZ-j04NG-7D8e2snE9qX_K_98TU8zzK8lkM-5uaQGA6Qq7cvLjPgEs1WOjyY2kraCrL81PaG-qLc3aIWlBOCLCnRYVuTdhgulPdD447Wc_nre738YvVyUYSJAWymalvhta8X6L97ZrB0C0gUhF-eTlh5MuAXi_uwsYqPRKTWwmdUUfnDTq9jR-CyX-6ipKkl74pBNYDi0lyYjgLmoKs8N-rp_brQzZVkBpf12xyL_M1lAkQtIgIGkp_sZ8HCqSDUfSaqGYMlEn1kDO4UIOK5vqJomgAR8GblKH7yRAjOw3KoA-_5XtQye1oMZn87BScRYOoHAmNeMkgi-e7HnKXg')
+        
+        # Scarica il file
+        entity = syn.get(synapse_id, downloadLocation='Progressive_plasticity_during_colorectal_cancer_metastasis/count')
+        
+        # Rinomina il file scaricato con il nome desiderato nell'output
+        os.rename(entity.path, output.count_synapse)
+
+
+
+######################################################################################################
+
+#da scRNA_CRC_dataset ottengo id GEO
+def get_geo_id():
+    
+    import pandas as pd
+
+    df = pd.read_csv('/mnt/cold1/snaketree/prj/scRNA/dataset/Scanpy_prova/scRNA_CRC_dataset.tsv', sep='\t')
+    all_ids = df['id dataset'].dropna().unique().tolist()
+
+    geo_ids = []
+    for gid in all_ids:
+        gid_str = str(gid).strip()
+        if gid_str.startswith("GSE") and gid_str[3:].isdigit():
+            geo_ids.append(gid_str)
+        else:
+            print(f"Invalid GEO ID: '{gid_str}'. It should begin with 'GSE' followed by numbers only (e.g., GSE123456).")
+
+    
+    print(geo_ids)
+    return geo_ids
+    
+GEO_IDS = get_geo_id()
+
+
+
+#scarico count_matrix e annotation file e salvo nella cartella count_matrix
+rule all_getGEO_count_matrix:
+    input:
+        expand("count_matrix/{geo_id}/raw", geo_id=GEO_IDS)
+
+rule getGEO_count_matrix:
+    output:
+        count_matrix = directory("count_matrix/{geo_id}/raw")
+    run:
+        import os
+        import requests
+        from bs4 import BeautifulSoup
+
+        gse_id = wildcards.geo_id
+
+        gse_base = gse_id[:-3] + "nnn"
+        gse_supp_url = f"https://ftp.ncbi.nlm.nih.gov/geo/series/{gse_base}/{gse_id}/suppl/"
+        print("Directory:", gse_supp_url)
+
+        try:
+            page = requests.get(gse_supp_url)
+            soup = BeautifulSoup(page.text, "html.parser")
+            files = [a['href'] for a in soup.find_all('a') if a['href'].endswith((".txt.gz", ".csv.gz", ".tar", ".zip"))]
+            
+            for filename in files:
+                print("file founded:", filename)
+
+                if "count_matrix" in filename.lower() or 'annotation' in filename:
+                    destdir = output.count_matrix
+                    os.makedirs(destdir, exist_ok=True)
+
+                    url = gse_supp_url + filename
+                    print("Download:", filename)
+                    response = requests.get(url)
+
+                    with open(os.path.join(destdir, filename), "wb") as f:
+                        f.write(response.content)
+
+        except Exception as e:
+            print("Errore:", e)
+
+#estraggo la lista di sample di ogni count_matrix
+import os
+import pandas as pd
+
+def get_all_samples():
+    base_path = "count_matrix"
+    results = []
+
+    for gse_id in os.listdir(base_path):
+        subdir = os.path.join(base_path, gse_id)
+        if not os.path.isdir(subdir):
+            continue
+
+        annotation_file = next((f for f in os.listdir(subdir) if "annotation.txt" in f), None)
+        if not annotation_file:
+            continue
+
+        annotation_path = os.path.join(subdir, annotation_file)
+
+        try:
+            df = pd.read_csv(annotation_path, sep="\t", compression="gzip")
+            samples = df["Sample"].unique()
+            for sample_id in samples:
+                results.append((gse_id, sample_id))
+        except Exception as e:
+            print(f"Errore nella lettura di {annotation_path}: {e}")
+            continue
+
+    return results
+
+
+
+rule all_count_matrix_epithelial:
+    input:
+        expand(
+            "count_matrix/{GSE_id}/{GSE_id}_GEO_processed_CRC_10X_raw_UMI_{sample_id}_count_matrix_epithelial.csv",
+            zip,
+            GSE_id=[g[0] for g in get_all_samples()],
+            sample_id=[g[1] for g in get_all_samples()]
+        )
+
+
+def get_input_files(wildcards):
+    base_dir = f"count_matrix/{wildcards.GSE_id}"
+    files = os.listdir(base_dir)
+
+    annotation_file = next((f for f in files if "annotation.txt" in f), None)
+    count_matrix_file = next((f for f in files if "count_matrix.txt" in f), None)
+
+    if not annotation_file or not count_matrix_file:
+        raise ValueError(f"File mancanti nella cartella {base_dir}")
+
+    return {
+        "cell_annotation_path": os.path.join(base_dir, annotation_file),
+        "count_matrix_path": os.path.join(base_dir, count_matrix_file)
+    }
+ruleorder: count_matrix_epithelial_per_sample_per_database > getGEO_count_matrix
+
+
+#creo il file count_matrix delel cellule epitheliali per ogni sample 
+rule count_matrix_epithelial_per_sample_per_database:
+    input:
+        cell_annotation_path=lambda wildcards: get_input_files(wildcards)["cell_annotation_path"],
+        count_matrix_path=lambda wildcards: get_input_files(wildcards)["count_matrix_path"]
+
+    output:
+        count_matrix_epithelial_per_sample="count_matrix/{GSE_id}/{GSE_id}_GEO_processed_CRC_10X_raw_UMI_{sample_id}_count_matrix_epithelial.csv"
+
+    run:
+        import pandas as pd
+        import gzip
+
+        annotation_filename = input.cell_annotation_path
+        df_annotation = pd.read_csv(annotation_filename, sep="\t", compression="gzip")
+
+        df_epithelial = df_annotation[
+            (df_annotation['Cell_type'] == 'Epithelial cells') &
+            (df_annotation['Sample'] == wildcards.sample_id)
+        ]
+        cell_sample_id = df_epithelial["Index"].tolist()
+
+        with gzip.open(input.count_matrix_path, "rt") as f:
+            header = f.readline().strip().split("\t")
+
+        gene_col = header[0]
+        column_sample = [gene_col] + [col for col in header if col in cell_sample_id]
+        
+        df_count_matrix_epithelial_sample = pd.read_csv(
+            input.count_matrix_path,
+            sep="\t",
+            compression="gzip",
+            usecols=column_sample,
+            index_col='Index'
+        )
+
+        df_count_matrix_epithelial_sample.index.name=None
+        print(df_count_matrix_epithelial_sample.head())
+        
+        df_count_matrix_epithelial_sample.to_csv(
+            output.count_matrix_epithelial_per_sample,
+            sep=',',
+            index=True,
+            header=True
+        )
+
+################################################################################
+ 
+#boxplot count_matrix UMI
+rule all_boxplot_count_matrix_epithelial:
+    input:
+        expand("count_matrix/{GSE_id}/plots/{GSE_id}_boxplot_{threshold}.png",
+               GSE_id=[g[0] for g in get_all_samples()],
+               threshold=[1, 3])
+
+rule boxplot_count_matrix_epithelial:
+    input:
+        edge_list='edge_list_with_gene_names.csv',
+        count_matrix='count_matrix/{GSE_id}'
+    output:
+        path_boxplot="count_matrix/{GSE_id}/plots/{GSE_id}_boxplot_{threshold}.png"
+    run:
+        import seaborn as sns
+        import matplotlib.pyplot as plt
+        import matplotlib.patches as mpatches
+        import pandas as pd
+
+        threshold = int(wildcards.threshold)
+
+        dict_gse_sample = get_all_samples()
+        df_edge_list = pd.read_csv(input.edge_list)
+        gene_name = pd.unique(pd.concat([df_edge_list['source'], df_edge_list['target']]))
+
+        expression_gene_per_cell = []
+
+        for gse_id, sample_id in dict_gse_sample:
+            if gse_id != wildcards.GSE_id:
+                continue
+            df = pd.read_csv(
+                f'count_matrix/{gse_id}/{gse_id}_GEO_processed_CRC_10X_raw_UMI_{sample_id}_count_matrix_epithelial.csv',
+                index_col=0
+            )
+            df_filtered = df[df.index.isin(gene_name)]
+            counts = (df_filtered >= threshold).sum(axis=0)
+            df_counts = counts.reset_index()
+            df_counts.columns = ['cell_name', 'sum_gene_express']
+            df_counts['sample_id'] = sample_id
+            df_counts['gse_id'] = gse_id
+            expression_gene_per_cell.append(df_counts)
+
+        df_plot = pd.concat(expression_gene_per_cell, ignore_index=True)
+
+        def categoria_sample(sample_id):
+            if sample_id.endswith("-T"):
+                return 'tumor'
+            elif sample_id.endswith("-N"):
+                return 'normal'
+            else:
+                return 'border'
+
+        df_plot['categoria'] = df_plot['sample_id'].apply(categoria_sample)
+        colori_categoria = {'tumor': 'red', 'normal': 'green', 'border': 'gold'}
+        ordered_samples = sorted(df_plot['sample_id'].unique())
+
+        plt.figure(figsize=(24, 6))
+        sns.boxplot(
+            data=df_plot,
+            x="sample_id",
+            y="sum_gene_express",
+            color="lightgray",
+            order=ordered_samples,
+            showfliers=False
+        )
+        sns.stripplot(
+            data=df_plot,
+            x="sample_id",
+            y="sum_gene_express",
+            hue="categoria",
+            palette=colori_categoria,
+            order=ordered_samples,
+            size=3,
+            jitter=True,
+            alpha=0.6,
+            dodge=False
+        )
+        plt.legend(title="Categoria", loc="upper right", handles=[
+            mpatches.Patch(color='red', label='Tumor'),
+            mpatches.Patch(color='green', label='Normal'),
+            mpatches.Patch(color='gold', label='Border')
+        ])
+        plt.title(f'Expressed genes (≥{threshold}) – {wildcards.GSE_id}')
+        plt.xticks(rotation=90)
+        plt.xlabel("Sample ID")
+        plt.ylabel("count UMI")
+        plt.ylim(bottom=0)
+        plt.tight_layout()
+        plt.savefig(output.path_boxplot, dpi=300)
+        plt.close()
+
+
+#boxplot count_matrix saver log2 cpm
+rule all_saver_boxplot_count_matrix_epithelial_log2_cpm:
+    input:
+        expand("count_matrix/{GSE_id}/plots/log2_cpm/{GSE_id}_saver_boxplot_log2_cpm_{threshold}.png",
+               GSE_id=[g[0] for g in get_all_samples()],
+               threshold=[1, 3])
+
+rule saver_boxplot_count_matrix_epithelial_log2_cpm:
+    input:
+        edge_list='edge_list_with_gene_names.csv'
+    output:
+        path_boxplot_log2_cpm="count_matrix/{GSE_id}/plots/log2_cpm/{GSE_id}_saver_boxplot_log2_cpm_{threshold}.png"
+    run:
+        import seaborn as sns
+        import matplotlib.pyplot as plt
+        import matplotlib.patches as mpatches
+        import pandas as pd
+        import os
+
+        threshold = int(wildcards.threshold)
+
+        dict_gse_sample = get_all_samples()
+        df_edge_list = pd.read_csv(input.edge_list)
+        gene_name = pd.unique(pd.concat([df_edge_list['source'], df_edge_list['target']]))
+
+        expression_gene_per_cell = []
+
+        for gse_id, sample_id in dict_gse_sample:
+            if gse_id != wildcards.GSE_id or sample_id=='SMC05-T':
+                continue
+
+            count_matrix_path = f"/mnt/cold1/snaketree/prj/scRNA/dataset/Scanpy_prova/count_matrix/GSE132465/{sample_id}_dir/annotated_{sample_id}_log2_pc1_cpm.csv"
+            if not os.path.exists(count_matrix_path):
+                raise FileNotFoundError(f"Missing file: {count_matrix_path}")
+
+            df = pd.read_csv(count_matrix_path, index_col=0)
+            df_filtered = df[df.index.str.split(':').str[1].isin(gene_name)]
+            counts = (df_filtered >= threshold).sum(axis=0)
+            df_counts = counts.reset_index()
+            df_counts.columns = ['cell_name', 'sum_gene_express']
+            df_counts['sample_id'] = sample_id
+            df_counts['gse_id'] = gse_id
+            expression_gene_per_cell.append(df_counts)
+
+        df_plot = pd.concat(expression_gene_per_cell, ignore_index=True)
+
+        def categoria_sample(sample_id):
+            if sample_id.endswith("-T"):
+                return 'tumor'
+            elif sample_id.endswith("-N"):
+                return 'normal'
+            else:
+                return 'border'
+
+        df_plot['categoria'] = df_plot['sample_id'].apply(categoria_sample)
+        colori_categoria = {'tumor': 'red', 'normal': 'green', 'border': 'gold'}
+        ordered_samples = sorted(df_plot['sample_id'].unique())
+
+        plt.figure(figsize=(24, 6))
+        sns.boxplot(
+            data=df_plot,
+            x="sample_id",
+            y="sum_gene_express",
+            color="lightgray",
+            order=ordered_samples,
+            showfliers=False
+        )
+        sns.stripplot(
+            data=df_plot,
+            x="sample_id",
+            y="sum_gene_express",
+            hue="categoria",
+            palette=colori_categoria,
+            order=ordered_samples,
+            size=3,
+            jitter=True,
+            alpha=0.6,
+            dodge=False
+        )
+        plt.legend(title="Categoria", loc="upper right", handles=[
+            mpatches.Patch(color='red', label='Tumor'),
+            mpatches.Patch(color='green', label='Normal'),
+            mpatches.Patch(color='gold', label='Border')
+        ])
+        plt.title(f'Expressed genes (≥{threshold} ) – {wildcards.GSE_id}')
+        plt.xticks(rotation=90)
+        plt.xlabel("Sample ID")
+        plt.ylabel("log2 cpm saver")
+        plt.ylim(bottom=0)
+        plt.tight_layout()
+        plt.savefig(output.path_boxplot_log2_cpm, dpi=300)
+        plt.close()
+
+
+#boxplot count_matrix log2 cpm
+rule all_boxplot_count_matrix_epithelial_log2_cpm:
+    input:
+        expand("count_matrix/{GSE_id}/plots/log2_cpm/{GSE_id}_boxplot_log2_cpm_{threshold}.png",
+               GSE_id=[g[0] for g in get_all_samples()],
+               threshold=[1, 3])
+
+rule boxplot_count_matrix_epithelial_log2_cpm:
+    input:
+        edge_list='edge_list_with_gene_names.csv'
+    output:
+        path_boxplot_log2_cpm="count_matrix/{GSE_id}/plots/log2_cpm/{GSE_id}_boxplot_log2_cpm_{threshold}.png"
+    run:
+        import seaborn as sns
+        import matplotlib.pyplot as plt
+        import matplotlib.patches as mpatches
+        import pandas as pd
+        import os
+
+        threshold = int(wildcards.threshold)
+
+        dict_gse_sample = get_all_samples()
+        df_edge_list = pd.read_csv(input.edge_list)
+        gene_name = pd.unique(pd.concat([df_edge_list['source'], df_edge_list['target']]))
+
+        expression_gene_per_cell = []
+
+        for gse_id, sample_id in dict_gse_sample:
+            if gse_id != wildcards.GSE_id:
+                continue
+
+            count_matrix_path = f"/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_GSE144735/{sample_id}_dir/annotated_{sample_id}_log2_pc1_cpm.csv"
+            if not os.path.exists(count_matrix_path):
+                raise FileNotFoundError(f"Missing file: {count_matrix_path}")
+
+            df = pd.read_csv(count_matrix_path, index_col=0)
+            df_filtered = df[df.index.str.split(':').str[1].isin(gene_name)]
+            counts = (df_filtered >= threshold).sum(axis=0)
+            df_counts = counts.reset_index()
+            df_counts.columns = ['cell_name', 'sum_gene_express']
+            df_counts['sample_id'] = sample_id
+            df_counts['gse_id'] = gse_id
+            expression_gene_per_cell.append(df_counts)
+
+        df_plot = pd.concat(expression_gene_per_cell, ignore_index=True)
+
+        def categoria_sample(sample_id):
+            if sample_id.endswith("-T"):
+                return 'tumor'
+            elif sample_id.endswith("-N"):
+                return 'normal'
+            else:
+                return 'border'
+
+        df_plot['categoria'] = df_plot['sample_id'].apply(categoria_sample)
+        colori_categoria = {'tumor': 'red', 'normal': 'green', 'border': 'gold'}
+        ordered_samples = sorted(df_plot['sample_id'].unique())
+
+        plt.figure(figsize=(24, 6))
+        sns.boxplot(
+            data=df_plot,
+            x="sample_id",
+            y="sum_gene_express",
+            color="lightgray",
+            order=ordered_samples,
+            showfliers=False
+        )
+        sns.stripplot(
+            data=df_plot,
+            x="sample_id",
+            y="sum_gene_express",
+            hue="categoria",
+            palette=colori_categoria,
+            order=ordered_samples,
+            size=3,
+            jitter=True,
+            alpha=0.6,
+            dodge=False
+        )
+        plt.legend(title="Categoria", loc="upper right", handles=[
+            mpatches.Patch(color='red', label='Tumor'),
+            mpatches.Patch(color='green', label='Normal'),
+            mpatches.Patch(color='gold', label='Border')
+        ])
+        plt.title(f'Expressed genes (≥{threshold}) – {wildcards.GSE_id}')
+        plt.xticks(rotation=90)
+        plt.xlabel("Sample ID")
+        plt.ylabel("log2 cpm")
+        plt.ylim(bottom=0)
+        plt.tight_layout()
+        plt.savefig(output.path_boxplot_log2_cpm, dpi=300)
+        plt.close()
+
+
+#######################################################
+#violin plot
+ 
+
+rule all_violin_plot_count_matrix_epithelial:
+    input:
+        expand("count_matrix/{GSE_id}/plots/{GSE_id}_violin_plot.png", GSE_id=[g[0] for g in get_all_samples()])
+
+###################################################################################
+
+#violin plot count matrix UMI
+rule violin_plot_count_matrix_epithelial:
+    input:
+        edge_list='edge_list_with_gene_names.csv',
+        count_matrix='count_matrix/{GSE_id}'
+    output:
+        violin_plot_path="count_matrix/{GSE_id}/plots/{GSE_id}_violin_plot.png"
+    run:
+        import seaborn as sns
+        import matplotlib.pyplot as plt
+        import matplotlib.patches as mpatches
+        import pandas as pd
+
+        dict_gse_sample = get_all_samples()
+        df_edge_list = pd.read_csv(input.edge_list)
+        gene_name = pd.unique(pd.concat([df_edge_list['source'], df_edge_list['target']]))
+
+        expression_gene_per_cell = []
+
+        for gse_id, sample_id in dict_gse_sample:
+            if gse_id != wildcards.GSE_id:
+                continue
+            df = pd.read_csv(
+                f'count_matrix/{gse_id}/{gse_id}_GEO_processed_CRC_10X_raw_UMI_{sample_id}_count_matrix_epithelial.csv',
+                index_col=0
+            )
+            df_filtered = df[df.index.isin(gene_name)]
+            counts = (df_filtered >= 3).sum(axis=0)
+            df_counts = counts.reset_index()
+            df_counts.columns = ['cell_name', 'sum_gene_express']
+            df_counts['sample_id'] = sample_id
+            df_counts['gse_id'] = gse_id
+            expression_gene_per_cell.append(df_counts)
+
+        df_plot = pd.concat(expression_gene_per_cell, ignore_index=True)
+
+        def categoria_sample(sample_id):
+            if sample_id.endswith("-T"):
+                return 'tumor'
+            elif sample_id.endswith("-N"):
+                return 'normal'
+            else:
+                return 'border'
+
+        df_plot['categoria'] = df_plot['sample_id'].apply(categoria_sample)
+        colori_categoria = {'tumor': 'red', 'normal': 'green', 'border': 'gold'}
+        ordered_samples = sorted(df_plot['sample_id'].unique())
+
+            
+        plt.figure(figsize=(24, 6))
+
+       
+        sns.violinplot(
+            data=df_plot,
+            x="sample_id",
+            y="sum_gene_express",
+            order=ordered_samples,
+            color="lightgray",
+            inner=None
+        )
+
+        sns.stripplot(
+            data=df_plot,
+            x="sample_id",
+            y="sum_gene_express",
+            hue="categoria",
+            palette=colori_categoria,
+            order=ordered_samples,
+            size=3,
+            jitter=True,
+            alpha=0.6,
+            dodge=False
+        )
+
+        
+        legend_patches = [
+            mpatches.Patch(color='red', label='Tumorale'),
+            mpatches.Patch(color='green', label='Normale'),
+            mpatches.Patch(color='gold', label='Bordo')
+        ]
+        plt.legend(handles=legend_patches, title="Categoria", loc="upper right")
+
+        plt.title(f"Distribuzione geni espressi per cellula (≥3) – {gse_id}")
+        plt.xticks(rotation=90)
+        plt.xlabel("Sample ID")
+        plt.ylabel("Numero geni espressi per cellula")
+        plt.ylim(bottom=0)  
+        plt.tight_layout()
+
+        plt.savefig(output.violin_plot_path, dpi=300)
+        plt.close()
+
+
+
+"""
+
+rule all_sum_expression_gene_per_cell:
+    input:
+        expand("count_matrix/{GSE_id}/{GSE_id}_{sample_id}_sum_expression_gene_per_cell.csv",
+        zip,
+        GSE_id=[g[0] for g in get_all_samples()],
+        sample_id=[g[1] for g in get_all_samples()])
+
+
+rule sum_expression_gene_per_cell:
+    input: count_matrix='count_matrix/{GSE_id}/{GSE_id}_GEO_processed_CRC_10X_raw_UMI_{sample_id}_count_matrix_epithelial.csv', edge_list='edge_list_with_gene_names.csv'
+    output: expression_gene_per_cell='count_matrix/{GSE_id}/{GSE_id}_{sample_id}_sum_expression_gene_per_cell.csv'
+
+    run:
+        import pandas as pd
+        df_count_matrix=pd.read_csv(input.count_matrix)
+
+        df_count_matrix.drop(columns=df_count_matrix.columns[0], inplace=True)
+        df_count_matrix.set_index('Index', inplace=True)
+
+        df_edge_list_with_gene_names=pd.read_csv(input.edge_list)
+        gene_list=list(pd.unique(pd.concat([df_edge_list_with_gene_names['source'], df_edge_list_with_gene_names['target']])))
+
+        gene_filter=df_count_matrix.index.isin(gene_list)
+
+        df_count_matrix_filtered=df_count_matrix[gene_filter]
+
+        sum_expression_gene_per_cell = (df_count_matrix_filtered > 3).sum(axis=0)
+
+        sum_expression_gene_per_cell.to_csv(
+            output.expression_gene_per_cell,
+            sep=',',
+            index=True,
+            header=['sum express gene']
+        )
+
+
+rule boxplot_count_matrix_sample_per_data_set:
+    input: sum_expression_gene_per_cell='count_matrix/{GSE_id}/{GSE_id}_{sample_id}_sum_expression_gene_per_cell.csv'
+    output: boxplot='count_matrix/{GSE_id}/{GSE_id}_{sample_id}_boxplot.pdf'
+
+    run:
+        import matplotlib.pyplot as plt
+        import pandas as pd
+        import seaborn as sns
+
+        sum_expression=pd.read_csv(input.sum_expression_gene_per_cell, index_col=0)
+            
+        plt.figure(figsize=(6, 4))
+
+        # Boxplot
+        sns.boxplot(y='sum express gene', data=sum_expression, color='lightgray')
+
+        # Aggiunta dei singoli punti
+        sns.stripplot(y='sum express gene', data=sum_expression, color='blue', size=4, jitter=True, alpha=0.7)
+
+        plt.title('Espressione genica per cellula')
+        plt.grid(True)
+        plt.tight_layout()
+        
+        plt.savefig(output['boxplot'])
+        plt.close()
+"""
+
+
+
+"""
+
+
+import pandas as pd
+import numpy as np
+from  scipy.stats import pearsonr
+def find_log2(wildcards):
+    return PRJ_ROOT+'/dataset/'+DIC_FOLDER[wildcards.sample]+'/{sample}_dir/filtered_annotated_saver_ribomito_{sample}_log2_pc1_cpm.csv'
+def find_cc(wildcards):
+    return PRJ_ROOT+'/dataset/'+DIC_FOLDER[wildcards.sample]+'/{sample}_dir/filtered_annotated_saver_ribomito_{sample}_cellCycle.csv'
+def find_choord(wildcards):
+    return PRJ_ROOT+'/dataset/'+DIC_FOLDER[wildcards.sample]+'/{sample}_seurat_clusters_5.csv'
+
+rule calculate_kmeans_2:
+    input:data=find_log2, tsne=find_choord #capire perchè per LMX serve cell_id,cell_id=find_cellcycle
+    output:out='kmeans/{sample}/{sample}_kmeans_2comp.csv',tsne_out='kmeans/{sample}/{sample}_kmeans2_tsne.pdf'
+    script:SRC_DIR+'/kmeans_2.R'
+rule all_kmeans_2:
+    input: expand("kmeans/{sample}/{sample}_kmeans_2comp.csv", sample=SAMPLES,)
+rule find_marker_wilcoxon:
+    conda:"sofia_env.yaml" # ideally also yaml should be put in local/share/envs or similar
+    #container: 'docker://egrassi/godot_scanpy:latest'
+    input: data=find_log2, cluster='kmeans/{sample}/{sample}_kmeans_2comp.csv'
+    output:marker_paneth='kmeans/{sample}/{sample}_Paneth_markers.tsv',plot='figures/rank_genes_groups_isPaneth_{sample}.pdf',marker_nonpaneth='kmeans/{sample}/{sample}_nPaneth_markers.tsv'
+    script: 
+        SRC_DIR+'/find_markers.py'
+
+rule plot_percentage_paneth_cc_cake:
+    input:clust='kmeans/{sample}/{sample}_kmeans_2comp.csv',cc=find_cc
+    output:plot_out='paneth_percentage_cake/{sample}_plot_percentage_cc.pdf'#,log='paneth_percentage_cake_chi/{sample}_plot_percentage_cc.log'
+    script:SRC_DIR+'/plot_percentage_paneth_cc_cake.R'
+rule all_plot_percentage_paneth_cc_cake:    
+    input: expand("paneth_percentage_cake/{sample}_plot_percentage_cc.pdf", sample=SAMPLES)
+
+        
+
+rule dataset_ff:
+    input: data=find_log2
+    output: out='ff_data/{sample}_log2cpm.csv'
+    script: SRC_DIR+'/produce_ff_dataset.R'
+rule all_ff:    
+    input: expand("ff_data/{sample}_log2cpm.csv", sample=SAMPLES)
+
+rule calculate_umap:
+    input:data=find_log2, tsne=find_choord
+    output:out='umap_{min_dist}_{n_neighbors}/{sample}/{sample}_umap.csv',umap_out='umap_{min_dist}_{n_neighbors}/{sample}/{sample}_umap.pdf'
+    script:SRC_DIR+'/umap.R'
+rule all_umap:  
+    input: expand("umap_{min_dist}_{n_neighbors}/{sample}/{sample}_umap.csv", sample=SAMPLES, min_dist=0.5, n_neighbors=50)    
+rule umap_metagene:
+    input: umap='umap_{min_dist}_{n_neighbors}/{sample}/{sample}_umap.csv',data='ff_data/{sample}_log2cpm.csv'
+    output:plot_out='metagene_{sat_min}_{sat_max}/{sample}_umap_{min_dist}_{n_neighbors}_metagene.pdf'
+    script:SRC_DIR+'/umap_metagene.R'
+rule all_umap_metagene:
+    input: expand("metagene_{sat_min}_{sat_max}/{sample}_umap_{min_dist}_{n_neighbors}_metagene.pdf", sample=SAMPLES, min_dist=0.5, n_neighbors=50,sat_max=9,sat_min=1)
+rule umap_paneth:
+    input: umap='umap_{min_dist}_{n_neighbors}/{sample}/{sample}_umap.csv',kmeans='kmeans/{sample}/{sample}_kmeans_2comp.csv'
+    output:plot_out='paneth_umap/{sample}_umap_{min_dist}_{n_neighbors}_paneth.pdf'
+    script:SRC_DIR+'/umap_paneth.R'
+rule all_umap_paneth:
+    input: expand("paneth_umap/{sample}_umap_{min_dist}_{n_neighbors}_paneth.pdf", sample=SAMPLES, min_dist=0.5, n_neighbors=50)
+rule umap_genivari:
+    input: umap='umap_{min_dist}_{n_neighbors}/{sample}/{sample}_umap.csv',data='ff_data/{sample}_log2cpm.csv'
+    output:plot_out='genivari_umap/{sample}_umap_{min_dist}_{n_neighbors}_genivari.pdf'
+    script:SRC_DIR+'/umap_genivari.R'
+rule all_umap_genivari:   
+    input: expand("genivari_umap/{sample}_umap_{min_dist}_{n_neighbors}_genivari.pdf", sample=SAMPLES, min_dist=0.5, n_neighbors=50)
+rule dataset_geni_HES1:
+    input: data=find_log2
+    output: out='HES1_similar/{sample}_log2cpm.csv'
+    script: SRC_DIR+'/produce_HES1_genes_data.R'
+rule all_geni_HES1:    
+    input: expand("HES1_similar/{sample}_log2cpm.csv", sample=SAMPLES)
+rule umap_geni_HES1:
+    input: umap='umap_{min_dist}_{n_neighbors}/{sample}/{sample}_umap.csv',data='HES1_similar/{sample}_log2cpm.csv'
+    output:plot_out='geni_HES1/{sample}_umap_{min_dist}_{n_neighbors}.pdf'
+    script:SRC_DIR+'/umap_genivari.R'
+rule all_umap_geni_HES1:    
+    input: expand("geni_HES1/{sample}_umap_{min_dist}_{n_neighbors}.pdf", sample=SAMPLES, min_dist=0.5, n_neighbors=50)
+
+rule decode_pkl:
+    input:data_id='data_ID/ID_across_scales.pkl', raw=find_count
+    output:id_csv='ID_{n}/{sample}_ID.csv'
+    run:
+        import pickle 
+        id_path=input['data_id']
+        coun_path=input['raw']
+        sample=coun_path.split('/')[-1]
+        n=str(wildcards.n)
+        print('=============================')
+        print(sample)
+
+        with open(id_path, 'rb') as f:
+            data_id = pickle.load(f)
+        import csv
+        with open(coun_path, mode='r', encoding='utf-8') as file:
+            reader = csv.reader(file)
+            cell_id = next(reader)  
+        import pandas as pd
+        id=data_id[sample][n]
+        out=pd.DataFrame({'cell_id':cell_id[1:len(cell_id)],'id':id})
+        out.to_csv(output['id_csv'],index=False)        
+        
+rule all_decode_pkl:
+    input:expand('ID_{n}/{sample}_ID.csv', sample=SAMPLES,n=130)
+rule umap_ID:
+    input: umap='umap_{min_dist}_{n_neighbors}/{sample}/{sample}_umap.csv',data='ID_{n}/{sample}_ID.csv'
+    output:plot_out='ID_umap_{n}/{sample}_umap_{min_dist}_{n_neighbors}.pdf'
+    script:SRC_DIR+'/umap_ID.R'
+
+rule all_umap_ID:   
+    input: expand("ID_umap_{n}/{sample}_umap_{min_dist}_{n_neighbors}.pdf", sample=SAMPLES, min_dist=0.5, n_neighbors=50,n=130)
+
+rule ID_check:
+    input: id='ID_{n}/{sample}_ID.csv', data='ff_data/{sample}_log2cpm.csv',cc=find_cc
+    output:plot_out='ID_vs_geni_vari_{n}/{sample}_ID.pdf'
+    script:SRC_DIR+'/ID_vs_geni.R'
+rule all_ID_check:
+    input: expand("ID_vs_geni_vari_{n}/{sample}_ID.pdf", sample=SAMPLES,n=130)
+
+rule ID_vs_morte:
+    input: id='ID_{n}/{sample}_ID.csv',cc=find_cc
+    output:plot_out='ID_vs_morte_{n}/{sample}_ID.pdf'
+    script:SRC_DIR+'/ID_vs_morte.R'
+rule all_ID_vs_morte:
+    input: expand("ID_vs_morte_{n}/{sample}_ID.pdf", sample=SAMPLES,n=130)
+
+def find_cc_2samples(wildcards):
+    lista=[PRJ_ROOT+'/dataset/'+DIC_FOLDER[wildcards.sample_nt]+'/{sample_nt}_dir'+'/filtered_annotated_saver_ribomito_{sample_nt}_cellCycle.csv',
+            PRJ_ROOT+'/dataset/'+DIC_FOLDER[wildcards.sample_cet]+'/{sample_cet}_dir'+'/filtered_annotated_saver_ribomito_{sample_cet}_cellCycle.csv']
+    return lista  
+    
+rule skip_dead_ID:
+    input: id_nt='ID_{n}/{sample_nt}_ID.csv',id_cet='ID_{n}/{sample_cet}_ID.csv',cc=find_cc_2samples
+    output:out='ID_nt_vs_cet_{n}/{sample_nt}_VS_{sample_cet}_ID_no_dead.pdf'
+    script:SRC_DIR+'/skip_dead_ID.R'
+
+"""

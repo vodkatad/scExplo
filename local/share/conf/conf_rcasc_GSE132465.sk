@@ -15,7 +15,7 @@ SNAKE_ROOT=os.getenv('SNAKE_ROOT')
 BIN_DIR=PRJ_ROOT+'/local/bin'
 SRC_DIR=PRJ_ROOT+'/local/src'
 
-CSV_DIR='/mnt/cold1/snaketree/prj/scRNA/dataset/Scanpy_prova/count_matrix/GSE144735'
+CSV_DIR='/mnt/cold1/snaketree/prj/scRNA/dataset/Scanpy_prova/count_matrix/GSE132465'
 RCASC_GTF=PRJ_ROOT+"/local/share/data/Homo_sapiens.GRCh38.101.gtf"
 
 # do we choose randomly one ensg for the bad gene symbol with more than one ensg and translate saver outputs?
@@ -27,7 +27,7 @@ rule ensg_gs_map:
 MAP="first_ensg_gs_map.tsv"
 
 rule removefirstcol_copycsv:
-    input: counts=CSV_DIR+'/GSE144735_GEO_processed_CRC_10X_raw_UMI_{sample}_count_matrix_epithelial.csv', gtf=RCASC_GTF, map=MAP
+    input: counts=CSV_DIR+'/GSE132465_GEO_processed_CRC_10X_raw_UMI_{sample}_count_matrix_epithelial.csv', gtf=RCASC_GTF, map=MAP
     output: counts="{sample}_dir/{sample}.csv", gtf="{sample}_dir/gtf.gtf"
     params: dir="{sample}_dir"
     shell:  
@@ -39,27 +39,11 @@ rule removefirstcol_copycsv:
             rm {output.counts}.tmp*
         """
 
-SAMPLES=[
-"KUL01-B",
-"KUL01-N",
-"KUL01-T",
-"KUL19-B",
-"KUL19-N",
-"KUL19-T",
-"KUL21-B",
-"KUL21-N",
-"KUL21-T",
-"KUL28-B",
-"KUL28-N",
-"KUL28-T",
-"KUL30-B",
-"KUL30-N",
-"KUL30-T",
-"KUL31-B",
-"KUL31-N"
-]
-#"KUL31-T"
-SAMPLES_UMAP=['KUL01-B','KUL01-N',  'KUL01-T' , 'KUL19-B',  'KUL19-N' ,  'KUL19-T',  'KUL21-B',  'KUL21-N',  'KUL21-T',  'KUL30-B',  'KUL30-N',  'KUL30-T',  'KUL31-B',  'KUL31-N']
+SAMPLES=["SMC01-N","SMC01-T","SMC02-N","SMC02-T","SMC03-N","SMC03-T","SMC04-N","SMC04-T","SMC05-N","SMC06-N","SMC06-T","SMC07-N","SMC07-T","SMC08-N","SMC08-T","SMC09-N","SMC09-T","SMC10-N","SMC10-T","SMC11-T","SMC14-T","SMC15-T","SMC16-T","SMC17-T","SMC18-T","SMC19-T","SMC20-T","SMC21-T","SMC22-T","SMC23-T","SMC24-T","SMC25-T"]
+#SAMPLES=["SMC01-N","SMC01-T","SMC02-N","SMC02-T","SMC03-N","SMC03-T","SMC04-N","SMC04-T","SMC05-N","SMC05-T","SMC06-N","SMC06-T","SMC07-N","SMC07-T","SMC08-N","SMC08-T","SMC09-N","SMC09-T","SMC10-N","SMC10-T","SMC11-T","SMC14-T","SMC15-T","SMC16-T","SMC17-T","SMC18-T","SMC19-T","SMC20-T","SMC21-T","SMC22-T","SMC23-T","SMC24-T","SMC25-T"]
+#SAMPLES=["SMC01-N","SMC01-T","SMC02-N","SMC02-T","SMC03-N","SMC04-N","SMC05-N","SMC06-N","SMC07-N","SMC07-T","SMC08-N","SMC09-T","SMC10-N","SMC10-T","SMC11-T","SMC14-T","SMC15-T","SMC16-T","SMC17-T","SMC19-T","SMC20-T","SMC21-T","SMC23-T","SMC24-T"]
+
+
 NSAMPLES=len(SAMPLES)
 
 BASED='/mnt/cold1/snaketree/prj/scRNA/dataset/Scanpy_prova'
