@@ -150,7 +150,7 @@ ddd <- dd[!sta,]
 sta_c <- apply(ddd[, -1], 2, function(x) {sum(x>=4)})
 
 summary(sta_c)
-dddd <- ddd[, c(T, sta_c > 1000 & sta_c < 1500)] # < 1500 to badly remove doublets? nopeg
+dddd <- ddd[, c(T, sta_c > 1000 & sta_c < 1500)] # < 1500 to badly remove doublets? nopeg TODO try doublet finder
 #dddd <- ddd[, c(T, sta_c > 1000)]
 
 sta2 <- apply(dddd[, -1], 1, function(x) {all(x==0)})
@@ -170,4 +170,5 @@ ddddd <- cbind(gs, tmp1)
 write.table(ddddd, file=gzfile('test_nosaver.txt.gz'), sep="\t", quote=F, row.names=F) # -> no row.names :(
 cris_classifier('test_nosaver.txt.gz', output.name='test', nresmpl=1)
 
+cris_multilabel('test_nosaver.txt.gz', output.name='testmulti', nresmpl=1)
 # In total, 4616 cells passed all the described criteria.  these are 5488 - doublets are an issue?

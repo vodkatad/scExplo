@@ -16,16 +16,16 @@ dato<- read.table(file = input,row.names = 1,sep=",",header = TRUE)
 dato_t<- transpose(dato)
 rownames(dato_t) <- colnames(dato)
 colnames(dato_t)<-rownames(dato)
+
 #parti da qui 
 umap_result <- umap(dato_t,min_dist = min_dist,n_neighbors = n_neighbors)
 umap_result<-as.data.frame(umap_result)
 colnames(umap_result)<-c('x','y')
 write.csv(umap_result, data_out, row.names = TRUE)
-umap_result$ATOH1<-dato_t[,grep('ATOH1',colnames(dato_t))]
-colori<-c(rainbow(10)[2],rainbow(10)[5],rainbow(10)[8])
-pdf(plot_out)
-ggplot(umap_result, aes(x=x, y=y,color=ATOH1)) + geom_point(size=0.4)+
-  labs(title = "Kmeans", color="")+scale_color_gradientn(colours = colorRampPalette(c("blue","cyan",'green',"yellow","red"))(100))+#scale_color_viridis(discrete=TRUE,direction = -1)
-  xlab('tsne1')+ylab('tsne2')+
-  theme_classic()+theme(axis.ticks.x = element_blank(),axis.text.x = element_blank(),axis.ticks.y = element_blank(),axis.text.y = element_blank())
-graphics.off()
+
+dato<- read.table(file = input,row.names = 1,sep=",",header = TRUE)
+dato_t<- transpose(dato)
+rownames(dato_t) <- colnames(dato)
+colnames(dato_t)<-rownames(dato)
+
+

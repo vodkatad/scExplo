@@ -17,8 +17,9 @@ library(patchwork)
 meta_path<-snakemake@input$metagene
 
 clu_path<-snakemake@input$cluster
-
-
+###################à
+#mettere anche le paneth
+###############################à
 
 output_plot<-snakemake@output$out[1]
 #kmeans<- read.table(file = clust,row.names = 1,sep=",",header = TRUE,stringsAsFactors = FALSE)
@@ -33,7 +34,7 @@ print(head(df_combined))
 rownames(df_combined)<-df_combined$Row.names
 df_combined$Row.names<-NULL
 
-df_combined<-df_combined[df_combined$isPaneth!='nPaneth',]
+df_combined<-df_combined[df_combined$isPaneth!='filtered',]
 
 
 
@@ -45,14 +46,13 @@ x_max <- ceiling(max(df_combined$HES1))
 # Crea una sequenza di tick breaks, inclusi il valore minimo e massimo
 breaks_x <- pretty(c(x_min, x_max), n = 5) 
 x_max<-max(breaks_x)
-print(breaks_x) # "pretty" genera una serie di break esteticamente piacevoli
-print(x_max)
 
-df_combined$isPaneth <- factor(df_combined$isPaneth, levels = c("nPaneth"), labels = c("Others"))
+print(unique(df_combined$isPaneth))
+df_combined$isPaneth <- factor(df_combined$isPaneth, levels = c("nPaneth","Paneth"), labels = c("Others","Paneth"))
 colori<-c(rainbow(10)[2],rainbow(10)[5],rainbow(10)[8])
 
 a <- ggplot(df_combined, aes(x = HES1)) +
-  geom_density((aes(y=after_stat(scaled))),position = "identity", bw = 0.05, size = 0.8)  +  # Aggiunge il grafico a violino
+  geom_density((aes(y=after_stat(scaled),color=isPaneth)),position = "identity", bw = 0.05, size = 0.8)  +  # Aggiunge il grafico a violino
   #scale_color_manual(name = "Cluster", 
                      #values = c("Others" = colori[1]) )+
   scale_x_continuous(expand = c(0, 0), limits = c(0, x_max), breaks = breaks_x) +  # Cambia a discrete dato che l'asse x è una variabile categorica
@@ -79,7 +79,7 @@ breaks_y <- pretty(c(0, maxy), n = 5)
 
 # Aggiungi i limiti e le etichette personalizzate all'asse y
 a <- a + scale_y_continuous(expand = c(0, 0), limits = c(0, maxy), breaks = breaks_y)+ #+
-  labs(y = "Relative cells number (A.U.)", x = "Metagene")
+  labs(y = "Relative cells number (A.U.)", x = "HES1")
   #labs(y = "", x = "")
 
 # Stampa il grafico

@@ -356,3 +356,23 @@ rule seurat_integration:
             mkdir {output.viodir} {output.markersdir}
             {params.tool} -i {params.cinput} -r {wildcards.res} -g {params.genes} -k {wildcards.kind} -x {wildcards.sample}_res{wildcards.res}_{wildcards.kind}_ -n 7 -c {params.cycle} -b {params.base}
         """
+
+
+##########################UMAP˚##############################à
+def find_log2(wildcards):
+    return PRJ_ROOT+'/dataset/'+DIC_FOLDER[wildcards.sample]+'/{sample}_dir/filtered_annotated_saver_ribomito_{sample}_log2_pc1_cpm.csv'
+
+rule calculate_umap:
+    input:data='{sample}_dir/filtered_annotated_saver_ribomito_{sample}_log2_pc1_cpm.csv'
+    output:out='umap_{min_dist}_{n_neighbors}/{sample}/{sample}_umap.csv'
+    script:SRC_DIR+'/umap.R'
+rule all_umap:  
+    input: expand("umap_{min_dist}_{n_neighbors}/{sample}/{sample}_umap.csv", sample=SAMPLES, min_dist=0.5, n_neighbors=3)    
+rule umap_metagene:
+    input: umap='umap_{min_dist}_{n_neighbors}/{sample}/{sample}_umap.csv',data='{sample}_dir/filtered_annotated_saver_ribomito_{sample}_log2_pc1_cpm.csv'
+    output:plot_out='metagene_{sat_min}_{sat_max}/{sample}_umap_{min_dist}_{n_neighbors}_metagene.pdf'
+    script:SRC_DIR+'/umap_metagene.R'
+rule all_umap_metagene:
+    input: expand("metagene_{sat_min}_{sat_max}/{sample}_umap_{min_dist}_{n_neighbors}_metagene.pdf", sample=SAMPLES_UMAP, min_dist=0.5, n_neighbors=50,sat_max=9,sat_min=1)
+
+#snakemake -p --allowed-rules all_umap --allowed-rules calculate_umap --allowed-rules umap_metagene --allowed-rules all_umap_metagene -p all_umap_metagene

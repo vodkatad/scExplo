@@ -12,11 +12,24 @@ input<-snakemake@input[['data']]
 umap<-snakemake@input[['umap']]
 plot_out<-snakemake@output[['plot_out']]
 
-dato<- read.table(file = input,row.names = 1,sep=",",header = TRUE,stringsAsFactors = FALSE)
+
 cinque<-c('ATOH1','DLL1','GFI1','DEFA5','DEFA6')
-print(colnames(dato))
-dato<-dato[,cinque]
-print(head(dato))
+dato<- read.table(file = input,row.names = 1,sep=",",header = TRUE)
+dato_t<- transpose(dato)
+rownames(dato_t) <- colnames(dato)
+colnames(dato_t)<-rownames(dato)
+
+stringa_split<-function(stringa){
+  res<-strsplit(stringa , split = ":")[[1]][2]
+  return(res)
+}
+
+colnames(dato_t) <- sapply(colnames(dato_t),FUN=stringa_split)
+cinque<-intersect(cinque, colnames(dato_t))
+print(cinque)
+dato<-dato_t[,cinque]
+
+
 metagene_cinque<-apply(dato,1,mean)
 metagene_cinque<-as.data.frame(metagene_cinque)
 rownames(metagene_cinque)<-rownames(dato)
@@ -31,7 +44,6 @@ metagene_cinque[metagene_cinque<sat_min]<-sat_min
 chords<-read.table(file = umap,row.names = 1,sep=",",header = TRUE)
 colori<-rev(rainbow(10))[3:10]
 data<-merge(chords,metagene_cinque,by='row.names')
-print(head(data))
 j<-ggplot(data, aes(x=x, y=y,color=metagene)) + 
   geom_point(size=1)+scale_color_gradientn(colours = colori,limits=c(sat_min,sat_max))+#+scale_color_viridis(limits=c(0,10),direction = -1)
 labs(title = "metagene", color="metagene")+xlab('umap1')+ylab('umap2')+

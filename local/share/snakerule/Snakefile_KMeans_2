@@ -34,10 +34,10 @@ rule all_plot_percentage_paneth_cc_cake:
 
 rule dataset_ff:
     input: data=find_log2
-    output: out='ff_data/{sample}_log2cpm.csv'
+    output: out='cazzo_data/{sample}_log2cpm.csv'
     script: SRC_DIR+'/produce_ff_dataset.R'
 rule all_ff:    
-    input: expand("ff_data/{sample}_log2cpm.csv", sample=SAMPLES)
+    input: expand("cazzo_data/{sample}_log2cpm.csv", sample=SAMPLES)
 
 rule calculate_umap:
     input:data=find_log2, tsne=find_choord
@@ -58,11 +58,11 @@ rule umap_paneth:
 rule all_umap_paneth:
     input: expand("paneth_umap/{sample}_umap_{min_dist}_{n_neighbors}_paneth.pdf", sample=SAMPLES, min_dist=0.5, n_neighbors=50)
 rule umap_genivari:
-    input: umap='umap_{min_dist}_{n_neighbors}/{sample}/{sample}_umap.csv',data='ff_data/{sample}_log2cpm.csv'
-    output:plot_out='genivari_umap/{sample}_umap_{min_dist}_{n_neighbors}_genivari.pdf'
+    input: umap='umap_{min_dist}_{n_neighbors}/{sample}/{sample}_umap.csv',data='cazzo_data/{sample}_log2cpm.csv'
+    output:plot_out='genicazzo_umap/{sample}_umap_{min_dist}_{n_neighbors}_genicazzo.pdf'
     script:SRC_DIR+'/umap_genivari.R'
 rule all_umap_genivari:   
-    input: expand("genivari_umap/{sample}_umap_{min_dist}_{n_neighbors}_genivari.pdf", sample=SAMPLES, min_dist=0.5, n_neighbors=50)
+    input: expand("genicazzo_umap/{sample}_umap_{min_dist}_{n_neighbors}_genicazzo.pdf", sample=SAMPLES, min_dist=0.5, n_neighbors=50)
 rule dataset_geni_HES1:
     input: data=find_log2
     output: out='HES1_similar/{sample}_log2cpm.csv'

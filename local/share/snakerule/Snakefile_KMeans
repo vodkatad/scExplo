@@ -640,12 +640,12 @@ rule all_plot_paneth:
 
 rule plot_dist_HES1:
     input:metagene=PRJ_ROOT+'/dataset/KMeans/HER/{sample}_log2cpm.csv', cluster=PRJ_ROOT+'/dataset/KMeans/kmeans/{sample}/{sample}_kmeans_2comp.csv'
-    output:out='distribution_HES1/{sample}_HES1_dist.pdf'
-    script:SRC_DIR+'/distribution_HES1.R'
+    output:out='prova_both_distribution_HES1/{sample}_HES1_dist.pdf'
+    script:SRC_DIR+'/distribution_hes1_both.R'
 
 
 rule all_plot_HES1:
-    input:expand('distribution_HES1/{sample}_HES1_dist.pdf',sample=SAMPLES)
+    input:expand('prova_both_distribution_HES1/{sample}_HES1_dist.pdf',sample=SAMPLES)
 
 rule dataset_ff:
     input: data=find_log2,gene_list='gene_list.txt'

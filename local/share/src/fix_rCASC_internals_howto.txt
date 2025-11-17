@@ -1,0 +1,39 @@
+Identify the problematic rCASC "calling" function, in this case:
+seurat_ccycle(..)
+from rCASC_step03.R 
+
+look for its code:
+https://github.com/kendomaniac/rCASC/blob/master/R/seurat_cCycle.R
+(usually there is 1 R script for each function)
+
+search for the docker image that is used by this step, in this case we see it at line 80
+    
+    params <- paste("--cidfile ",data.folder1,"/dockerID -v ",scrat_tmp.folder,":/scratch -v ", data.folder1, ":/data -d docker.io/repbioinfo/seuratccycle  Rscript /home/main.R ",matrixName1," ",format1," ",separator1," ",seed,sep="")
+
+We also see which is the 'internal' script in the docker image that we'll need to fix, in this case /home/main.R
+
+Run a container with that image:
+
+$ docker run -it docker.io/repbioinfo/seuratccycle
+
+edit the needed script, in this case I added an if around the RunPCA call:
+
+min_dim <- min(nrow(D1), ncol(D1))
+if (min_dim < 50) { # npcs = 50, is Seurat default
+        marrow <- RunPCA(marrow, features = VariableFeatures(marrow), ndims.print = 6:10, nfeatures.print = 10, npcs=min_dim)
+} else {
+        marrow <- RunPCA(marrow, features = VariableFeatures(marrow), ndims.print = 6:10, nfeatures.print = 10)
+}
+
+Without exiting the docker container open a new shell: we need to commit the changes we have made saving a new 'fixed' image for rCASC.
+Use docker ps to find your container:
+egrassi@ulisse:~$ docker ps
+CONTAINER ID   IMAGE                     COMMAND       CREATED         STATUS         PORTS     NAMES
+8db0c7d4bcbf   repbioinfo/seuratccycle   "/bin/bash"   4 minutes ago   Up 4 minutes             pedantic_montalcini1
+
+We can commit it to a new image:
+
+egrassi@ulisse:~$ docker commit 8db0c7d4bcbf repbioinfo/seuratccycle_fewcells
+sha256:81287b0214aced7ae5cefa0a5cc56c81cdfa16236be120ae6b1c908377a8309f
+
+Now we can exit from the container/stop it.
