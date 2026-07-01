@@ -1,0 +1,4 @@
+# egrassi@ulisse:/mnt/cold1/snaketree/prj/scRNA/local/share/data/signatures_erc$ grep colon plasticity_score_Lukonin_tab_8.tsv | cut -f 2 > colon.txt
+# egrassi@ulisse:/mnt/cold1/snaketree/prj/scRNA/local/share/data/signatures_erc$ grep esophagus plasticity_score_Lukonin_tab_8.tsv | cut -f 2 > esophagus.txt
+
+
