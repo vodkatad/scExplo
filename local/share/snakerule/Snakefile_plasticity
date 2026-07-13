@@ -41,12 +41,37 @@ rule sign_score_2:
     params: sign=SIGNATURES
     script: PRJ_ROOT+"/local/src/seu_module_scores.R"
 
+# EpiHR and coreHRC
+#SIGN3=['coreHRC', 'EpiHR_canellas', 'ganesh_moorman_fetal']
+SIGN3=['coreHRC', 'ganesh_moorman_fetal']
+rule sign_score_4:
+    input: CSV_DIR+'/GSE132465_GEO_processed_CRC_10X_raw_UMI_{sample}_count_matrix_epithelial.csv', expand(SIGN+'/{sign}'+'.tsv', sign=SIGN3)
+    output: sign="{sample}_osign.tsv"
+    params: sign=SIGN3
+    script: PRJ_ROOT+"/local/src/seu_module_scores.R"
+
+rule sign_score_5:
+    input: CSV_DIR2+'/GSE144735_GEO_processed_CRC_10X_raw_UMI_{sample}_count_matrix_epithelial.csv', expand(SIGN+'/{sign}'+'.tsv', sign=SIGN3)
+    output: sign="{sample}_osign.tsv"
+    params: sign=SIGN3
+    script: PRJ_ROOT+"/local/src/seu_module_scores.R"
 
 import re
 SAMPLES2.extend(SAMPLES)
 rule all_paste: 
     input: expand('{sample}_sign.tsv', sample=[x for x in SAMPLES2 if re.search("-T", x)]),  expand('{sample}_sign.tsv', sample=[x for x in SAMPLES2 if re.search("-N", x)])
     output: "all_sign.tsv.gz"
+    shell:
+        """
+            head -n1 {input[1]} > {output}.tmp
+            for f in {input}; do sed 1d $f; done >> {output}.tmp
+            gzip -c {output}.tmp > {output}
+            rm {output}.tmp
+        """
+
+rule all_paste2: 
+    input: expand('{sample}_osign.tsv', sample=[x for x in SAMPLES2 if re.search("-T", x)]),  expand('{sample}_osign.tsv', sample=[x for x in SAMPLES2 if re.search("-N", x)])
+    output: "all_sign_others.tsv.gz"
     shell:
         """
             head -n1 {input[1]} > {output}.tmp
