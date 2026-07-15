@@ -1,7 +1,7 @@
 PRJ_ROOT='/mnt/cold1/snaketree/prj/scRNA'
 SIGN=PRJ_ROOT+'/local/share/data/signatures_erc'
 
-SIGNATURES=['stem', 'onf', 'colon', 'esophagus']
+SIGNATURES=['stem', 'onf', 'colon', 'esophagus', 'CBC']
 # egrassi@ulisse:/mnt/cold1/snaketree/prj/scRNA/local/share/data/signatures_erc$ grep colon plasticity_score_Lukonin_tab_8.tsv | cut -f 2 > colon.txt
 # egrassi@ulisse:/mnt/cold1/snaketree/prj/scRNA/local/share/data/signatures_erc$ grep esophagus plasticity_score_Lukonin_tab_8.tsv | cut -f 2 > esophagus.txt
 
@@ -43,7 +43,7 @@ rule sign_score_2:
 
 # EpiHR and coreHRC
 #SIGN3=['coreHRC', 'EpiHR_canellas', 'ganesh_moorman_fetal']
-SIGN3=['coreHRC', 'ganesh_moorman_fetal']
+SIGN3=['coreHRC', 'ganesh_moorman_fetal', 'RSC']
 rule sign_score_4:
     input: CSV_DIR+'/GSE132465_GEO_processed_CRC_10X_raw_UMI_{sample}_count_matrix_epithelial.csv', expand(SIGN+'/{sign}'+'.tsv', sign=SIGN3)
     output: sign="{sample}_osign.tsv"
