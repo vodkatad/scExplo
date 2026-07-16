@@ -69,6 +69,7 @@ rule all_paste:
             rm {output}.tmp
         """
 
+
 rule all_paste2: 
     input: expand('{sample}_osign.tsv', sample=[x for x in SAMPLES2 if re.search("-T", x)]),  expand('{sample}_osign.tsv', sample=[x for x in SAMPLES2 if re.search("-N", x)])
     output: "all_sign_others.tsv.gz"
@@ -100,6 +101,40 @@ rule all_entropy:
 rule all_paste_entropy: 
     input: expand('{sample}_entropy.tsv', sample=[x for x in SAMPLES2 if re.search("-T", x)]),  expand('{sample}_entropy.tsv', sample=[x for x in SAMPLES2 if re.search("-N", x)])
     output: "all_entropy.tsv.gz"
+    shell:
+        """
+            head -n1 {input[1]} > {output}.tmp
+            for f in {input}; do sed 1d $f; done >> {output}.tmp
+            gzip -c {output}.tmp > {output}
+            rm {output}.tmp
+        """
+
+### Our data
+US_DIR='/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_Ire_cetuxi'
+US=['CRC0322_cetux_1', 'CRC0322_NT_1_3000_dir', 'CRC0327_cetux_1_4000',  'CRC0327_cetux_2', 'CRC0327_NT_1', 'CRC0327_NT_2', 'CRC1502_cetux_1', 'CRC1502_NT_1']
+MAP="../rCASC_GSE144735/first_ensg_gs_map.tsv"
+
+
+# keep both ensg gs translate with them then only
+rule map:
+    input: counts=US_DIR+'/{sample}_dir/annotated_{sample}.tsv', map=MAP
+    output: counts="us/{sample}.csv"
+    shell: 
+        """
+         tr "," "\\t" < {input.counts} | tr -d '"' | tee >(bawk 'NR==1' | tr "\\t" "," > {output.counts}.tmp1) | translate -k <(bawk '{{print $2":"$1, $1}}' {input.map}) 1 | tr "\\t" "," > {output.counts}.tmp2
+         cat {output.counts}.tmp1 {output.counts}.tmp2 > {output.counts}
+        """
+
+rule sign_score_us:
+    input: 'us/{sample}.csv', US_DIR+'/{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv', expand('{sign}_hs.tsv', sign=SIGNATURES)
+    output: sign="{sample}_ussign.tsv"
+    params: sign=SIGNATURES
+    script: PRJ_ROOT+"/local/src/seu_module_scores_us.R"
+
+
+rule all_paste_us: 
+    input: expand('{sample}_ussign.tsv', sample=US)
+    output: "all_ussign.tsv.gz"
     shell:
         """
             head -n1 {input[1]} > {output}.tmp
