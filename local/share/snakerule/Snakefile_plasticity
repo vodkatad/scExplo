@@ -111,9 +111,10 @@ rule all_paste_entropy:
 
 ### Our data
 US_DIR='/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_Ire_cetuxi'
-US=['CRC0322_cetux_1', 'CRC0322_NT_1_3000_dir', 'CRC0327_cetux_1_4000',  'CRC0327_cetux_2', 'CRC0327_NT_1', 'CRC0327_NT_2', 'CRC1502_cetux_1', 'CRC1502_NT_1']
+US=['CRC0322_cetux_1', 'CRC0322_NT_1_3000', 'CRC0327_cetux_1_4000',  'CRC0327_cetux_2', 'CRC0327_NT_1', 'CRC0327_NT_2', 'CRC1502_cetux_1', 'CRC1502_NT_1']
 MAP="../rCASC_GSE144735/first_ensg_gs_map.tsv"
 
+SIGNATURES_US=['stem', 'onf', 'colon', 'esophagus', 'CBC']
 
 # keep both ensg gs translate with them then only
 rule map:
@@ -126,9 +127,9 @@ rule map:
         """
 
 rule sign_score_us:
-    input: 'us/{sample}.csv', US_DIR+'/{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv', expand('{sign}_hs.tsv', sign=SIGNATURES)
+    input: 'us/{sample}.csv', US_DIR+'/{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv', expand('{sign}_hs.tsv', sign=SIGNATURES_US)
     output: sign="{sample}_ussign.tsv"
-    params: sign=SIGNATURES
+    params: sign=SIGNATURES_US
     script: PRJ_ROOT+"/local/src/seu_module_scores_us.R"
 
 
@@ -138,7 +139,29 @@ rule all_paste_us:
     shell:
         """
             head -n1 {input[1]} > {output}.tmp
-            for f in {input}; do sed 1d $f; done >> {output}.tmp
+            for f in {input}; do sed 1d $f |  bawk -vF=$f '{{print F"_"$0}}'; done >> {output}.tmp
+            gzip -c {output}.tmp > {output}
+            rm {output}.tmp
+        """
+
+
+rule entropy_us:
+    input: expr=US_DIR+"/{sample}_dir/filtered_annotated_saver_ribomito_{sample}_log2_pc1_cpm.csv"
+    output: en="{sample}_usentropy.tsv"
+    script: PRJ_ROOT+"/local/src/entropy.R"
+
+
+rule all_entropy_us:
+    input: expand("{sample}_usentropy.tsv", sample=US)
+
+
+rule all_paste_entropy_us: 
+    input: expand('{sample}_usentropy.tsv', sample=US)
+    output: "all_usentropy.tsv.gz"
+    shell:
+        """
+            head -n1 {input[1]} > {output}.tmp
+            for f in {input}; do sed 1d $f |  bawk -vF=$f '{{print F"_"$0}}'; done >> {output}.tmp
             gzip -c {output}.tmp > {output}
             rm {output}.tmp
         """

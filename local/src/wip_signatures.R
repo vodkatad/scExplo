@@ -24,6 +24,14 @@ ggplot(data=m, aes(x=coreHRC1, y=ganesh_moorman_fetal2))+geom_point(size=0.5, ae
   theme_bw(base_size = 20)+scale_color_manual(values=c('blue', 'red'))
 
 
+ggplot(data=m, aes(x=stem1, y=CBC5))+geom_point(size=0.5, aes(color=type))+geom_smooth(method='lm')+
+  theme_bw(base_size = 20)+scale_color_manual(values=c('blue', 'red'))
+
+
+ggplot(data=m, aes(x=stem_index, y=onf2))+geom_point(size=0.5, aes(color=type))+geom_smooth(method='lm')+
+  theme_bw(base_size = 20)+scale_color_manual(values=c('blue', 'red'))
+
+
 d2 <- read.table(gzfile('/mnt/cold1/snaketree/prj/scRNA/dataset/plasticy_scores/all_entropy.tsv.gz'), sep="\t", header=T)
 m <- merge(d, d2, by="row.names")
 
@@ -54,3 +62,35 @@ ggplot(data=dd, aes(x=onf2, y=plasticity))+geom_point(size=0.5)+geom_smooth(meth
 ggplot(data=dd, aes(x=onf2, y=stem1))+geom_point(size=0.5, aes(color=type))+geom_smooth(method='lm')+
   theme_bw(base_size = 20)+scale_color_manual(values=c('blue', 'red'))
 
+############ us
+d <- read.table(gzfile('/mnt/cold1/snaketree/prj/scRNA/dataset/plasticy_scores/all_ussign.tsv.gz'), sep="\t", header=T)
+
+d$plasticity <- d$esophagus4-d$colon3
+
+
+ggplot(data=d, aes(x=onf2, y=plasticity))+geom_point(size=0.5)+geom_smooth(method='lm')+theme_bw(base_size = 20)
+
+d$type <- ifelse(grepl("cetux", rownames(d), fixed=T), 'cetux', 'NT')
+ggplot(data=d, aes(y=onf2, x=type, color=type))+geom_violin(size=0.5)+geom_boxplot(width=0.3, size=0.5)+
+  theme_bw(base_size = 20)+scale_color_manual(values=c('blue', 'red'))
+
+ggplot(data=d, aes(y=CBC5, x=type, color=type))+geom_violin(size=0.5)+geom_boxplot(width=0.3, size=0.5)+
+  theme_bw(base_size = 20)+scale_color_manual(values=c('blue', 'red'))
+
+
+ggplot(data=d, aes(y=stem1, x=type, color=type))+geom_violin(size=0.5)+geom_boxplot(width=0.3, size=0.5)+
+  theme_bw(base_size = 20)+scale_color_manual(values=c('blue', 'red'))
+ggplot(data=d, aes(y=plasticity, x=type, color=type))+geom_violin(size=0.5)+geom_boxplot(width=0.3, size=0.5)+
+  theme_bw(base_size = 20)+scale_color_manual(values=c('blue', 'red'))
+
+d2 <- read.table(gzfile('/mnt/cold1/snaketree/prj/scRNA/dataset/plasticy_scores/all_usentropy.tsv.gz'), sep="\t", header=T)
+
+rownames(d) <- gsub('_ussign.tsv', '', rownames(d), fixed=T)
+rownames(d2) <- gsub('_usentropy.tsv', '', rownames(d2), fixed=T)
+m <- merge(d, d2, by="row.names")
+
+ggplot(data=m, aes(x=plasticity, y=entropy))+geom_point(size=0.5, aes(color=type))+geom_smooth(method='lm')+
+  theme_bw(base_size = 20)+scale_color_manual(values=c('blue', 'red'))
+
+ggplot(data=m, aes(y=entropy, x=type, color=type))+geom_violin(size=0.5)+geom_boxplot(width=0.3, size=0.5)+
+  theme_bw(base_size = 20)+scale_color_manual(values=c('blue', 'red'))
