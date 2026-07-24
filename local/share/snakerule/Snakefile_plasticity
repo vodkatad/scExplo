@@ -165,3 +165,31 @@ rule all_paste_entropy_us:
             gzip -c {output}.tmp > {output}
             rm {output}.tmp
         """
+
+## cytotrace
+CSV_DIR2_1='/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_GSE132465'
+CSV_DIR2_2='/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_GSE144735'
+#filtered_annotated_saver_ribomito_
+rule all_ctt_scores:
+    input: expand("{sample}_ctt.tsv", sample=SAMPLES2), expand("{sample}_ctt.tsv", sample=SAMPLES)
+
+rule ctt_score_1:
+    input: CSV_DIR2_1+'/{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv'
+    output: sign="{sample}_ctt.tsv"
+    script: PRJ_ROOT+"/local/src/cytotrace.R"
+
+rule ctt_score_2:
+    input: CSV_DIR2_2+'/{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv'
+    output: sign="{sample}_ctt.tsv"
+    script: PRJ_ROOT+"/local/src/cytotrace.R"
+
+rule all_paste_ctt: 
+    input: expand('{sample}_ctt.tsv', sample=[x for x in SAMPLES2 if re.search("-T", x)]),  expand('{sample}_ctt.tsv', sample=[x for x in SAMPLES2 if re.search("-N", x)])
+    output: "all_ctt.tsv.gz"
+    shell:
+        """
+            head -n1 {input[1]} > {output}.tmp
+            for f in {input}; do sed 1d $f; done >> {output}.tmp
+            gzip -c {output}.tmp > {output}
+            rm {output}.tmp
+        """

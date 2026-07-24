@@ -42,6 +42,16 @@ ggplot(data=m, aes(x=plasticity, y=entropy))+geom_point(size=0.5, aes(color=type
 ggplot(data=m, aes(x=onf2, y=entropy))+geom_point(size=0.5, aes(color=type))+geom_smooth(method='lm')+
   theme_bw(base_size = 20)+scale_color_manual(values=c('blue', 'red'))
 
+#### cytotrace
+ctt <- read.table(gzfile('/mnt/cold1/snaketree/prj/scRNA/dataset/plasticy_scores/all_ctt.tsv.gz'), sep="\t", header=T)
+rownames(m) <- m$Row.names
+m$Row.names <- NULL
+m2 <- merge(m, ctt, by="row.names")
+ggplot(data=m, aes(x=plasticity, y=x))+geom_point(size=0.5, aes(color=type))+geom_smooth(method='lm')+
+  theme_bw(base_size = 20)+scale_color_manual(values=c('blue', 'red'))
+ggplot(data=m, aes(x=entropy, y=x))+geom_point(size=0.5, aes(color=type))+geom_smooth(method='lm')+
+  theme_bw(base_size = 20)+scale_color_manual(values=c('blue', 'red'))
+
 ggplot(data=m, aes(x=stem1, y=entropy))+geom_point(size=0.5, aes(color=type))+geom_smooth(method='lm')+
   theme_bw(base_size = 20)+scale_color_manual(values=c('blue', 'red'))
 
@@ -94,3 +104,7 @@ ggplot(data=m, aes(x=plasticity, y=entropy))+geom_point(size=0.5, aes(color=type
 
 ggplot(data=m, aes(y=entropy, x=type, color=type))+geom_violin(size=0.5)+geom_boxplot(width=0.3, size=0.5)+
   theme_bw(base_size = 20)+scale_color_manual(values=c('blue', 'red'))
+
+m$sample <- sapply(strsplit(x=m$Row.names, split='_'), function(x) {paste0(c(x[1], x[3]), collapse="-")})
+ggplot(data=m, aes(y=entropy, x=type, color=type))+geom_violin(size=0.5)+geom_boxplot(width=0.3, size=0.5)+
+  theme_bw(base_size = 20)+scale_color_manual(values=c('blue', 'red'))+facet_wrap(~sample)

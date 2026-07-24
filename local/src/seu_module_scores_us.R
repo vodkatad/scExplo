@@ -24,10 +24,10 @@ seu <- ScaleData(object = seu)
 
 
 slist <- list()
-for (i in seq(2, length(snakemake@input))) {
+for (i in seq(3, length(snakemake@input))) {
     sign_f <- snakemake@input[[i]]
     sonf <- read.table(sign_f, header=TRUE, sep="\t")
-    slist[[i-1]] <- sonf$human_symbol
+    slist[[i-2]] <- sonf$human_symbol
 }
 names(slist) <- names
 save.image('p.Rdata')
