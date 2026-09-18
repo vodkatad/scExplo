@@ -43,7 +43,7 @@ rule sign_score_2:
 
 # EpiHR and coreHRC
 #SIGN3=['coreHRC', 'EpiHR_canellas', 'ganesh_moorman_fetal']
-SIGN3=['coreHRC', 'ganesh_moorman_fetal', 'RSC']
+SIGN3=['coreHRC', 'ganesh_moorman_fetal', 'RSC', 'honf']
 rule sign_score_4:
     input: CSV_DIR+'/GSE132465_GEO_processed_CRC_10X_raw_UMI_{sample}_count_matrix_epithelial.csv', expand(SIGN+'/{sign}'+'.tsv', sign=SIGN3)
     output: sign="{sample}_osign.tsv"
@@ -173,13 +173,16 @@ CSV_DIR2_2='/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_GSE144735'
 rule all_ctt_scores:
     input: expand("{sample}_ctt.tsv", sample=SAMPLES2), expand("{sample}_ctt.tsv", sample=SAMPLES)
 
+# not inputed data are in  /mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_GSE132465/SMC25-T_dir/filtered_annotated_SMC25-T.csv
 rule ctt_score_1:
-    input: CSV_DIR2_1+'/{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv'
+    #input: CSV_DIR2_1+'/{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv'
+    input: CSV_DIR2_1+'/{sample}_dir/filtered_annotated_saver_ribomito_{sample}_log2_pc1_cpm.csv'
     output: sign="{sample}_ctt.tsv"
     script: PRJ_ROOT+"/local/src/cytotrace.R"
 
 rule ctt_score_2:
-    input: CSV_DIR2_2+'/{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv'
+    #input: CSV_DIR2_2+'/{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv'
+    input: CSV_DIR2_2+'/{sample}_dir/filtered_annotated_saver_ribomito_{sample}_log2_pc1_cpm.csv'
     output: sign="{sample}_ctt.tsv"
     script: PRJ_ROOT+"/local/src/cytotrace.R"
 

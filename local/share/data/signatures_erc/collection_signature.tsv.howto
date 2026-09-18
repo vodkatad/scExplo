@@ -1,3 +1,6 @@
 (seurat_v4) egrassi@ulisse:/mnt/cold1/snaketree/prj/scRNA/dataset/plasticy_scores$ for f in *hs.tsv; do bawk -v n=$f '{print $1,"X",FILENAME,"TRUE"}' $f; done | sed 's/_hs.tsv//1'  > collection_signature.tsv
 mv
 
+remove headers and add it by hand
+(cytotrace) egrassi@ulisse:/mnt/cold1/snaketree/prj/scRNA/local/share/data/signatures_erc$ bawk 'NR!=1{print $1,"X","honf","TRUE"}' honf.tsv >> collection_signature_def.tsv 
+
