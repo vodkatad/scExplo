@@ -49,12 +49,28 @@ models <- unique(substr(colnames(res), 0, 7))
 
 tres <- as.data.frame(t(res))
 
+write.table(tres, file='/mnt/trcanmed/snaketree/stash/ganesh_scores_all.tsv', sep="\t", quote=F)
 
 tres$gen <- rownames(tres)
 long <- melt(tres, id.vars='gen')
 long$smodel <- substr(long$gen,0,7)
 long$model <- substr(long$gen ,0,10)
 long <- long[long$gen %in% samples$V1,] #####
+
+############### ZFP
+#egrassi@godot:/mnt/trcanmed/snaketree/prj/whatever/dataset/mutcheck/ZFP36L2/ZFP$ bawk '$3=="ZFP36L2"' ZFP_specific-mutations_list_PDX_alltiers.tsv  |  bawk '$6>0.1' | cut -f 1 |sort | uniq > mut
+#egrassi@godot:/mnt/trcanmed/snaketree/prj/whatever/dataset/mutcheck/ZFP36L2/ZFP$ sed 1d ZFP_mutated_genes_list_PDX_alltiers.tsv  | cut -f 1 |sort | uniq > all
+pheatmap(tres, show_rownames = F)
+
+mut <- read.table('/mnt/trcanmed/snaketree/prj/whatever/dataset/mutcheck/ZFP36L2/ZFP/mut', sep="\t")
+all <- read.table('/mnt/trcanmed/snaketree/prj/whatever/dataset/mutcheck/ZFP36L2/ZFP/all', sep="\t")
+longx <- long[grepl('LMX', long$model),]
+longx$mut <- ifelse(longx$smodel %in% all$V1, 'yes', 'no')
+longx$ZFP <- ifelse(longx$smodel %in% mut$V1, 'yes', 'no')
+ggplot(data=longx, aes(x=ZFP, y=value))+geom_boxplot(outlier.shape=NA)+facet_wrap(~variable)
+longx[longx$variable=="Intestine" & longx$ZFP=='yes',]
+
+################
 
 ave_long <- long %>% group_by(model, variable) %>%
   summarise(
@@ -177,3 +193,67 @@ tt %>%  group_by(variable) %>%
     score = mean(value, na.rm = TRUE),
     .groups = "drop"
   )
+
+#### Mzoughi signatures
+stem <- read.table('~/stem_hs.tsv', sep="\t", header=T)
+onf <- read.table('~/onf_hs.tsv', sep="\t", header=T)
+sign_l <- list(stem=stem, onf= onf)
+
+make_gene_set <- function(signature) {
+  #data <- data[data$Annotation == signature,]
+  #geneset <- GeneSet(data$Gene, geneIdType=SymbolIdentifier()) # does not work? Y?
+  #setName(geneset) <- signature
+  #return(geneset)
+  return(signature$human_symbol)
+}
+
+signatures <- lapply(sign_l, make_gene_set)
+names(signatures) <- names(sign_l)
+#signatures_s <- GeneSetCollection(signatures)
+
+signatures_s <- geneIdsToGeneSetCollection(signatures)
+##### load tmm whole
+##### subset to the wanted P-M (or not)
+#egrassi@godot:/mnt/trcanmed/snaketree/prj/snakegatk/dataset/Pri_Mets_godot$ grep X_BASALE /mnt/trcanmed/snaketree/prj/RNASeq_biod_metadata/dataset/july2020_starOK/selected_metadata_annot_final_nolinfo_nooutlier_replisafe | grep -f /tmp/pm > ~/pm_basale_RNASeq
+samples_f <- '~/pm_basale_RNASeq'
+tmm_f <- '/mnt/trcanmed/snaketree/prj/DE_RNASeq/dataset/Biodiversa_up5_starOK_selected/tmm.tsv.gz' # H_
+expr_data <- read.table(gzfile(tmm_f), sep="\t", header=TRUE, row.names=1)
+rownames(expr_data) <- gsub("H_", "", rownames(expr_data))
+
+samples <- read.table(samples_f, sep="\t", header=F)
+
+#expr_w <- expr_data[, samples$V1]
+expr_w <- expr_data[, grepl('LMX', colnames(expr_data)) | grepl('PRX', colnames(expr_data))]
+#expr_w <- expr_data
+##### score
+#expr_data <- log(expr_data+1, base=2) # train test cesta has run with this also CMP
+#ssgsea.norm
+#Barbie  et  al.   (2009)  normalizing  the  scores  by  the  absolute  difference
+#between the minimum and the maximum,  as described in their paper.   Whenssgsea.norm=FALSEthis last normalization step is skipped
+
+gsva_par <- gsvaParam(exprData=as.matrix(expr_w), geneSets=signatures_s,  kcdf="Gaussian")
+res <- gsva(gsva_par, verbose=T)
+
+models <- unique(substr(colnames(res), 0, 7))
+
+tres <- as.data.frame(t(res))
+
+
+tres$gen <- rownames(tres)
+long <- melt(tres, id.vars='gen')
+long$smodel <- substr(long$gen,0,7)
+long$model <- substr(long$gen ,0,10)
+long <- long[long$gen %in% samples$V1,] #####
+
+ave_long <- long %>% group_by(model, variable) %>%
+  summarise(
+    score = mean(value, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+ave_long <- as.data.frame(ave_long)
+ave_long$pm <- substr(ave_long$model, 9, 9)
+ave_long$smodel <- substr(ave_long$model, 0, 7)
+ave_long$pmr <- ifelse(ave_long$pm == 'R', 'P', 'M')
+ave_long$pmr <- factor(ave_long$pmr, levels=c('P','M'))
+ggplot(data=ave_long, aes(x=pmr, y=score))+geom_point(size=1)+geom_line(aes(group=smodel), size=0.5)+facet_wrap(~variable)+theme_bw(base_size = 20)
