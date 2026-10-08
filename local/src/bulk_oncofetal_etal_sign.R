@@ -27,15 +27,20 @@ signatures_s <- geneIdsToGeneSetCollection(signatures)
 ##### load tmm whole
 ##### subset to the wanted P-M (or not)
 #egrassi@godot:/mnt/trcanmed/snaketree/prj/snakegatk/dataset/Pri_Mets_godot$ grep X_BASALE /mnt/trcanmed/snaketree/prj/RNASeq_biod_metadata/dataset/july2020_starOK/selected_metadata_annot_final_nolinfo_nooutlier_replisafe | grep -f /tmp/pm > ~/pm_basale_RNASeq
-samples_f <- '~/pm_basale_RNASeq'
+#samples_f <- '~/pm_basale_RNASeq'
+
+meta <- read.table('/mnt/trcanmed/snaketree/prj/RNASeq_biod_metadata/dataset/july2020_starOK/selected_metadata_annot_final_nolinfo_nooutlier_replisafe', sep="\t", header=T)
+meta <- meta[grepl('X_BASALE', meta$type),]
+w <- meta$sample_id_R
+
 tmm_f <- '/mnt/trcanmed/snaketree/prj/DE_RNASeq/dataset/Biodiversa_up5_starOK_selected/tmm.tsv.gz' # H_
 expr_data <- read.table(gzfile(tmm_f), sep="\t", header=TRUE, row.names=1)
 rownames(expr_data) <- gsub("H_", "", rownames(expr_data))
 
 samples <- read.table(samples_f, sep="\t", header=F)
 
-#expr_w <- expr_data[, samples$V1]
-expr_w <- expr_data[, grepl('LMX', colnames(expr_data)) | grepl('PRX', colnames(expr_data))]
+expr_w <- expr_data[, w]
+expr_w <- expr_data[, grepl('LMX', colnames(expr_data)) | grepl('PRX', colnames(expr_data))] # ridondante
 #expr_w <- expr_datam$stem_index <- m$RSC3 - m$CBC5
 ##### score
 #expr_data <- log(expr_data+1, base=2) # train test cesta has run with this also CMP
@@ -100,6 +105,6 @@ ss <- unique(long$variable)
 for (s in ss) {
   myd <- long[long$variable == s,]
   print(s)
-  print(wilcox.test(myd[myd$KRAS=='WT', 'value'], myd[myd$KRAS=='mut', 'value']))
+  print(wilcox.test(myd[myd$KRAS=='WT', 'value'], myd[myd$KRAS=='Mut', 'value']))
 }
 
