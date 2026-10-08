@@ -3,8 +3,8 @@ d <- read.table(gzfile('/mnt/cold1/snaketree/prj/scRNA/dataset/plasticy_scores/a
 
 d$plasticity <- d$esophagus4-d$colon3
 
-
-ggplot(data=d, aes(x=onf2, y=plasticity))+geom_point(size=0.5)+geom_smooth(method='lm')+theme_bw(base_size = 20)
+# 
+# ggplot(data=d, aes(x=onf2, y=plasticity))+geom_point(size=0.5)+geom_smooth(method='lm')+theme_bw(base_size = 20)
 
 d$type <- ifelse(grepl(".T", rownames(d), fixed=T), 'tumor', 'normal')
 ggplot(data=d, aes(x=onf2, y=stem1))+geom_point(size=0.5, aes(color=type))+geom_smooth(method='lm')+
@@ -13,23 +13,23 @@ ggplot(data=d, aes(x=onf2, y=stem1))+geom_point(size=0.5, aes(color=type))+geom_
 do <- read.table(gzfile('/mnt/cold1/snaketree/prj/scRNA/dataset/plasticy_scores/all_sign_others.tsv.gz'), sep="\t", header=T)
 m <- merge(d, do, by="row.names")
 m$stem_index <- m$RSC3 - m$CBC5
-
-ggplot(data=m, aes(x=onf2, y=coreHRC1))+geom_point(size=0.5, aes(color=type))+geom_smooth(method='lm')+
-  theme_bw(base_size = 20)+scale_color_manual(values=c('blue', 'red'))
-
-ggplot(data=m, aes(x=onf2, y=ganesh_moorman_fetal2))+geom_point(size=0.5, aes(color=type))+geom_smooth(method='lm')+
-  theme_bw(base_size = 20)+scale_color_manual(values=c('blue', 'red'))
-
-ggplot(data=m, aes(x=coreHRC1, y=ganesh_moorman_fetal2))+geom_point(size=0.5, aes(color=type))+geom_smooth(method='lm')+
-  theme_bw(base_size = 20)+scale_color_manual(values=c('blue', 'red'))
-
-
-ggplot(data=m, aes(x=stem1, y=CBC5))+geom_point(size=0.5, aes(color=type))+geom_smooth(method='lm')+
-  theme_bw(base_size = 20)+scale_color_manual(values=c('blue', 'red'))
+# 
+# ggplot(data=m, aes(x=onf2, y=coreHRC1))+geom_point(size=0.5, aes(color=type))+geom_smooth(method='lm')+
+#   theme_bw(base_size = 20)+scale_color_manual(values=c('blue', 'red'))
+# 
+# ggplot(data=m, aes(x=onf2, y=ganesh_moorman_fetal2))+geom_point(size=0.5, aes(color=type))+geom_smooth(method='lm')+
+#   theme_bw(base_size = 20)+scale_color_manual(values=c('blue', 'red'))
+# 
+# ggplot(data=m, aes(x=coreHRC1, y=ganesh_moorman_fetal2))+geom_point(size=0.5, aes(color=type))+geom_smooth(method='lm')+
+#   theme_bw(base_size = 20)+scale_color_manual(values=c('blue', 'red'))
 
 
-ggplot(data=m, aes(x=stem_index, y=onf2))+geom_point(size=0.5, aes(color=type))+geom_smooth(method='lm')+
-  theme_bw(base_size = 20)+scale_color_manual(values=c('blue', 'red'))
+#ggplot(data=m, aes(x=stem1, y=CBC5))+geom_point(size=0.5, aes(color=type))+geom_smooth(method='lm')+
+#  theme_bw(base_size = 20)+scale_color_manual(values=c('blue', 'red'))
+
+
+#ggplot(data=m, aes(x=stem_index, y=onf2))+geom_point(size=0.5, aes(color=type))+geom_smooth(method='lm')+
+#  theme_bw(base_size = 20)+scale_color_manual(values=c('blue', 'red'))
 
 
 d2 <- read.table(gzfile('/mnt/cold1/snaketree/prj/scRNA/dataset/plasticy_scores/all_entropy.tsv.gz'), sep="\t", header=T)
@@ -208,3 +208,20 @@ ggplot(data=m, aes(y=entropy, x=type, color=type))+geom_violin(size=0.5)+geom_bo
 m$sample <- sapply(strsplit(x=m$Row.names, split='_'), function(x) {paste0(c(x[1], x[3]), collapse="-")})
 ggplot(data=m, aes(y=entropy, x=type, color=type))+geom_violin(size=0.5)+geom_boxplot(width=0.3, size=0.5)+
   theme_bw(base_size = 20)+scale_color_manual(values=c('blue', 'red'))+facet_wrap(~sample)
+
+###
+library(corrplot)
+# order: coreHRC OnF stem_index
+tumsel <- tum[, c('coreHRC1', 'onf2', 'stem_index', 'entropy')]
+colnames(tumsel) <- c('coreHRC', 'OnF', 'stem index', 'entropy')
+
+svg('~/corrplot.svg')
+corrplot(cor(tumsel), type='lower', method='ellipse', tl.srt=0, tl.offset=1)
+dev.off()
+#corrplot(cor(tumsel), type='upper', method='pie')
+#corrplot(cor(tumsel), type='upper', method='color')
+#corrplot(cor(tumsel), type='upper', method='shade')
+#corrplot(cor(tumsel), type='upper', method='number')
+#corrplot(cor(tumsel), type='upper', method='ellipse')
+#corrplot(cor(tumsel), type='upper', method='square')
+
