@@ -1,0 +1,2 @@
+egrassi@ulisse:/mnt/cold1/snaketree/prj/scRNA/local/share/data/signatures_erc$ tr "," "\t" < RSC_Vasquezetal_Leedham_Samson.csv | tr -d '"'|  bawk '$4!=""{print $4}' > RSC.tsv
+

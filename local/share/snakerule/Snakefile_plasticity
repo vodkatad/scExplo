@@ -1,7 +1,7 @@
 PRJ_ROOT='/mnt/cold1/snaketree/prj/scRNA'
 SIGN=PRJ_ROOT+'/local/share/data/signatures_erc'
 
-SIGNATURES=['stem', 'onf', 'colon', 'esophagus']
+SIGNATURES=['stem', 'onf', 'colon', 'esophagus', 'CBC']
 # egrassi@ulisse:/mnt/cold1/snaketree/prj/scRNA/local/share/data/signatures_erc$ grep colon plasticity_score_Lukonin_tab_8.tsv | cut -f 2 > colon.txt
 # egrassi@ulisse:/mnt/cold1/snaketree/prj/scRNA/local/share/data/signatures_erc$ grep esophagus plasticity_score_Lukonin_tab_8.tsv | cut -f 2 > esophagus.txt
 
@@ -41,6 +41,20 @@ rule sign_score_2:
     params: sign=SIGNATURES
     script: PRJ_ROOT+"/local/src/seu_module_scores.R"
 
+# EpiHR and coreHRC
+#SIGN3=['coreHRC', 'EpiHR_canellas', 'ganesh_moorman_fetal']
+SIGN3=['coreHRC', 'ganesh_moorman_fetal', 'RSC', 'honf']
+rule sign_score_4:
+    input: CSV_DIR+'/GSE132465_GEO_processed_CRC_10X_raw_UMI_{sample}_count_matrix_epithelial.csv', expand(SIGN+'/{sign}'+'.tsv', sign=SIGN3)
+    output: sign="{sample}_osign.tsv"
+    params: sign=SIGN3
+    script: PRJ_ROOT+"/local/src/seu_module_scores.R"
+
+rule sign_score_5:
+    input: CSV_DIR2+'/GSE144735_GEO_processed_CRC_10X_raw_UMI_{sample}_count_matrix_epithelial.csv', expand(SIGN+'/{sign}'+'.tsv', sign=SIGN3)
+    output: sign="{sample}_osign.tsv"
+    params: sign=SIGN3
+    script: PRJ_ROOT+"/local/src/seu_module_scores.R"
 
 import re
 SAMPLES2.extend(SAMPLES)
@@ -55,4 +69,130 @@ rule all_paste:
             rm {output}.tmp
         """
 
-#SCRNA=["rCASC_GSE132465/SMC01-N_dir/filtered_annotated_saver_ribomito_SMC01-N_log2_pc1_cpm.csv","rCASC_GSE132465/SMC01-T_dir/filtered_annotated_saver_ribomito_SMC01-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC02-N_dir/filtered_annotated_saver_ribomito_SMC02-N_log2_pc1_cpm.csv","rCASC_GSE132465/SMC02-T_dir/filtered_annotated_saver_ribomito_SMC02-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC03-N_dir/filtered_annotated_saver_ribomito_SMC03-N_log2_pc1_cpm.csv","rCASC_GSE132465/SMC03-T_dir/filtered_annotated_saver_ribomito_SMC03-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC04-N_dir/filtered_annotated_saver_ribomito_SMC04-N_log2_pc1_cpm.csv","rCASC_GSE132465/SMC04-T_dir/filtered_annotated_saver_ribomito_SMC04-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC05-N_dir/filtered_annotated_saver_ribomito_SMC05-N_log2_pc1_cpm.csv","rCASC_GSE132465/SMC06-N_dir/filtered_annotated_saver_ribomito_SMC06-N_log2_pc1_cpm.csv","rCASC_GSE132465/SMC06-T_dir/filtered_annotated_saver_ribomito_SMC06-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC07-N_dir/filtered_annotated_saver_ribomito_SMC07-N_log2_pc1_cpm.csv","rCASC_GSE132465/SMC07-T_dir/filtered_annotated_saver_ribomito_SMC07-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC08-N_dir/filtered_annotated_saver_ribomito_SMC08-N_log2_pc1_cpm.csv","rCASC_GSE132465/SMC08-T_dir/filtered_annotated_saver_ribomito_SMC08-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC09-N_dir/filtered_annotated_saver_ribomito_SMC09-N_log2_pc1_cpm.csv","rCASC_GSE132465/SMC09-T_dir/filtered_annotated_saver_ribomito_SMC09-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC10-N_dir/filtered_annotated_saver_ribomito_SMC10-N_log2_pc1_cpm.csv","rCASC_GSE132465/SMC10-T_dir/filtered_annotated_saver_ribomito_SMC10-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC11-T_dir/filtered_annotated_saver_ribomito_SMC11-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC14-T_dir/filtered_annotated_saver_ribomito_SMC14-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC15-T_dir/filtered_annotated_saver_ribomito_SMC15-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC16-T_dir/filtered_annotated_saver_ribomito_SMC16-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC17-T_dir/filtered_annotated_saver_ribomito_SMC17-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC18-T_dir/filtered_annotated_saver_ribomito_SMC18-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC19-T_dir/filtered_annotated_saver_ribomito_SMC19-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC20-T_dir/filtered_annotated_saver_ribomito_SMC20-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC21-T_dir/filtered_annotated_saver_ribomito_SMC21-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC22-T_dir/filtered_annotated_saver_ribomito_SMC22-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC23-T_dir/filtered_annotated_saver_ribomito_SMC23-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC24-T_dir/filtered_annotated_saver_ribomito_SMC24-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC25-T_dir/filtered_annotated_saver_ribomito_SMC25-T_log2_pc1_cpm.csv","rCASC_GSE144735/KUL01-B_dir/filtered_annotated_saver_ribomito_KUL01-B_log2_pc1_cpm.csv","rCASC_GSE144735/KUL01-N_dir/filtered_annotated_saver_ribomito_KUL01-N_log2_pc1_cpm.csv","rCASC_GSE144735/KUL01-T_dir/filtered_annotated_saver_ribomito_KUL01-T_log2_pc1_cpm.csv","rCASC_GSE144735/KUL19-B_dir/filtered_annotated_saver_ribomito_KUL19-B_log2_pc1_cpm.csv","rCASC_GSE144735/KUL19-N_dir/filtered_annotated_saver_ribomito_KUL19-N_log2_pc1_cpm.csv","rCASC_GSE144735/KUL19-T_dir/filtered_annotated_saver_ribomito_KUL19-T_log2_pc1_cpm.csv","rCASC_GSE144735/KUL21-B_dir/filtered_annotated_saver_ribomito_KUL21-B_log2_pc1_cpm.csv","rCASC_GSE144735/KUL21-N_dir/filtered_annotated_saver_ribomito_KUL21-N_log2_pc1_cpm.csv","rCASC_GSE144735/KUL21-T_dir/filtered_annotated_saver_ribomito_KUL21-T_log2_pc1_cpm.csv","rCASC_GSE144735/KUL28-B_dir/filtered_annotated_saver_ribomito_KUL28-B_log2_pc1_cpm.csv","rCASC_GSE144735/KUL28-N_dir/filtered_annotated_saver_ribomito_KUL28-N_log2_pc1_cpm.csv","rCASC_GSE144735/KUL28-T_dir/filtered_annotated_saver_ribomito_KUL28-T_log2_pc1_cpm.csv","rCASC_GSE144735/KUL30-B_dir/filtered_annotated_saver_ribomito_KUL30-B_log2_pc1_cpm.csv","rCASC_GSE144735/KUL30-N_dir/filtered_annotated_saver_ribomito_KUL30-N_log2_pc1_cpm.csv","rCASC_GSE144735/KUL30-T_dir/filtered_annotated_saver_ribomito_KUL30-T_log2_pc1_cpm.csv","rCASC_GSE144735/KUL31-B_dir/filtered_annotated_saver_ribomito_KUL31-B_log2_pc1_cpm.csv","rCASC_GSE144735/KUL31-N_dir/filtered_annotated_saver_ribomito_KUL31-N_log2_pc1_cpm.csv","rCASC_GSE144735/KUL31-T_dir/filtered_annotated_saver_ribomito_KUL31-T_log2_pc1_cpm.csv"]
+
+rule all_paste2: 
+    input: expand('{sample}_osign.tsv', sample=[x for x in SAMPLES2 if re.search("-T", x)]),  expand('{sample}_osign.tsv', sample=[x for x in SAMPLES2 if re.search("-N", x)])
+    output: "all_sign_others.tsv.gz"
+    shell:
+        """
+            head -n1 {input[1]} > {output}.tmp
+            for f in {input}; do sed 1d $f; done >> {output}.tmp
+            gzip -c {output}.tmp > {output}
+            rm {output}.tmp
+        """
+
+SCRNA2=["rCASC_GSE132465/SMC01-N_dir/filtered_annotated_saver_ribomito_SMC01-N_log2_pc1_cpm.csv","rCASC_GSE132465/SMC01-T_dir/filtered_annotated_saver_ribomito_SMC01-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC02-N_dir/filtered_annotated_saver_ribomito_SMC02-N_log2_pc1_cpm.csv","rCASC_GSE132465/SMC02-T_dir/filtered_annotated_saver_ribomito_SMC02-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC03-N_dir/filtered_annotated_saver_ribomito_SMC03-N_log2_pc1_cpm.csv","rCASC_GSE132465/SMC03-T_dir/filtered_annotated_saver_ribomito_SMC03-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC04-N_dir/filtered_annotated_saver_ribomito_SMC04-N_log2_pc1_cpm.csv","rCASC_GSE132465/SMC04-T_dir/filtered_annotated_saver_ribomito_SMC04-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC05-N_dir/filtered_annotated_saver_ribomito_SMC05-N_log2_pc1_cpm.csv","rCASC_GSE132465/SMC06-N_dir/filtered_annotated_saver_ribomito_SMC06-N_log2_pc1_cpm.csv","rCASC_GSE132465/SMC06-T_dir/filtered_annotated_saver_ribomito_SMC06-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC07-N_dir/filtered_annotated_saver_ribomito_SMC07-N_log2_pc1_cpm.csv","rCASC_GSE132465/SMC07-T_dir/filtered_annotated_saver_ribomito_SMC07-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC08-N_dir/filtered_annotated_saver_ribomito_SMC08-N_log2_pc1_cpm.csv","rCASC_GSE132465/SMC08-T_dir/filtered_annotated_saver_ribomito_SMC08-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC09-N_dir/filtered_annotated_saver_ribomito_SMC09-N_log2_pc1_cpm.csv","rCASC_GSE132465/SMC09-T_dir/filtered_annotated_saver_ribomito_SMC09-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC10-N_dir/filtered_annotated_saver_ribomito_SMC10-N_log2_pc1_cpm.csv","rCASC_GSE132465/SMC10-T_dir/filtered_annotated_saver_ribomito_SMC10-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC11-T_dir/filtered_annotated_saver_ribomito_SMC11-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC14-T_dir/filtered_annotated_saver_ribomito_SMC14-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC15-T_dir/filtered_annotated_saver_ribomito_SMC15-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC16-T_dir/filtered_annotated_saver_ribomito_SMC16-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC17-T_dir/filtered_annotated_saver_ribomito_SMC17-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC18-T_dir/filtered_annotated_saver_ribomito_SMC18-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC19-T_dir/filtered_annotated_saver_ribomito_SMC19-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC20-T_dir/filtered_annotated_saver_ribomito_SMC20-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC21-T_dir/filtered_annotated_saver_ribomito_SMC21-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC22-T_dir/filtered_annotated_saver_ribomito_SMC22-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC23-T_dir/filtered_annotated_saver_ribomito_SMC23-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC24-T_dir/filtered_annotated_saver_ribomito_SMC24-T_log2_pc1_cpm.csv","rCASC_GSE132465/SMC25-T_dir/filtered_annotated_saver_ribomito_SMC25-T_log2_pc1_cpm.csv","rCASC_GSE144735/KUL01-B_dir/filtered_annotated_saver_ribomito_KUL01-B_log2_pc1_cpm.csv","rCASC_GSE144735/KUL01-N_dir/filtered_annotated_saver_ribomito_KUL01-N_log2_pc1_cpm.csv","rCASC_GSE144735/KUL01-T_dir/filtered_annotated_saver_ribomito_KUL01-T_log2_pc1_cpm.csv","rCASC_GSE144735/KUL19-B_dir/filtered_annotated_saver_ribomito_KUL19-B_log2_pc1_cpm.csv","rCASC_GSE144735/KUL19-N_dir/filtered_annotated_saver_ribomito_KUL19-N_log2_pc1_cpm.csv","rCASC_GSE144735/KUL19-T_dir/filtered_annotated_saver_ribomito_KUL19-T_log2_pc1_cpm.csv","rCASC_GSE144735/KUL21-B_dir/filtered_annotated_saver_ribomito_KUL21-B_log2_pc1_cpm.csv","rCASC_GSE144735/KUL21-N_dir/filtered_annotated_saver_ribomito_KUL21-N_log2_pc1_cpm.csv","rCASC_GSE144735/KUL21-T_dir/filtered_annotated_saver_ribomito_KUL21-T_log2_pc1_cpm.csv","rCASC_GSE144735/KUL28-B_dir/filtered_annotated_saver_ribomito_KUL28-B_log2_pc1_cpm.csv","rCASC_GSE144735/KUL28-N_dir/filtered_annotated_saver_ribomito_KUL28-N_log2_pc1_cpm.csv","rCASC_GSE144735/KUL28-T_dir/filtered_annotated_saver_ribomito_KUL28-T_log2_pc1_cpm.csv","rCASC_GSE144735/KUL30-B_dir/filtered_annotated_saver_ribomito_KUL30-B_log2_pc1_cpm.csv","rCASC_GSE144735/KUL30-N_dir/filtered_annotated_saver_ribomito_KUL30-N_log2_pc1_cpm.csv","rCASC_GSE144735/KUL30-T_dir/filtered_annotated_saver_ribomito_KUL30-T_log2_pc1_cpm.csv","rCASC_GSE144735/KUL31-B_dir/filtered_annotated_saver_ribomito_KUL31-B_log2_pc1_cpm.csv","rCASC_GSE144735/KUL31-N_dir/filtered_annotated_saver_ribomito_KUL31-N_log2_pc1_cpm.csv","rCASC_GSE144735/KUL31-T_dir/filtered_annotated_saver_ribomito_KUL31-T_log2_pc1_cpm.csv"]
+
+rule entropy:
+    input: expr="../rCASC_GSE132465/{sample}_dir/filtered_annotated_saver_ribomito_{sample}_log2_pc1_cpm.csv"
+    output: en="{sample}_entropy.tsv"
+    script: PRJ_ROOT+"/local/src/entropy.R"
+
+rule entropy2:
+    input: expr="../rCASC_GSE144735/{sample}_dir/filtered_annotated_saver_ribomito_{sample}_log2_pc1_cpm.csv"
+    output: en="{sample}_entropy.tsv"
+    script: PRJ_ROOT+"/local/src/entropy.R"
+
+
+rule all_entropy:
+    input: expand("{sample}_entropy.tsv", sample=SAMPLES2), expand("{sample}_entropy.tsv", sample=SAMPLES)
+
+
+rule all_paste_entropy: 
+    input: expand('{sample}_entropy.tsv', sample=[x for x in SAMPLES2 if re.search("-T", x)]),  expand('{sample}_entropy.tsv', sample=[x for x in SAMPLES2 if re.search("-N", x)])
+    output: "all_entropy.tsv.gz"
+    shell:
+        """
+            head -n1 {input[1]} > {output}.tmp
+            for f in {input}; do sed 1d $f; done >> {output}.tmp
+            gzip -c {output}.tmp > {output}
+            rm {output}.tmp
+        """
+
+### Our data
+US_DIR='/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_Ire_cetuxi'
+US=['CRC0322_cetux_1', 'CRC0322_NT_1_3000', 'CRC0327_cetux_1_4000',  'CRC0327_cetux_2', 'CRC0327_NT_1', 'CRC0327_NT_2', 'CRC1502_cetux_1', 'CRC1502_NT_1']
+MAP="../rCASC_GSE144735/first_ensg_gs_map.tsv"
+
+SIGNATURES_US=['stem', 'onf', 'colon', 'esophagus', 'CBC']
+
+# keep both ensg gs translate with them then only
+rule map:
+    input: counts=US_DIR+'/{sample}_dir/annotated_{sample}.tsv', map=MAP
+    output: counts="us/{sample}.csv"
+    shell: 
+        """
+         tr "," "\\t" < {input.counts} | tr -d '"' | tee >(bawk 'NR==1' | tr "\\t" "," > {output.counts}.tmp1) | translate -k <(bawk '{{print $2":"$1, $1}}' {input.map}) 1 | tr "\\t" "," > {output.counts}.tmp2
+         cat {output.counts}.tmp1 {output.counts}.tmp2 > {output.counts}
+        """
+
+rule sign_score_us:
+    input: 'us/{sample}.csv', US_DIR+'/{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv', expand('{sign}_hs.tsv', sign=SIGNATURES_US)
+    output: sign="{sample}_ussign.tsv"
+    params: sign=SIGNATURES_US
+    script: PRJ_ROOT+"/local/src/seu_module_scores_us.R"
+
+
+rule all_paste_us: 
+    input: expand('{sample}_ussign.tsv', sample=US)
+    output: "all_ussign.tsv.gz"
+    shell:
+        """
+            head -n1 {input[1]} > {output}.tmp
+            for f in {input}; do sed 1d $f |  bawk -vF=$f '{{print F"_"$0}}'; done >> {output}.tmp
+            gzip -c {output}.tmp > {output}
+            rm {output}.tmp
+        """
+
+
+rule entropy_us:
+    input: expr=US_DIR+"/{sample}_dir/filtered_annotated_saver_ribomito_{sample}_log2_pc1_cpm.csv"
+    output: en="{sample}_usentropy.tsv"
+    script: PRJ_ROOT+"/local/src/entropy.R"
+
+
+rule all_entropy_us:
+    input: expand("{sample}_usentropy.tsv", sample=US)
+
+
+rule all_paste_entropy_us: 
+    input: expand('{sample}_usentropy.tsv', sample=US)
+    output: "all_usentropy.tsv.gz"
+    shell:
+        """
+            head -n1 {input[1]} > {output}.tmp
+            for f in {input}; do sed 1d $f |  bawk -vF=$f '{{print F"_"$0}}'; done >> {output}.tmp
+            gzip -c {output}.tmp > {output}
+            rm {output}.tmp
+        """
+
+## cytotrace
+CSV_DIR2_1='/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_GSE132465'
+CSV_DIR2_2='/mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_GSE144735'
+#filtered_annotated_saver_ribomito_
+rule all_ctt_scores:
+    input: expand("{sample}_ctt.tsv", sample=SAMPLES2), expand("{sample}_ctt.tsv", sample=SAMPLES)
+
+# not inputed data are in  /mnt/cold1/snaketree/prj/scRNA/dataset/rCASC_GSE132465/SMC25-T_dir/filtered_annotated_SMC25-T.csv
+rule ctt_score_1:
+    #input: CSV_DIR2_1+'/{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv'
+    input: CSV_DIR2_1+'/{sample}_dir/filtered_annotated_saver_ribomito_{sample}_log2_pc1_cpm.csv'
+    output: sign="{sample}_ctt.tsv"
+    script: PRJ_ROOT+"/local/src/cytotrace.R"
+
+rule ctt_score_2:
+    #input: CSV_DIR2_2+'/{sample}_dir/filtered_annotated_saver_ribomito_{sample}.csv'
+    input: CSV_DIR2_2+'/{sample}_dir/filtered_annotated_saver_ribomito_{sample}_log2_pc1_cpm.csv'
+    output: sign="{sample}_ctt.tsv"
+    script: PRJ_ROOT+"/local/src/cytotrace.R"
+
+rule all_paste_ctt: 
+    input: expand('{sample}_ctt.tsv', sample=[x for x in SAMPLES2 if re.search("-T", x)]),  expand('{sample}_ctt.tsv', sample=[x for x in SAMPLES2 if re.search("-N", x)])
+    output: "all_ctt.tsv.gz"
+    shell:
+        """
+            head -n1 {input[1]} > {output}.tmp
+            for f in {input}; do sed 1d $f; done >> {output}.tmp
+            gzip -c {output}.tmp > {output}
+            rm {output}.tmp
+        """

@@ -7,6 +7,7 @@ d <- read.csv(in_f, row.names=1)
 
 seu <- CreateSeuratObject(counts = as.matrix(d))
 seu <- NormalizeData(object = seu)
+#seu <- LogNormalize(object = seu)
 seu <- FindVariableFeatures(object = seu)
 seu <- ScaleData(object = seu)
 
